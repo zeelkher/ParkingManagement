@@ -1,0 +1,99 @@
+{% extends 'parking/base.html' %}
+{% block content %}
+
+<div class="receipt-container glass-panel mx-auto" style="max-width:560px;">
+
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #e2e8f0;">
+        <h2 style="font-size:22px;font-weight:900;color:#0f172a;letter-spacing:1px;">PARKSAFE</h2>
+        <p style="font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.8px;margin-top:3px;">SMART PARKING RECEIPT</p>
+    </div>
+
+    <!-- Visual number plate -->
+    {% with colors=record.vehicle.get_plate_colors %}
+    <div style="text-align:center;margin-bottom:24px;">
+        <div class="india-plate mx-auto"
+             data-bg="{{ colors.0 }}"
+             data-color="{{ colors.1 }}"
+             style="max-width:280px;border:2px solid #cbd5e1;">
+            <div class="plate-top-bar">
+                <span class="flag-stripe" style="background:#FF9933;"></span>
+                <span class="flag-stripe" style="background:#FFFFFF;"></span>
+                <span class="flag-stripe" style="background:#138808;"></span>
+                <span class="plate-ind-text">IND</span>
+            </div>
+            <div class="plate-number">{{ record.vehicle.vehicle_number }}</div>
+            <div class="plate-category-label">{{ colors.2|upper }}</div>
+        </div>
+    </div>
+    {% endwith %}
+
+    <!-- Receipt Details -->
+    <div class="receipt-details">
+        <div class="receipt-row">
+            <span>OWNER NAME</span><strong>{{ record.vehicle.owner_name|upper }}</strong>
+        </div>
+        <div class="receipt-row">
+            <span>MOBILE</span><strong style="font-family:'JetBrains Mono',monospace;font-size:13px;">+91 {{ record.vehicle.mobile }}</strong>
+        </div>
+        <div class="receipt-row">
+            <span>VEHICLE TYPE</span><strong>{{ record.vehicle.vehicle_type|upper }}</strong>
+        </div>
+        <div class="receipt-row">
+            <span>SLOT NUMBER</span>
+            <strong>
+                <span class="slot-badge">{{ record.parking_number }}</span>
+            </strong>
+        </div>
+        <div class="receipt-row">
+            <span>FLOOR</span><strong>{{ record.floor_name }}</strong>
+        </div>
+        <div class="receipt-row">
+            <span>PARKING AREA</span><strong>{{ record.parking_area_name }}</strong>
+        </div>
+        <hr class="my-3">
+        <div class="receipt-row">
+            <span>CHECK-IN TIME</span><strong style="font-size:13px;">{{ record.entry_time|date:"d M Y • h:i A" }}</strong>
+        </div>
+        <div class="receipt-row">
+            <span>CHECKOUT TIME</span><strong style="font-size:13px;">{{ record.exit_time|date:"d M Y • h:i A" }}</strong>
+        </div>
+        <div class="receipt-row">
+            <span>DURATION</span><strong>{{ record.formatted_duration|upper }}</strong>
+        </div>
+        <hr class="my-3">
+        <div class="receipt-row total-fee" style="background:#f0fdf4;border-radius:8px;padding:14px 16px;margin:0 -4px;">
+            <span style="font-size:14px;font-weight:700;color:#15803d;">TOTAL FEE</span>
+            <strong class="fee-amount">₹{{ record.parking_fee }}</strong>
+        </div>
+    </div>
+
+    <!-- QR Code Section -->
+    <div style="text-align:center;padding-top:20px;margin-top:20px;border-top:1px dashed #e2e8f0;">
+        <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:14px;">{% if is_payment_qr %}SCAN QR TO PAY{% else %}SCAN QR TO VERIFY RECEIPT{% endif %}</p>
+        <div style="display:inline-block;padding:12px;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+            {% if payment_qr_image %}
+                <img src="{{ payment_qr_image.url }}"
+                     alt="Receipt QR Code"
+                     style="width:160px;height:160px;object-fit:contain;display:block;border-radius:6px;">
+            {% else %}
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={{ qr_data|urlencode }}"
+                     alt="Receipt QR Code"
+                     style="width:160px;height:160px;object-fit:contain;display:block;border-radius:6px;">
+            {% endif %}
+        </div>
+        <p style="font-size:11px;color:#cbd5e1;margin-top:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;">REC-{{ record.id }} &nbsp;·&nbsp; {{ record.vehicle.vehicle_number }}</p>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:12px;margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0;">
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary" style="flex:1;text-align:center;justify-content:center;">
+            ← BACK TO DASHBOARD
+        </a>
+        <a href="{% url 'vehicle_entry' %}" class="btn btn-primary" style="flex:1;text-align:center;justify-content:center;">
+            + NEW CHECK-IN
+        </a>
+    </div>
+
+</div>
+{% endblock %}

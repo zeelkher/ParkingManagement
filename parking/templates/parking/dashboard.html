@@ -1,0 +1,161 @@
+{% extends 'parking/base.html' %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- ══ Stats Grid ══ -->
+<div class="stats-grid">
+    <div class="stat-card blue">
+        <div class="stat-label">Total Slots</div>
+        <div class="stat-value">{{ total_slots }}</div>
+        <div class="stat-sub">TOTAL CAPACITY</div>
+        <div class="stat-icon-bg"><i class="bi bi-p-circle-fill" aria-hidden="true"></i></div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-label">Available</div>
+        <div class="stat-value">{{ available_slots }}</div>
+        <div class="stat-sub">OPEN NOW</div>
+        <div class="stat-icon-bg"><i class="bi bi-check-circle-fill" aria-hidden="true"></i></div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-label">Occupied</div>
+        <div class="stat-value">{{ occupied_slots }}</div>
+        <div class="stat-sub">VEHICLES PARKED</div>
+        <div class="stat-icon-bg"><i class="bi bi-car-front-fill" aria-hidden="true"></i></div>
+    </div>
+    <div class="stat-card purple">
+        <div class="stat-label">Today's Revenue</div>
+        <div class="stat-value" style="font-size:26px;">₹{{ todays_revenue }}</div>
+        <div class="stat-sub">COLLECTED TODAY</div>
+        <div class="stat-icon-bg"><i class="bi bi-currency-rupee" aria-hidden="true"></i></div>
+    </div>
+    <div class="stat-card orange">
+        <div class="stat-label">Today's Entries</div>
+        <div class="stat-value">{{ todays_entries }}</div>
+        <div class="stat-sub">VEHICLES CHECKED IN</div>
+        <div class="stat-icon-bg"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i></div>
+    </div>
+</div>
+
+<!-- ══ Parking Lot Map ══ -->
+<div class="usage-bar-wrap">
+    <div class="parking-map-heading">
+        <div class="parking-map-total"><strong>{{ occupied_slots }}</strong> of {{ total_slots }} parking occupied</div>
+    </div>
+    <div class="parking-lot-map" aria-label="Parking space occupancy map">
+        {% for floor in parking_floors %}
+        <div class="parking-floor-row">
+            <div class="floor-label"><strong>{{ floor.label }}</strong><small>{{ floor.occupied_slots }} / {{ floor.total_slots }} occupied</small></div>
+            <div class="parking-spaces">
+                {% for space in floor.spaces %}
+                <span class="parking-space {% if space.occupied %}is-occupied{% else %}is-free{% endif %}"
+                    title="{% if space.occupied %}Occupied{% else %}Available{% endif %} space {{ space.number }}">
+                    {% if space.occupied %}
+                    <span aria-hidden="true" style="display: inline-flex; align-items: center; gap: 4px;">
+                        {% if space.vehicle_type == 'Car' or space.vehicle_type == 'Jeep' or space.vehicle_type == 'Van' %}
+                        <i class="fa-solid fa-car"></i>
+                        {% elif space.vehicle_type == 'Bike' or space.vehicle_type == 'Motorcycle' %}
+                        <i class="fa-solid fa-motorcycle"></i>
+                        {% elif space.vehicle_type == 'Bus' %}
+                        <i class="fa-solid fa-bus"></i>
+                        {% elif space.vehicle_type == 'Truck' or space.vehicle_type == 'Lorry' or space.vehicle_type == 'Tractor' or space.vehicle_type == 'Tempo' %}
+                        <i class="fa-solid fa-truck"></i>
+                        {% else %}
+                        <i class="fa-solid fa-car-side"></i>
+                        {% endif %}
+                        {{ space.number }}
+                    </span>
+                    {% else %}
+                    <span>{{ space.number }}</span>
+                    {% endif %}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="parking-map-key"><span><i class="key-car"></i> Occupied slot</span><span><i class="key-free"></i>
+            Available slot</span><span><strong>{{ percent_occupied }}%</strong> occupied</span></div>
+</div>
+
+<!-- ══ Active Vehicles Table ══ -->
+<div class="table-card">
+    <div class="table-card-header">
+        <h2>CURRENTLY PARKED VEHICLES</h2>
+        <span class="count-chip">{{ occupied_slots }} ACTIVE</span>
+    </div>
+
+    <table class="modern-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>NUMBER PLATE</th>
+                <th>CATEGORY</th>
+                <th>TYPE</th>
+                <th>OWNER</th>
+                <th>MOBILE</th>
+                <th>SLOT</th>
+                <th>FLOOR</th>
+                <th>ENTRY TIME</th>
+                <th style="text-align:right;">ACTION</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in active_records %}
+            {% with colors=record.vehicle.get_plate_colors %}
+            <tr>
+                <td style="color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;">{{
+                    forloop.counter }}</td>
+                <td>
+                    <span class="india-plate-sm" data-bg="{{ colors.0 }}" data-color="{{ colors.1 }}">
+                        {{ record.vehicle.vehicle_number }}
+                    </span>
+                </td>
+                <td><span class="plate-cat-tag">{{ colors.2|upper }}</span></td>
+                <td style="font-size:12px;font-weight:700;letter-spacing:0.3px;">{{ record.vehicle.vehicle_type|upper }}
+                </td>
+                <td style="font-weight:600;font-size:13px;">{{ record.vehicle.owner_name|upper }}</td>
+                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;">+91 {{
+                    record.vehicle.mobile }}</td>
+                <td><span class="slot-badge">{{ record.parking_number }}</span></td>
+                <td style="font-size:12px;color:#475569;"><strong>{{ record.parking_area_name }}</strong><br>{{
+                    record.floor_name }}</td>
+                <td style="font-size:12px;color:#475569;">
+                    {{ record.entry_time|date:"d M Y" }}<br>
+                    <strong style="color:#1e293b;">{{ record.entry_time|date:"h:i A" }}</strong>
+                </td>
+                <td style="text-align:right;">
+                    <!-- Discrete delete button -->
+                    <form action="{% url 'delete_record' record.id %}" method="post"
+                        onsubmit="return confirm('ARE YOU SURE YOU WANT TO DELETE THIS ACTIVE RECORD? THIS CANNOT BE UNDONE.');"
+                        style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="dashboard">
+                        <button type="submit" class="btn-delete-discrete" title="DELETE RECORD">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path
+                                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                <line x1="10" y1="11" x2="10" y2="17" />
+                                <line x1="14" y1="11" x2="14" y2="17" />
+                            </svg>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endwith %}
+            {% empty %}
+            <tr>
+                <td colspan="10" style="text-align:center;padding:48px;color:#94a3b8;">
+                    <div style="font-size:40px;margin-bottom:12px;">🅿</div>
+                    <p style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">NO VEHICLES
+                        CURRENTLY PARKED</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

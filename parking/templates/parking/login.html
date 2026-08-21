@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PARKSAFE — Admin Login</title>
+    <meta name="description" content="Parksafe Admin Authentication Portal">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=6.0">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #f1f5f9;
+            flex-direction: column;
+            gap: 0;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 40px 36px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.07);
+        }
+        .btn-primary { width: 100%; padding: 12px; font-size: 14px; }
+        .form-group label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 700; }
+        .form-control { padding: 11px 14px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <!-- Logo -->
+        <div style="text-align:center;margin-bottom:32px;">
+            <h1 style="font-size:26px;font-weight:900;color:#0f172a;letter-spacing:1px;">PARKSAFE</h1>
+            <p style="font-size:12px;font-weight:600;color:#94a3b8;margin-top:4px;text-transform:uppercase;letter-spacing:0.8px;">ADMIN LOGIN PORTAL</p>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger" style="margin-bottom:20px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="post" autocomplete="off">
+            {% csrf_token %}
+            <div class="form-group" style="margin-bottom:16px;">
+                <label>Username</label>
+                <input type="text" name="username" class="form-control" placeholder="Enter username" required autofocus>
+            </div>
+            <div class="form-group" style="margin-bottom:24px;">
+                <label>Password</label>
+                <input type="password" name="password" class="form-control" placeholder="Enter password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                SIGN IN →
+            </button>
+        </form>
+
+        <div style="margin-top:20px;text-align:center;font-size:11px;color:#cbd5e1;border-top:1px solid #f1f5f9;padding-top:16px;">
+            PARKSAFE SMART PARKING MANAGEMENT
+        </div>
+    </div>
+</body>
+</html>

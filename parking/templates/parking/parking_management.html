@@ -1,0 +1,378 @@
+{% extends 'parking/base.html' %} {% block content %}
+{% if messages %}{% for message in messages %}
+<div
+  class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %}"
+>
+  {{ message }}
+</div>
+{% endfor %}{% endif %}
+<div class="management-add-grid">
+  <section class="glass-panel">
+    <h2><i class="bi bi-building"></i>Parking Area</h2>
+    <form method="post" class="management-form" enctype="multipart/form-data">
+      {% csrf_token %}<input
+        type="hidden"
+        name="action"
+        value="add_area"
+      /><label>Area name</label>{{ area_form.name }}<label>Address / note</label
+      >{{ area_form.address }}<label>Receipt QR data / UPI link</label>{{ area_form.payment_qr_data }}<label>Or Upload QR Code Image</label>{{ area_form.payment_qr_image }}<small class="field-help">Upload a custom QR code image instead of encoding text/links.</small><label>Total slots in this area</label>{{ area_form.total_slots }}<button class="btn btn-primary" type="submit">
+        <i class="bi bi-plus-lg"></i> Add Area
+      </button>
+    </form>
+  </section>
+  <section class="glass-panel">
+    <h2><i class="bi bi-layers"></i>Add Floor &amp; Slots</h2>
+    <form method="post" class="management-form">
+      {% csrf_token %}<input
+        type="hidden"
+        name="action"
+        value="add_floor"
+      /><label>Parking area</label>{{ floor_form.parking_area }}<label
+        >Floor name</label
+      >{{ floor_form.name }}<label>Slot identifier (before the dash)</label>{{ floor_form.slot_prefix }}<small class="field-help"
+        >Use G for Ground Floor, F1 for Floor 1, or B for Basement.</small
+      ><label>How many slots on this floor?</label>{{ floor_form.slot_count }}<label>Floor order</label>{{ floor_form.sort_order }}<button
+        class="btn btn-primary"
+        type="submit"
+      >
+        <i class="bi bi-plus-lg"></i> Add Floor &amp; Create Slots
+      </button>
+    </form>
+  </section>
+</div>
+<section class="glass-panel management-list">
+  <div class="table-card-header">
+    <div>
+      <h2><i class="bi bi-grid-3x3-gap"></i> Configured Parking Layout</h2>
+      <span class="count-chip"
+        >{{ areas|length }} AREA{{ areas|length|pluralize }}</span
+      >
+    </div>
+    <div class="layout-actions">
+      <button class="btn btn-secondary" id="edit-layout" type="button">
+        <i class="bi bi-pencil-square"></i> Edit layout</button
+      ><button
+        class="btn btn-primary"
+        id="save-layout"
+        form="layout-form"
+        type="submit"
+        hidden
+      >
+        <i class="bi bi-floppy"></i> Save changes
+      </button>
+    </div>
+  </div>
+  <form id="layout-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}<input type="hidden" name="action" value="save_layout" /> {% for area in areas %}
+    <details class="management-area layout-area">
+      <summary>
+        <span
+          ><i class="bi bi-chevron-right layout-chevron"></i>
+          <strong>{{ area.name }}</strong>
+          <small
+            >{{ area.floors.all|length }} floor{{ area.floors.all|pluralize }} ·
+            {{ area.total_slots }} slots capacity</small
+          ></span
+        >{% if area.is_under_maintenance %}<span class="area-status-badge"
+          ><i class="bi bi-slash-circle"></i> UNAVAILABLE</span
+        >{% endif %}
+      </summary>
+      <div class="management-area-body">
+        <div class="management-row area-row">
+          <div>
+            <label>Parking area</label
+            ><input
+              class="form-control"
+              data-layout-field
+              name="area_name_{{ area.id }}"
+              value="{{ area.name }}"
+              readonly
+            />
+          </div>
+          <div>
+            <label>Address / note</label
+            ><input
+              class="form-control"
+              data-layout-field
+              name="area_address_{{ area.id }}"
+              value="{{ area.address }}"
+              readonly
+            />
+          </div>
+          <div>
+            <label>Receipt QR data / UPI link</label
+            ><input
+              class="form-control"
+              data-layout-field
+              name="area_payment_qr_data_{{ area.id }}"
+              value="{{ area.payment_qr_data }}"
+              placeholder="upi://pay?pa=merchant@bank"
+              readonly
+            />
+          </div>
+          <div>
+            <label>Upload QR Code Image</label>
+            <div class="qr-upload-wrapper" style="display: flex; flex-direction: column; gap: 4px;">
+              {% if area.payment_qr_image %}
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <img src="{{ area.payment_qr_image.url }}" alt="QR" style="width: 24px; height: 24px; object-fit: contain; border-radius: 4px;">
+                  <label style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; margin: 0; cursor: pointer; color: #ef4444;">
+                    <input type="checkbox" name="delete_area_payment_qr_image_{{ area.id }}" value="1" data-layout-field disabled> Delete
+                  </label>
+                </div>
+              {% endif %}
+              <input
+                type="file"
+                class="form-control"
+                data-layout-field
+                name="area_payment_qr_image_{{ area.id }}"
+                accept="image/*"
+                readonly
+                disabled
+              />
+            </div>
+          </div>
+          <div>
+            <label>Total slots</label
+            ><input
+              class="form-control sort-input"
+              data-layout-field
+              type="number"
+              name="area_total_slots_{{ area.id }}"
+              value="{{ area.total_slots }}"
+              min="1"
+              readonly
+            />
+          </div>
+          <div class="icon-maintenance-group">
+            <input
+              data-layout-field
+              type="checkbox"
+              id="area_maint_{{ area.id }}"
+              name="area_maintenance_{{ area.id }}"
+              {% if area.is_under_maintenance %}checked{% endif %}
+              disabled
+              class="icon-checkbox"
+            /><label
+              for="area_maint_{{ area.id }}"
+              title="Maintenance"
+              class="icon-label"
+              ><i class="bi bi-wrench"></i
+            ></label>
+          </div>
+          <button
+            class="btn-icon-action layout-delete"
+            data-delete-action
+            form="delete-area-{{ area.id }}"
+            type="submit"
+            title="Delete area"
+            disabled
+          >
+            <i class="bi bi-trash3"></i>
+          </button>
+        </div>
+        {% for floor in area.floors.all %}
+        <details class="management-floor layout-floor">
+          <summary>
+            <span
+              ><i class="bi bi-chevron-right layout-chevron"></i>
+              <strong>{{ floor.name }}</strong>{% if floor.is_under_maintenance %}
+              <span class="floor-status-badge"
+                ><i class="bi bi-slash-circle"></i> UNAVAILABLE</span
+              >{% endif %}</span
+            ><span class="floor-slot-count"
+              >{{ floor.slots.all|length }} slot{{ floor.slots.all|pluralize }}</span
+            >
+          </summary>
+          <div class="management-row floor-row">
+            <div>
+              <label>Floor name</label
+              ><input
+                class="form-control"
+                data-layout-field
+                name="floor_name_{{ floor.id }}"
+                value="{{ floor.name }}"
+                readonly
+              />
+            </div>
+            <div>
+              <label>Identifier</label
+              ><input
+                class="form-control"
+                data-layout-field
+                name="floor_slot_prefix_{{ floor.id }}"
+                value="{{ floor.slot_prefix }}"
+                readonly
+              />
+            </div>
+            <div>
+              <label>Slots</label
+              ><input
+                class="form-control sort-input"
+                data-layout-field
+                type="number"
+                name="floor_slot_count_{{ floor.id }}"
+                value="{{ floor.slots.all|length }}"
+                min="1"
+                readonly
+              />
+            </div>
+            <div>
+              <label>Order</label
+              ><input
+                class="form-control sort-input"
+                data-layout-field
+                type="number"
+                name="floor_sort_order_{{ floor.id }}"
+                value="{{ floor.sort_order }}"
+                min="0"
+                readonly
+              />
+            </div>
+            <div class="icon-maintenance-group">
+              <input
+                data-layout-field
+                type="checkbox"
+                id="floor_maint_{{ floor.id }}"
+                name="floor_maintenance_{{ floor.id }}"
+                {% if floor.is_under_maintenance %}checked{% endif %}
+                disabled
+                class="icon-checkbox"
+              /><label
+                for="floor_maint_{{ floor.id }}"
+                title="Maintenance"
+                class="icon-label"
+                ><i class="bi bi-wrench"></i
+              ></label>
+            </div>
+            <button
+              class="btn-icon-action layout-delete"
+              data-delete-action
+              form="delete-floor-{{ floor.id }}"
+              type="submit"
+              title="Delete floor"
+              disabled
+            >
+              <i class="bi bi-trash3"></i>
+            </button>
+          </div>
+          <div class="management-slots">
+            {% for slot in floor.slots.all %}
+            <div class="slot-row">
+              <span class="slot-display">{{ slot.number }}</span
+              ><input
+                class="form-control"
+                data-layout-field
+                name="slot_number_{{ slot.id }}"
+                value="{{ slot.number }}"
+                readonly
+              /><input
+                class="form-control sort-input"
+                data-layout-field
+                type="number"
+                name="slot_sort_order_{{ slot.id }}"
+                value="{{ slot.sort_order }}"
+                min="0"
+                readonly
+              />
+              <div class="icon-maintenance-group">
+                <input
+                  data-layout-field
+                  type="checkbox"
+                  id="slot_maint_{{ slot.id }}"
+                  name="slot_maintenance_{{ slot.id }}"
+                  {% if slot.is_under_maintenance %}checked{% endif %}
+                  disabled
+                  class="icon-checkbox"
+                /><label
+                  for="slot_maint_{{ slot.id }}"
+                  title="Maintenance"
+                  class="icon-label"
+                  ><i class="bi bi-wrench"></i
+                ></label>
+              </div>
+              <button
+                class="btn-icon-action layout-delete"
+                data-delete-action
+                form="delete-slot-{{ slot.id }}"
+                type="submit"
+                title="Delete slot"
+                disabled
+              >
+                <i class="bi bi-trash3"></i>
+              </button>
+            </div>
+            {% endfor %}
+          </div>
+        </details>
+        {% endfor %}
+      </div>
+    </details>
+    {% empty %}
+    <p class="slot-map-empty">
+      No parking areas yet. Add an area above to begin.
+    </p>
+    {% endfor %}
+  </form>
+  {% for area in areas %}
+  <form id="delete-area-{{ area.id }}" method="post" class="delete-form">
+    {% csrf_token %}<input
+      type="hidden"
+      name="action"
+      value="delete_area"
+    /><input type="hidden" name="id" value="{{ area.id }}" />
+  </form>
+  {% for floor in area.floors.all %}
+  <form id="delete-floor-{{ floor.id }}" method="post" class="delete-form">
+    {% csrf_token %}<input
+      type="hidden"
+      name="action"
+      value="delete_floor"
+    /><input type="hidden" name="id" value="{{ floor.id }}" />
+  </form>
+  {% for slot in floor.slots.all %}
+  <form id="delete-slot-{{ slot.id }}" method="post" class="delete-form">
+    {% csrf_token %}<input
+      type="hidden"
+      name="action"
+      value="delete_slot"
+    /><input type="hidden" name="id" value="{{ slot.id }}" />
+  </form>
+  {% endfor %}{% endfor %}{% endfor %}
+</section>
+{% endblock %} {% block scripts %}
+<script>
+  const editButton = document.getElementById("edit-layout"),
+    saveButton = document.getElementById("save-layout"),
+    editableFields = document.querySelectorAll("[data-layout-field]"),
+    deleteButtons = document.querySelectorAll("[data-delete-action]");
+  function setEditMode(enabled) {
+    editableFields.forEach((field) => {
+      field.readOnly = !enabled;
+      field.disabled = !enabled;
+    });
+    deleteButtons.forEach((button) => (button.disabled = !enabled));
+    document
+      .querySelector(".management-list")
+      ?.classList.toggle("layout-is-editing", enabled);
+  }
+  setEditMode(false);
+  editButton?.addEventListener("click", () => {
+    setEditMode(true);
+    editButton.hidden = true;
+    saveButton.hidden = false;
+    document
+      .querySelectorAll(".layout-area")
+      .forEach((area) => (area.open = true));
+  });
+  document
+    .querySelectorAll(".layout-area > summary, .layout-floor > summary")
+    .forEach((summary) =>
+      summary.addEventListener("click", (event) => {
+        event.preventDefault();
+        const panel = summary.parentElement;
+        panel.open = !panel.open;
+      }),
+    );
+</script>
+{% endblock %}

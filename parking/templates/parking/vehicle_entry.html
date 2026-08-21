@@ -1,0 +1,134 @@
+{% extends 'parking/base.html' %}
+{% block content %}
+<div class="form-container">
+    {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+    {% if form.errors %}<div class="alert alert-danger"><div><strong>PLEASE FIX THE FOLLOWING ERRORS:</strong>{% for field in form %}{% for error in field.errors %}<div>• {{ field.label|upper }}: {{ error }}</div>{% endfor %}{% endfor %}{% for error in form.non_field_errors %}<div>• {{ error }}</div>{% endfor %}</div></div>{% endif %}
+    <form method="post" autocomplete="off" id="entry-form">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom: 16px;">
+            <div style="display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 8px; align-items: flex-end;">
+                <div>
+                    <label for="id_vehicle_number">Vehicle Number</label>
+                    <input type="text" name="vehicle_number" id="id_vehicle_number" class="form-control" placeholder="GJ 00 AA 0000" value="{{ form.vehicle_number.value|default:'' }}" maxlength="20" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:2px;font-size:15px;font-weight:700;" required>
+                    <div class="invalid-feedback" id="vnum-error">VEHICLE NUMBER MUST MATCH STATE CODE</div>
+                </div>
+                <div>
+                    <label for="id_state_code">State Code</label>
+                    <input type="text" name="state_code" id="id_state_code" class="form-control" placeholder="GJ" value="{{ form.state_code.value|default:'' }}" maxlength="5" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:3px;font-size:18px;font-weight:800;" required>
+                </div>
+                <div class="bh-series-control">
+                    <input type="checkbox" name="bh_series" id="id_bh_series" {% if form.bh_series.value %}checked{% endif %}>
+                    <label for="id_bh_series" class="bh-series-label" title="Bharat (BH) Series vehicle" aria-label="Bharat (BH) Series vehicle">
+                        <i class="bi bi-patch-check-fill" aria-hidden="true"></i><span>BH</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="form-grid-3col">
+            <div class="form-group"><label>Vehicle Type</label>{{ form.vehicle_type }}</div>
+            <div class="form-group"><label>Plate Category</label>{{ form.plate_type }}</div>
+            <div class="form-group"><label>Parking Area</label>{{ form.parking_area }}</div>
+            <div class="form-group"><label>Parking Floor</label>{{ form.parking_floor }}</div>
+            <div class="form-group"><label>Parking Slot</label>{{ form.parking_slot }}<small class="field-help">{{ form.parking_slot.help_text }}</small></div>
+            <div class="form-group"><label>Entry Date &amp; Time</label>{{ form.entry_time }}<small class="field-help">{{ form.entry_time.help_text }}</small></div>
+            <div class="form-group"><label>Owner Name</label><input type="text" name="owner_name" id="id_owner_name" class="form-control" placeholder="FULL NAME" value="{{ form.owner_name.value|default:'' }}" style="text-transform:uppercase;" required></div>
+            <div class="form-group"><label>Mobile Number</label><div class="mobile-input-wrap"><span class="mobile-prefix">+91</span><input type="text" name="mobile" id="id_mobile" class="form-control" placeholder="9876543210" value="{{ form.mobile.value|default:'' }}" maxlength="10" inputmode="numeric" required></div><div class="invalid-feedback" id="mobile-error">MUST BE 10 DIGITS (6/7/8/9 START)</div></div>
+        </div>
+        <section class="checkin-slot-map" aria-label="Select a parking slot">
+            <div class="slot-map-heading"><strong>Select a free slot</strong><span>Tap an available bay to select it.</span></div>
+            {% for floor in parking_floors %}
+            <div class="checkin-floor-row">
+                <span class="checkin-floor-label">{{ floor.label }}</span>
+                <div class="checkin-spaces">
+                    {% for space in floor.spaces %}
+                    {% if space.occupied %}
+                    <span class="checkin-space is-occupied" title="{{ space.number }} is occupied" style="display: inline-flex; align-items: center; gap: 4px;">
+                        {% if space.vehicle_type == 'Car' or space.vehicle_type == 'Jeep' or space.vehicle_type == 'Van' %}
+                            <i class="fa-solid fa-car"></i>
+                        {% elif space.vehicle_type == 'Bike' or space.vehicle_type == 'Motorcycle' %}
+                            <i class="fa-solid fa-motorcycle"></i>
+                        {% elif space.vehicle_type == 'Bus' %}
+                            <i class="fa-solid fa-bus"></i>
+                        {% elif space.vehicle_type == 'Truck' or space.vehicle_type == 'Lorry' or space.vehicle_type == 'Tractor' or space.vehicle_type == 'Tempo' %}
+                            <i class="fa-solid fa-truck"></i>
+                        {% else %}
+                            <i class="fa-solid fa-car-side"></i>
+                        {% endif %}
+                        {{ space.number }}
+                    </span>
+                    {% else %}
+                    <button type="button" class="checkin-space is-free" data-slot-id="{{ space.id }}" title="Select {{ space.number }}">{{ space.number }}</button>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% empty %}
+            <p class="slot-map-empty">No slots are configured. An administrator must add an area, floor, and slot in Parking Management.</p>
+            {% endfor %}
+            <div class="checkin-slot-key"><span><i class="fa-solid fa-car-side" style="margin-right: 4px;"></i> Occupied</span><span>Outlined bay Available</span></div>
+        </section>
+        <details class="plate-ref-table mt-4" open><summary>Parking Price Guide</summary><table class="modern-table"><thead><tr><th>Vehicle</th><th>1st Hour</th><th>Each Additional Hour</th></tr></thead><tbody><tr><td>BIKE / MOTORCYCLE</td><td>₹20</td><td>₹10</td></tr><tr><td>CAR / JEEP / VAN</td><td>₹50</td><td>₹20</td></tr><tr><td>AUTO-RICKSHAW</td><td>₹30</td><td>₹15</td></tr><tr><td>TRUCK / LORRY / TEMPO</td><td>₹100</td><td>₹50</td></tr><tr><td>BUS</td><td>₹120</td><td>₹60</td></tr></tbody></table></details>
+        <button type="submit" class="btn btn-primary mt-4" style="width:100%;padding:13px;">↓ CHECK IN VEHICLE</button>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const vnumInput = document.getElementById('id_vehicle_number'), stateInput = document.getElementById('id_state_code'), bhSeriesCheckbox = document.getElementById('id_bh_series');
+const vnumError = document.getElementById('vnum-error'), mobileInput = document.getElementById('id_mobile'), mobileError = document.getElementById('mobile-error');
+function toUpper(el) { const pos = el.selectionStart; el.value = el.value.toUpperCase(); try { el.setSelectionRange(pos, pos); } catch (e) {} }
+function syncBhStateCode() {
+    if (bhSeriesCheckbox.checked) {
+        if (stateInput.value !== 'BH') stateInput.dataset.previousValue = stateInput.value;
+        stateInput.value = 'BH';
+        stateInput.readOnly = true;
+        stateInput.setAttribute('aria-readonly', 'true');
+    } else {
+        stateInput.readOnly = false;
+        stateInput.removeAttribute('aria-readonly');
+        if (stateInput.dataset.previousValue !== undefined) {
+            stateInput.value = stateInput.dataset.previousValue;
+            delete stateInput.dataset.previousValue;
+        }
+    }
+}
+function validateState() { 
+    const vnum = vnumInput.value.trim(), state = stateInput.value.trim(), bhSelected = bhSeriesCheckbox.checked;
+    let invalid = false;
+    
+    if (bhSelected) {
+        // For BH Series, vehicle number must start with "BH"
+        invalid = vnum.length >= 2 && !vnum.startsWith('BH');
+        vnumError.textContent = 'BH SERIES SELECTED: VEHICLE NUMBER MUST START WITH "BH"';
+    } else {
+        // For normal vehicles, state code must match
+        invalid = vnum.length >= 2 && state.length >= 2 && vnum.substring(0, 2) !== state.substring(0, 2);
+        vnumError.textContent = 'VEHICLE NUMBER MUST MATCH STATE CODE';
+    }
+    
+    [vnumInput, stateInput].forEach(el => el.classList.toggle('is-invalid', invalid)); 
+    vnumError.classList.toggle('show', invalid); 
+}
+vnumInput.addEventListener('input', () => { toUpper(vnumInput); validateState(); }); 
+stateInput.addEventListener('input', () => { toUpper(stateInput); validateState(); });
+bhSeriesCheckbox.addEventListener('change', () => { syncBhStateCode(); validateState(); });
+mobileInput.addEventListener('input', () => { mobileInput.value = mobileInput.value.replace(/[^0-9]/g, ''); const invalid = mobileInput.value.length > 0 && (mobileInput.value.length !== 10 || !'6789'.includes(mobileInput.value[0])); mobileInput.classList.toggle('is-invalid', invalid); mobileError.classList.toggle('show', invalid); });
+const slotSelect = document.getElementById('id_parking_slot');
+const areaSelect = document.getElementById('id_parking_area'), floorSelect = document.getElementById('id_parking_floor');
+const floorAreaMap = { {% for floor in parking_floors %}'{{ floor.id }}': '{{ floor.area_id }}',{% endfor %} };
+const slotFloorMap = { {% for floor in parking_floors %}{% for space in floor.spaces %}'{{ space.id }}': '{{ floor.id }}',{% endfor %}{% endfor %} };
+function filterParkingChoices() {
+    const areaId = areaSelect.value, floorId = floorSelect.value;
+    Array.from(floorSelect.options).forEach(option => { if (!option.value) return; const allowed = !areaId || floorAreaMap[option.value] === areaId; option.hidden = !allowed; option.disabled = !allowed; });
+    if (floorId && floorSelect.options[floorSelect.selectedIndex].disabled) floorSelect.value = '';
+    const selectedFloor = floorSelect.value;
+    Array.from(slotSelect.options).forEach(option => { if (!option.value) return; const allowed = !!selectedFloor && slotFloorMap[option.value] === selectedFloor; option.hidden = !allowed; option.disabled = !allowed; });
+    slotSelect.disabled = !selectedFloor;
+    if (slotSelect.value && slotSelect.options[slotSelect.selectedIndex].disabled) slotSelect.value = '';
+}
+areaSelect.addEventListener('change', filterParkingChoices); floorSelect.addEventListener('change', filterParkingChoices); filterParkingChoices();
+document.querySelectorAll('.checkin-space.is-free').forEach(button => button.addEventListener('click', () => { const floorId = slotFloorMap[button.dataset.slotId]; areaSelect.value = floorAreaMap[floorId]; floorSelect.value = floorId; filterParkingChoices(); slotSelect.value = button.dataset.slotId; document.querySelectorAll('.checkin-space.is-selected').forEach(item => item.classList.remove('is-selected')); button.classList.add('is-selected'); slotSelect.focus(); }));
+if (slotSelect) slotSelect.addEventListener('change', () => { document.querySelectorAll('.checkin-space.is-selected').forEach(item => item.classList.toggle('is-selected', item.dataset.slotId === slotSelect.value)); });
+document.getElementById('entry-form').addEventListener('submit', e => { syncBhStateCode(); validateState(); if (vnumError.classList.contains('show')) e.preventDefault(); }); syncBhStateCode(); validateState();
+</script>
+{% endblock %}
