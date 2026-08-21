@@ -1,59 +1,126 @@
 # PARKSAFE
 
-A Django-based parking management system for recording vehicle entry and exit, managing parking locations and slots, calculating fees, and producing payment receipts.
+**A practical Django parking management system for vehicle tracking, space control, billing, and receipts.**
+
+PARKSAFE helps parking operators manage vehicle check-ins and checkouts across multiple parking areas, floors, and slots. It tracks availability in real time, calculates parking charges automatically, and generates payment-ready receipts with QR code support.
 
 ## Features
 
-- Vehicle check-in with registration and plate-type validation
-- Multi-area, multi-floor, and multi-slot parking layout
-- Availability and maintenance tracking for areas, floors, and slots
-- Vehicle checkout with automatic duration and parking-fee calculation
-- Receipt generation with configurable payment QR codes
-- Searchable parking history and staff-authorised record deletion
+- **Vehicle check-in** — Record vehicle, owner, contact, vehicle type, plate type, and assigned parking slot.
+- **Plate validation** — Supports Indian state-code and BH-series registration validation.
+- **Parking layout management** — Organise parking areas into floors and individual slots.
+- **Live availability** — See occupied, available, and maintenance-marked spaces at a glance.
+- **Automatic billing** — Calculates parking duration and charges during checkout.
+- **Digital receipts** — Generates receipts with configurable payment QR code data or an uploaded QR image.
+- **Parking history** — Review completed records and protect deletion with staff authentication.
+- **Maintenance controls** — Mark a parking area, floor, or slot unavailable while it is under maintenance.
 
-## Technology
+## Built with
 
-- Python and Django 4.2
+- [Python](https://www.python.org/)
+- [Django 4.2](https://www.djangoproject.com/)
 - SQLite for local development
-- Pillow for QR/image uploads
+- Pillow for image and QR-code uploads
 
-## Run locally
+## Quick start
 
-1. Create and activate a virtual environment.
-2. Install dependencies:
+### 1. Clone the repository
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+git clone https://github.com/zeelkher/ParkingManagement.git
+cd ParkingManagement
+```
 
-3. Apply database migrations:
+### 2. Create a virtual environment
 
-   ```bash
-   python manage.py migrate
-   ```
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
 
-4. Optionally create an administrator account:
+On Windows:
 
-   ```bash
-   python manage.py createsuperuser
-   ```
+```bat
+.venv\Scripts\activate
+```
 
-5. Start the app:
+### 3. Install dependencies
 
-   ```bash
-   python manage.py runserver
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-Open `http://127.0.0.1:8000/` in your browser.
+### 4. Apply database migrations
 
-## Configuration
+```bash
+python manage.py migrate
+```
 
-Copy `.env.example` to `.env` and set the production values before deployment. In particular, use a private, randomly generated `DJANGO_SECRET_KEY`, set `DJANGO_DEBUG=False`, and define `DJANGO_ALLOWED_HOSTS`.
+### 5. Create an administrator account *(optional)*
 
-## Release notes
+```bash
+python manage.py createsuperuser
+```
 
-See [RELEASE_NOTES.md](RELEASE_NOTES.md) for the first public release.
+### 6. Start the development server
+
+```bash
+python manage.py runserver
+```
+
+Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser.
+
+## Parking rates
+
+| Vehicle type | First hour | Each additional hour |
+| --- | ---: | ---: |
+| Bike / Motorcycle | ₹20 | ₹10 |
+| Car / Jeep / Van | ₹50 | ₹20 |
+| Auto-rickshaw | ₹30 | ₹15 |
+| Truck / Lorry / Tempo | ₹100 | ₹50 |
+| Bus | ₹120 | ₹60 |
+
+## Configuration and deployment
+
+Before deployment, configure the following environment variables. A sample is available in [`.env.example`](.env.example).
+
+| Variable | Purpose |
+| --- | --- |
+| `DJANGO_SECRET_KEY` | A long, randomly generated private Django key. |
+| `DJANGO_DEBUG` | Set to `False` in production. |
+| `DJANGO_ALLOWED_HOSTS` | Comma-separated hostnames, for example `example.com,www.example.com`. |
+
+For a local shell session, load values from a `.env` file before running Django:
+
+```bash
+set -a
+source .env
+set +a
+python manage.py runserver
+```
+
+> Never commit `.env`, `db.sqlite3`, or uploaded media files. They are excluded by the project’s `.gitignore`.
+
+## Project structure
+
+```text
+ParkingManagement/
+├── parking/                  # Core app: models, views, forms, templates, and static files
+├── parking_system/           # Django project settings and URLs
+├── media/                    # Local uploaded QR images (not committed)
+├── manage.py                 # Django command entry point
+├── requirements.txt          # Python dependencies
+└── RELEASE_NOTES.md          # Release history
+```
+
+## Release
+
+The first public release is [v1.0.0](https://github.com/zeelkher/ParkingManagement/releases/tag/v1.0.0). See [RELEASE_NOTES.md](RELEASE_NOTES.md) for details.
+
+## Contributing
+
+Contributions are welcome. Please open an issue to discuss significant changes before submitting a pull request.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+Distributed under the [MIT License](LICENSE).
