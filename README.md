@@ -115,7 +115,7 @@ ParkingManagement/
 
 ## Release
 
-The first public release is [v1.0.0](https://github.com/zeelkher/ParkingManagement/releases/tag/v1.0.0). See [RELEASE_NOTES.md](RELEASE_NOTES.md) for details.
+See [RELEASE_NOTES.md](https://github.com/zeelkher/ParkingManagement/blob/main/RELEASE_NOTES.md) for details about the first public release.
 
 ## Contributing
 

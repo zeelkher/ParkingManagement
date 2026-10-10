@@ -9,7 +9,7 @@
             <div style="display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 8px; align-items: flex-end;">
                 <div>
                     <label for="id_vehicle_number">Vehicle Number</label>
-                    <input type="text" name="vehicle_number" id="id_vehicle_number" class="form-control" placeholder="GJ 00 AA 0000" value="{{ form.vehicle_number.value|default:'' }}" maxlength="20" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:2px;font-size:15px;font-weight:700;" required>
+                    <input type="text" name="vehicle_number" id="id_vehicle_number" class="form-control" placeholder="GJ 05 AA 1234" data-bh-placeholder="24 BH 1234 AA" value="{{ form.vehicle_number.value|default:'' }}" maxlength="14" style="font-family:'JetBrains Mono',monospace;letter-spacing:2px;font-size:15px;font-weight:700;" required>
                     <div class="invalid-feedback" id="vnum-error">VEHICLE NUMBER MUST MATCH STATE CODE</div>
                 </div>
                 <div>
@@ -29,7 +29,7 @@
             <div class="form-group"><label>Plate Category</label>{{ form.plate_type }}</div>
             <div class="form-group"><label>Parking Area</label>{{ form.parking_area }}</div>
             <div class="form-group"><label>Parking Floor</label>{{ form.parking_floor }}</div>
-            <div class="form-group"><label>Parking Slot</label>{{ form.parking_slot }}<small class="field-help">{{ form.parking_slot.help_text }}</small></div>
+            <div class="form-group"><label>Parking Slot</label>{{ form.parking_slot }}<small class="field-help" id="slot-help">{{ form.parking_slot.help_text }}</small><small id="slot-status-hint" style="display:none;margin-top:4px;padding:4px 8px;border-radius:4px;font-size:11px;font-weight:600;"></small></div>
             <div class="form-group"><label>Entry Date &amp; Time</label>{{ form.entry_time }}<small class="field-help">{{ form.entry_time.help_text }}</small></div>
             <div class="form-group"><label>Owner Name</label><input type="text" name="owner_name" id="id_owner_name" class="form-control" placeholder="FULL NAME" value="{{ form.owner_name.value|default:'' }}" style="text-transform:uppercase;" required></div>
             <div class="form-group"><label>Mobile Number</label><div class="mobile-input-wrap"><span class="mobile-prefix">+91</span><input type="text" name="mobile" id="id_mobile" class="form-control" placeholder="9876543210" value="{{ form.mobile.value|default:'' }}" maxlength="10" inputmode="numeric" required></div><div class="invalid-feedback" id="mobile-error">MUST BE 10 DIGITS (6/7/8/9 START)</div></div>
@@ -56,6 +56,11 @@
                         {% endif %}
                         {{ space.number }}
                     </span>
+                    {% elif space.under_maintenance %}
+                    <span class="checkin-space is-maintenance" title="{{ space.number }} is under maintenance" style="display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-wrench" style="font-size: 8px;"></i>
+                        {{ space.number }}
+                    </span>
                     {% else %}
                     <button type="button" class="checkin-space is-free" data-slot-id="{{ space.id }}" title="Select {{ space.number }}">{{ space.number }}</button>
                     {% endif %}
@@ -65,7 +70,7 @@
             {% empty %}
             <p class="slot-map-empty">No slots are configured. An administrator must add an area, floor, and slot in Parking Management.</p>
             {% endfor %}
-            <div class="checkin-slot-key"><span><i class="fa-solid fa-car-side" style="margin-right: 4px;"></i> Occupied</span><span>Outlined bay Available</span></div>
+            <div class="checkin-slot-key"><span><i class="fa-solid fa-car-side" style="margin-right: 4px;"></i> Occupied</span><span><i class="fa-solid fa-wrench" style="margin-right: 4px; color: #d97706;"></i> Under Maintenance</span><span>Outlined bay Available</span></div>
         </section>
         <details class="plate-ref-table mt-4" open><summary>Parking Price Guide</summary><table class="modern-table"><thead><tr><th>Vehicle</th><th>1st Hour</th><th>Each Additional Hour</th></tr></thead><tbody><tr><td>BIKE / MOTORCYCLE</td><td>₹20</td><td>₹10</td></tr><tr><td>CAR / JEEP / VAN</td><td>₹50</td><td>₹20</td></tr><tr><td>AUTO-RICKSHAW</td><td>₹30</td><td>₹15</td></tr><tr><td>TRUCK / LORRY / TEMPO</td><td>₹100</td><td>₹50</td></tr><tr><td>BUS</td><td>₹120</td><td>₹60</td></tr></tbody></table></details>
         <button type="submit" class="btn btn-primary mt-4" style="width:100%;padding:13px;">↓ CHECK IN VEHICLE</button>
@@ -73,16 +78,62 @@
 </div>
 {% endblock %}
 {% block scripts %}
+{{ floor_area_map|json_script:"floor-area-data" }}
+{{ slot_floor_map|json_script:"slot-floor-data" }}
+{{ floor_slots_map|json_script:"floor-slots-data" }}
 <script>
-const vnumInput = document.getElementById('id_vehicle_number'), stateInput = document.getElementById('id_state_code'), bhSeriesCheckbox = document.getElementById('id_bh_series');
-const vnumError = document.getElementById('vnum-error'), mobileInput = document.getElementById('id_mobile'), mobileError = document.getElementById('mobile-error');
-function toUpper(el) { const pos = el.selectionStart; el.value = el.value.toUpperCase(); try { el.setSelectionRange(pos, pos); } catch (e) {} }
+const vnumInput = document.getElementById('id_vehicle_number');
+const stateInput = document.getElementById('id_state_code');
+const bhSeriesCheckbox = document.getElementById('id_bh_series');
+const vnumError = document.getElementById('vnum-error');
+const mobileInput = document.getElementById('id_mobile');
+const mobileError = document.getElementById('mobile-error');
+
+const NORMAL_PLACEHOLDER = 'GJ 05 AA 1234';
+const BH_PLACEHOLDER = '24 BH 1234 AA';
+
+/**
+ * Auto-format vehicle number with spaces as user types.
+ * Normal:  GJ 05 AA 1234  (state[2] district[2] series[2] number[4])
+ * BH:      24 BH 1234 AA  (year[2] BH series[4] alpha[2])
+ */
+function formatVehicleNumber(raw, isBH) {
+    const clean = raw.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    let result = '';
+    if (isBH) {
+        // YY BH NNNN LL
+        result = clean.substring(0, Math.min(2, clean.length));
+        if (clean.length > 2) result += ' ' + clean.substring(2, Math.min(4, clean.length));
+        if (clean.length > 4) result += ' ' + clean.substring(4, Math.min(8, clean.length));
+        if (clean.length > 8) result += ' ' + clean.substring(8, Math.min(10, clean.length));
+    } else {
+        // SS DD LL NNNN
+        result = clean.substring(0, Math.min(2, clean.length));
+        if (clean.length > 2) result += ' ' + clean.substring(2, Math.min(4, clean.length));
+        if (clean.length > 4) result += ' ' + clean.substring(4, Math.min(6, clean.length));
+        if (clean.length > 6) result += ' ' + clean.substring(6, Math.min(10, clean.length));
+    }
+    return result;
+}
+
+/** Strip spaces/non-alphanumeric and uppercase */
+function getRawClean() {
+    return vnumInput.value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+}
+
 function syncBhStateCode() {
-    if (bhSeriesCheckbox.checked) {
-        if (stateInput.value !== 'BH') stateInput.dataset.previousValue = stateInput.value;
+    const isBH = bhSeriesCheckbox.checked;
+    // Update placeholder
+    vnumInput.placeholder = isBH ? BH_PLACEHOLDER : NORMAL_PLACEHOLDER;
+
+    if (isBH) {
+        if (stateInput.value.toUpperCase() !== 'BH') stateInput.dataset.previousValue = stateInput.value;
         stateInput.value = 'BH';
         stateInput.readOnly = true;
         stateInput.setAttribute('aria-readonly', 'true');
+        // Reformat current value for BH pattern
+        const raw = getRawClean();
+        if (raw.length > 0) vnumInput.value = formatVehicleNumber(raw, true);
     } else {
         stateInput.readOnly = false;
         stateInput.removeAttribute('aria-readonly');
@@ -90,45 +141,248 @@ function syncBhStateCode() {
             stateInput.value = stateInput.dataset.previousValue;
             delete stateInput.dataset.previousValue;
         }
+        // Reformat current value for normal pattern
+        const raw = getRawClean();
+        if (raw.length > 0) {
+            vnumInput.value = formatVehicleNumber(raw, false);
+            // Auto-restore state code from first 2 chars
+            if (raw.length >= 2) stateInput.value = raw.substring(0, 2);
+        }
     }
 }
-function validateState() { 
-    const vnum = vnumInput.value.trim(), state = stateInput.value.trim(), bhSelected = bhSeriesCheckbox.checked;
+
+function validateState() {
+    const raw = getRawClean();
+    const state = stateInput.value.trim().toUpperCase();
+    const isBH = bhSeriesCheckbox.checked;
     let invalid = false;
-    
-    if (bhSelected) {
-        // For BH Series, vehicle number must start with "BH"
-        invalid = vnum.length >= 2 && !vnum.startsWith('BH');
-        vnumError.textContent = 'BH SERIES SELECTED: VEHICLE NUMBER MUST START WITH "BH"';
+
+    if (isBH) {
+        // In BH mode, positions 2-3 of raw must be 'BH' (once enough chars entered)
+        invalid = raw.length >= 4 && raw.substring(2, 4) !== 'BH';
+        vnumError.textContent = 'BH SERIES: FORMAT MUST BE YY BH NNNN LL (e.g. 24 BH 1234 AA)';
     } else {
-        // For normal vehicles, state code must match
-        invalid = vnum.length >= 2 && state.length >= 2 && vnum.substring(0, 2) !== state.substring(0, 2);
+        // Normal: first 2 chars must match state code
+        invalid = raw.length >= 2 && state.length >= 2 && raw.substring(0, 2) !== state.substring(0, 2);
         vnumError.textContent = 'VEHICLE NUMBER MUST MATCH STATE CODE';
     }
-    
-    [vnumInput, stateInput].forEach(el => el.classList.toggle('is-invalid', invalid)); 
-    vnumError.classList.toggle('show', invalid); 
+
+    [vnumInput, stateInput].forEach(el => el.classList.toggle('is-invalid', invalid));
+    vnumError.classList.toggle('show', invalid);
 }
-vnumInput.addEventListener('input', () => { toUpper(vnumInput); validateState(); }); 
-stateInput.addEventListener('input', () => { toUpper(stateInput); validateState(); });
+
+vnumInput.addEventListener('input', () => {
+    const isBH = bhSeriesCheckbox.checked;
+    const oldVal = vnumInput.value;
+    const cursorPos = vnumInput.selectionStart;
+
+    // Count non-space chars before cursor in old value
+    let rawBeforeCursor = 0;
+    for (let i = 0; i < Math.min(cursorPos, oldVal.length); i++) {
+        if (oldVal[i] !== ' ') rawBeforeCursor++;
+    }
+
+    // Format the value
+    const raw = oldVal.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    const formatted = formatVehicleNumber(raw, isBH);
+    vnumInput.value = formatted;
+
+    // Reposition cursor: find where rawBeforeCursor non-space chars end in formatted
+    let newCursor = formatted.length;
+    let counted = 0;
+    for (let i = 0; i < formatted.length; i++) {
+        if (formatted[i] !== ' ') counted++;
+        if (counted === rawBeforeCursor) { newCursor = i + 1; break; }
+    }
+    try { vnumInput.setSelectionRange(newCursor, newCursor); } catch (e) {}
+
+    // Auto-fill state code from vehicle number (normal mode only)
+    if (!isBH && raw.length >= 2) {
+        stateInput.value = raw.substring(0, 2);
+    }
+
+    validateState();
+});
+
+stateInput.addEventListener('input', () => {
+    const pos = stateInput.selectionStart;
+    stateInput.value = stateInput.value.toUpperCase();
+    try { stateInput.setSelectionRange(pos, pos); } catch (e) {}
+    validateState();
+});
+
 bhSeriesCheckbox.addEventListener('change', () => { syncBhStateCode(); validateState(); });
 mobileInput.addEventListener('input', () => { mobileInput.value = mobileInput.value.replace(/[^0-9]/g, ''); const invalid = mobileInput.value.length > 0 && (mobileInput.value.length !== 10 || !'6789'.includes(mobileInput.value[0])); mobileInput.classList.toggle('is-invalid', invalid); mobileError.classList.toggle('show', invalid); });
 const slotSelect = document.getElementById('id_parking_slot');
 const areaSelect = document.getElementById('id_parking_area'), floorSelect = document.getElementById('id_parking_floor');
-const floorAreaMap = { {% for floor in parking_floors %}'{{ floor.id }}': '{{ floor.area_id }}',{% endfor %} };
-const slotFloorMap = { {% for floor in parking_floors %}{% for space in floor.spaces %}'{{ space.id }}': '{{ floor.id }}',{% endfor %}{% endfor %} };
+const floorAreaEl = document.getElementById('floor-area-data');
+const slotFloorEl = document.getElementById('slot-floor-data');
+const floorSlotsEl = document.getElementById('floor-slots-data');
+const floorAreaMap = floorAreaEl ? JSON.parse(floorAreaEl.textContent || '{}') : {};
+const slotFloorMap = slotFloorEl ? JSON.parse(slotFloorEl.textContent || '{}') : {};
+const floorSlotsMap = floorSlotsEl ? JSON.parse(floorSlotsEl.textContent || '{}') : {};
+
+// Cache initial master options rendered by Django
+const allFloorOptions = Array.from(floorSelect ? floorSelect.options : []).map(opt => ({
+    value: opt.value,
+    text: opt.text,
+    areaId: floorAreaMap[opt.value] || ''
+}));
+
 function filterParkingChoices() {
-    const areaId = areaSelect.value, floorId = floorSelect.value;
-    Array.from(floorSelect.options).forEach(option => { if (!option.value) return; const allowed = !areaId || floorAreaMap[option.value] === areaId; option.hidden = !allowed; option.disabled = !allowed; });
-    if (floorId && floorSelect.options[floorSelect.selectedIndex].disabled) floorSelect.value = '';
+    if (!slotSelect || !floorSelect || !areaSelect) return;
+
+    const selectedArea = areaSelect.value;
+    const currentFloor = floorSelect.value;
+    const currentSlot = slotSelect.value;
+
+    // 1. Rebuild floorSelect with only floors for selected area
+    floorSelect.innerHTML = '';
+    allFloorOptions.forEach(opt => {
+        if (!opt.value) {
+            const el = document.createElement('option');
+            el.value = '';
+            el.textContent = opt.text;
+            floorSelect.appendChild(el);
+            return;
+        }
+        if (!selectedArea || opt.areaId === selectedArea) {
+            const el = document.createElement('option');
+            el.value = opt.value;
+            el.textContent = opt.text;
+            floorSelect.appendChild(el);
+        }
+    });
+
+    const isFloorValid = Array.from(floorSelect.options).some(o => o.value === currentFloor);
+    floorSelect.value = isFloorValid ? currentFloor : '';
+
+    // 2. Rebuild slotSelect with slots belonging to selected floor
     const selectedFloor = floorSelect.value;
-    Array.from(slotSelect.options).forEach(option => { if (!option.value) return; const allowed = !!selectedFloor && slotFloorMap[option.value] === selectedFloor; option.hidden = !allowed; option.disabled = !allowed; });
-    slotSelect.disabled = !selectedFloor;
-    if (slotSelect.value && slotSelect.options[slotSelect.selectedIndex].disabled) slotSelect.value = '';
+    slotSelect.innerHTML = '';
+
+    const defaultSlotOpt = document.createElement('option');
+    defaultSlotOpt.value = '';
+    defaultSlotOpt.textContent = selectedFloor ? 'Select Available Slot' : 'Select Parking Floor First';
+    slotSelect.appendChild(defaultSlotOpt);
+
+    if (!selectedFloor) {
+        slotSelect.disabled = true;
+        slotSelect.value = '';
+    } else {
+        slotSelect.disabled = false;
+        const slotsForFloor = floorSlotsMap[selectedFloor] || [];
+        let availableCount = 0;
+
+        slotsForFloor.forEach(slot => {
+            const el = document.createElement('option');
+            el.value = slot.id;
+
+            if (slot.occupied) {
+                el.textContent = `🔴 ${slot.number}  —  Occupied`;
+                el.disabled = true;
+                el.dataset.status = 'occupied';
+                el.title = `${slot.number} is currently occupied`;
+            } else if (slot.under_maintenance) {
+                el.textContent = `🔧 ${slot.number}  —  Under Maintenance`;
+                el.disabled = true;
+                el.dataset.status = 'maintenance';
+                el.title = `${slot.number} is under maintenance`;
+            } else {
+                el.textContent = slot.number;
+                el.disabled = false;
+                el.dataset.status = 'free';
+                availableCount++;
+            }
+            slotSelect.appendChild(el);
+        });
+
+        if (availableCount === 0) {
+            defaultSlotOpt.textContent = 'No available slots on this floor';
+        }
+
+        // Update the status hint badge
+        const slotHint = document.getElementById('slot-status-hint');
+        const occupiedCount = slotsForFloor.filter(s => s.occupied).length;
+        const maintCount    = slotsForFloor.filter(s => s.under_maintenance && !s.occupied).length;
+        const blockedCount  = occupiedCount + maintCount;
+        if (slotHint) {
+            if (blockedCount > 0) {
+                const parts = [];
+                if (occupiedCount) parts.push(`🔴 ${occupiedCount} occupied`);
+                if (maintCount)    parts.push(`🔧 ${maintCount} under maintenance`);
+                slotHint.textContent = parts.join('  ·  ') + '  — shown but not selectable';
+                slotHint.style.display = 'block';
+                slotHint.style.background = '#f8fafc';
+                slotHint.style.color = '#475569';
+                slotHint.style.border = '1px solid #e2e8f0';
+            } else {
+                slotHint.style.display = 'none';
+            }
+        }
+
+        const validSelectedOpt = Array.from(slotSelect.options).find(o => o.value === currentSlot && !o.disabled);
+        slotSelect.value = validSelectedOpt ? currentSlot : '';
+    }
+
+    // 3. Sync map selection highlight
+    const activeSlotId = slotSelect.value;
+    document.querySelectorAll('.checkin-space.is-selected').forEach(item => {
+        item.classList.remove('is-selected');
+    });
+    if (activeSlotId) {
+        const matchingBtn = document.querySelector(`.checkin-space[data-slot-id="${activeSlotId}"]`);
+        if (matchingBtn) matchingBtn.classList.add('is-selected');
+    }
 }
-areaSelect.addEventListener('change', filterParkingChoices); floorSelect.addEventListener('change', filterParkingChoices); filterParkingChoices();
-document.querySelectorAll('.checkin-space.is-free').forEach(button => button.addEventListener('click', () => { const floorId = slotFloorMap[button.dataset.slotId]; areaSelect.value = floorAreaMap[floorId]; floorSelect.value = floorId; filterParkingChoices(); slotSelect.value = button.dataset.slotId; document.querySelectorAll('.checkin-space.is-selected').forEach(item => item.classList.remove('is-selected')); button.classList.add('is-selected'); slotSelect.focus(); }));
-if (slotSelect) slotSelect.addEventListener('change', () => { document.querySelectorAll('.checkin-space.is-selected').forEach(item => item.classList.toggle('is-selected', item.dataset.slotId === slotSelect.value)); });
+
+if (areaSelect) {
+    areaSelect.addEventListener('change', () => {
+        filterParkingChoices();
+    });
+}
+
+if (floorSelect) {
+    floorSelect.addEventListener('change', () => {
+        if (floorSelect.value && floorAreaMap[floorSelect.value] && !areaSelect.value) {
+            areaSelect.value = floorAreaMap[floorSelect.value];
+        }
+        filterParkingChoices();
+    });
+}
+
+if (slotSelect) {
+    slotSelect.addEventListener('change', () => {
+        const val = slotSelect.value;
+        document.querySelectorAll('.checkin-space.is-selected').forEach(item => item.classList.remove('is-selected'));
+        if (val) {
+            const matchingBtn = document.querySelector(`.checkin-space.is-free[data-slot-id="${val}"]`);
+            if (matchingBtn) matchingBtn.classList.add('is-selected');
+        }
+    });
+}
+
+filterParkingChoices();
+
+document.querySelectorAll('.checkin-space.is-free').forEach(button => {
+    button.addEventListener('click', () => {
+        const slotId = button.dataset.slotId;
+        const floorId = slotFloorMap[slotId];
+        if (!floorId) return;
+
+        if (floorAreaMap[floorId]) {
+            areaSelect.value = floorAreaMap[floorId];
+        }
+        floorSelect.value = floorId;
+        filterParkingChoices();
+        slotSelect.value = slotId;
+
+        document.querySelectorAll('.checkin-space.is-selected').forEach(item => item.classList.remove('is-selected'));
+        button.classList.add('is-selected');
+        slotSelect.focus();
+    });
+});
+
 document.getElementById('entry-form').addEventListener('submit', e => { syncBhStateCode(); validateState(); if (vnumError.classList.contains('show')) e.preventDefault(); }); syncBhStateCode(); validateState();
 </script>
 {% endblock %}

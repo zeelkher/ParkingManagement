@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PARKSAFE — Parking Facility Management</title>
+    <meta name="description" content="Parksafe — Parking Area, Floor, and Slot Configuration">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+    <div class="app-view">
+        <!-- ══ TOP NAVBAR ══ -->
+        <header class="hud-topbar">
+            <div class="brand-zone">
+                <a href="dashboard.html" style="text-decoration:none;display:flex;align-items:center;gap:8px;">
+                    <span class="brand-name" style="font-size:18px;font-weight:800;letter-spacing:1px;color:#0f172a;">PARKSAFE</span>
+                    <span style="font-size:10px;background:#eff6ff;color:#2563eb;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid #bfdbfe;">STATIC DEMO</span>
+                </a>
+            </div>
+
+            <nav class="hud-nav-pills">
+                <a href="dashboard.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    DASHBOARD
+                </a>
+                <a href="vehicle_entry.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+                    CHECK-IN
+                </a>
+                <a href="vehicle_exit.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>
+                    CHECK-OUT
+                </a>
+                <a href="history.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    HISTORY
+                </a>
+                <a href="parking_management.html" class="hud-pill active">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1 1.55V20.3h-3v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7.08 15a1.7 1.7 0 0 0-1.55-1H5.4v-3h.13a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06L8.8 5.94l.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1-1.55V4.7h3v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.55 1h.13v3h-.13a1.7 1.7 0 0 0-1.55 1Z"/></svg>
+                    PARKING MANAGEMENT
+                </a>
+            </nav>
+
+            <div class="user-action-zone" style="display:flex;align-items:center;gap:12px;">
+                <span id="live-clock" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#64748b;">11:30:00 AM</span>
+                <a href="login.html" class="btn-hud-logout">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    LOGOUT
+                </a>
+            </div>
+        </header>
+
+        <!-- ══ MAIN CANVAS ══ -->
+        <main class="hud-canvas">
+            <div class="management-intro" style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:16px;">
+                <div>
+                    <h1 style="font-size:22px;font-weight:900;color:#0f172a;letter-spacing:-0.3px;">PARKING FACILITY CONFIGURATION</h1>
+                    <p style="font-size:13px;color:#64748b;margin-top:4px;">Manage parking areas, floors, numbered slots, and maintenance status.</p>
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <button type="button" id="edit-layout" class="btn btn-secondary" onclick="toggleEditMode(true)" style="padding:10px 16px;">
+                        <i class="bi bi-pencil-square"></i> EDIT LAYOUT
+                    </button>
+                    <button type="button" id="save-layout" class="btn btn-primary" onclick="toggleEditMode(false)" style="padding:10px 16px;display:none;">
+                        <i class="bi bi-floppy"></i> SAVE CHANGES
+                    </button>
+                </div>
+            </div>
+
+            <!-- Create / Add Panels -->
+            <section class="management-add-grid">
+                <div class="glass-panel" style="padding:18px;">
+                    <h2 style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:12px;text-transform:uppercase;">1. Add Area</h2>
+                    <form onsubmit="handleAdd(event, 'Area created successfully!')" class="management-form">
+                        <label>Area Name</label>
+                        <input class="form-control" placeholder="e.g. VIP Covered Lot" required>
+                        <label>Total Capacity</label>
+                        <input class="form-control" type="number" value="50" min="1" required>
+                        <button type="submit" class="btn btn-secondary mt-2" style="font-size:12px;">+ Add Area</button>
+                    </form>
+                </div>
+
+                <div class="glass-panel" style="padding:18px;">
+                    <h2 style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:12px;text-transform:uppercase;">2. Add Floor</h2>
+                    <form onsubmit="handleAdd(event, 'Floor created with slots!')" class="management-form">
+                        <label>Area</label>
+                        <select class="form-control">
+                            <option>Mall Parking</option>
+                            <option>Basement Bay</option>
+                        </select>
+                        <div class="management-two-fields">
+                            <div>
+                                <label>Floor Name</label>
+                                <input class="form-control" placeholder="Floor 4" required>
+                            </div>
+                            <div>
+                                <label>Slot Count</label>
+                                <input class="form-control" type="number" value="25" min="1" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-secondary mt-2" style="font-size:12px;">+ Add Floor</button>
+                    </form>
+                </div>
+
+                <div class="glass-panel management-how" style="padding:18px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;">
+                    <h2 style="font-size:13px;font-weight:800;color:#1d4ed8;margin-bottom:8px;text-transform:uppercase;"><i class="bi bi-info-circle"></i> Maintenance Logic</h2>
+                    <p style="font-size:12px;color:#334155;line-height:1.5;">• Marking a slot under maintenance keeps total capacity unchanged.</p>
+                    <p style="font-size:12px;color:#334155;line-height:1.5;margin-top:6px;">• Available slot counter automatically reduces.</p>
+                    <p style="font-size:12px;color:#334155;line-height:1.5;margin-top:6px;">• Total slots is only affected when an administrator explicitly deletes a slot.</p>
+                </div>
+            </section>
+
+            <!-- Collapsible Facility List -->
+            <section class="glass-panel management-list" style="padding:20px;margin-top:20px;">
+                <details class="management-area layout-area" open style="margin-bottom:14px;">
+                    <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+                        <span>
+                            <i class="bi bi-chevron-right layout-chevron"></i>
+                            <strong style="font-size:14px;color:#0f172a;">Mall Parking</strong>
+                            <small style="color:#64748b;font-size:11px;margin-left:8px;">4 floors · 100 slots capacity</small>
+                        </span>
+                        <span style="font-size:11px;background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:4px;font-weight:700;">OPERATIONAL</span>
+                    </summary>
+
+                    <div class="management-area-body" style="padding:16px 0 0 0;">
+                        <!-- Floor 1 Accordion -->
+                        <details class="management-floor layout-floor" open style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:12px;background:#f8fafc;">
+                            <summary style="cursor:pointer;font-weight:700;font-size:13px;color:#1e293b;">
+                                <i class="bi bi-chevron-right layout-chevron"></i>
+                                <span>Floor 1 <small style="color:#64748b;font-weight:500;">(25 slots · Prefix F1-)</small></span>
+                            </summary>
+                            <div class="management-slots" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+                                <div class="slot-item" style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #cbd5e1;padding:4px 8px;border-radius:4px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+                                    <span>F1-01</span>
+                                    <span style="color:#2563eb;font-size:9px;font-weight:700;">OCCUPIED</span>
+                                </div>
+                                <div class="slot-item" style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #cbd5e1;padding:4px 8px;border-radius:4px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+                                    <span>F1-02</span>
+                                    <span style="color:#16a34a;font-size:9px;font-weight:700;">FREE</span>
+                                </div>
+                                <div class="slot-item" style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #cbd5e1;padding:4px 8px;border-radius:4px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+                                    <span>F1-03</span>
+                                    <span style="color:#16a34a;font-size:9px;font-weight:700;">FREE</span>
+                                </div>
+                                <div class="slot-item" style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #cbd5e1;padding:4px 8px;border-radius:4px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+                                    <span>F1-04</span>
+                                    <span style="color:#16a34a;font-size:9px;font-weight:700;">FREE</span>
+                                </div>
+                                <div class="slot-item" style="display:inline-flex;align-items:center;gap:6px;background:#fffbeb;border:1px solid #f59e0b;padding:4px 8px;border-radius:4px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+                                    <span style="color:#b45309;font-weight:800;">F1-05</span>
+                                    <span class="slot-status-badge" style="background:#fef3c7;color:#b45309;font-size:8px;">MAINTENANCE</span>
+                                </div>
+                                <div class="slot-item" style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #cbd5e1;padding:4px 8px;border-radius:4px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+                                    <span>F1-06</span>
+                                    <span style="color:#2563eb;font-size:9px;font-weight:700;">OCCUPIED</span>
+                                </div>
+                                <div class="slot-item" style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #cbd5e1;padding:4px 8px;border-radius:4px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+                                    <span>F1-07</span>
+                                    <span style="color:#16a34a;font-size:9px;font-weight:700;">FREE</span>
+                                </div>
+                                <div class="slot-item" style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #cbd5e1;padding:4px 8px;border-radius:4px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+                                    <span>F1-08</span>
+                                    <span style="color:#16a34a;font-size:9px;font-weight:700;">FREE</span>
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Floor 2 Accordion -->
+                        <details class="management-floor layout-floor" open style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:12px;background:#f8fafc;">
+                            <summary style="cursor:pointer;font-weight:700;font-size:13px;color:#1e293b;">
+                                <i class="bi bi-chevron-right layout-chevron"></i>
+                                <span>Floor 2 <small style="color:#64748b;font-weight:500;">(25 slots · Prefix F2-)</small></span>
+                            </summary>
+                            <div class="management-slots" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+                                <div class="slot-item" style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #cbd5e1;padding:4px 8px;border-radius:4px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+                                    <span>F2-01</span>
+                                    <span style="color:#16a34a;font-size:9px;font-weight:700;">FREE</span>
+                                </div>
+                                <div class="slot-item" style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #cbd5e1;padding:4px 8px;border-radius:4px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+                                    <span>F2-02</span>
+                                    <span style="color:#16a34a;font-size:9px;font-weight:700;">FREE</span>
+                                </div>
+                                <div class="slot-item" style="display:inline-flex;align-items:center;gap:6px;background:#fffbeb;border:1px solid #f59e0b;padding:4px 8px;border-radius:4px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+                                    <span style="color:#b45309;font-weight:800;">F2-12</span>
+                                    <span class="slot-status-badge" style="background:#fef3c7;color:#b45309;font-size:8px;">MAINTENANCE</span>
+                                </div>
+                                <div class="slot-item" style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #cbd5e1;padding:4px 8px;border-radius:4px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+                                    <span>F2-15</span>
+                                    <span style="color:#2563eb;font-size:9px;font-weight:700;">OCCUPIED</span>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                </details>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        function toggleEditMode(enable) {
+            document.getElementById('edit-layout').style.display = enable ? 'none' : 'inline-flex';
+            document.getElementById('save-layout').style.display = enable ? 'inline-flex' : 'none';
+            if (!enable) {
+                alert('Changes saved successfully!');
+            }
+        }
+
+        function handleAdd(e, msg) {
+            e.preventDefault();
+            alert(msg);
+        }
+    </script>
+</body>
+</html>

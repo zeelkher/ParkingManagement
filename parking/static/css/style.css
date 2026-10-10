@@ -350,11 +350,13 @@ body::before, body::after { display: none !important; }
 .parking-space { flex: 0 0 48px !important; width: 48px !important; height: 29px !important; border: 1px solid #94a3b8 !important; border-radius: 3px !important; display: flex !important; align-items: center !important; justify-content: center !important; font-family: 'JetBrains Mono', monospace !important; font-size: 8px !important; font-weight: 800 !important; white-space: nowrap !important; }
 .parking-space.is-free { background: #f8fafc !important; color: #475569 !important; }
 .parking-space.is-occupied { background: #2563eb !important; border-color: #93c5fd !important; color: #fff !important; font-size: 8px !important; }
+.parking-space.is-maintenance { background: #f59e0b !important; border-color: #fbbf24 !important; color: #fff !important; font-size: 8px !important; }
 .parking-map-key { display: flex !important; align-items: center !important; gap: 16px !important; flex-wrap: wrap !important; color: var(--text-2) !important; font-size: 11px !important; margin-top: 11px !important; }
 .parking-map-key span { display: inline-flex !important; align-items: center !important; gap: 5px !important; }
 .parking-map-key i { width: 14px !important; height: 10px !important; border-radius: 2px !important; display: inline-block !important; }
 .key-car { background: var(--blue) !important; border: 1px solid var(--blue-dark) !important; }
 .key-free { background: #f8fafc !important; border: 1px solid #94a3b8 !important; }
+.key-maintenance { background: #f59e0b !important; border: 1px solid #d97706 !important; }
 
 .usage-bar {
     height: 8px !important;
@@ -619,7 +621,13 @@ button.checkin-space { cursor: pointer !important; }
 .checkin-space.is-free { color: var(--blue-dark) !important; background: #fff !important; border: 1px solid #93c5fd !important; }
 .checkin-space.is-free:hover, .checkin-space.is-selected { color: #fff !important; background: var(--blue) !important; border-color: var(--blue-dark) !important; box-shadow: 0 0 0 2px #bfdbfe !important; }
 .checkin-space.is-occupied { color: #fff !important; background: #64748b !important; border: 1px solid #475569 !important; font-size: 9px !important; }
+.checkin-space.is-maintenance { color: #fff !important; background: #f59e0b !important; border: 1px solid #d97706 !important; font-size: 9px !important; cursor: not-allowed !important; opacity: 0.95 !important; }
 .checkin-slot-key { display: flex !important; gap: 14px !important; margin-top: 10px !important; }
+
+/* Parking slot select — disabled option styling */
+#id_parking_slot option:disabled { color: #94a3b8; font-style: italic; }
+#id_parking_slot option[data-status="occupied"]:disabled { color: #64748b; }
+#id_parking_slot option[data-status="maintenance"]:disabled { color: #d97706; }
 
 .management-intro { margin-bottom: 20px !important; }
 .management-intro h1 { font-size: 22px !important; color: var(--text) !important; }

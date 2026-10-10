@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PARKSAFE — Vehicle Check-In</title>
+    <meta name="description" content="Parksafe — Vehicle Entry and Slot Assignment">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+    <div class="app-view">
+        <!-- ══ TOP NAVBAR ══ -->
+        <header class="hud-topbar">
+            <div class="brand-zone">
+                <a href="dashboard.html" style="text-decoration:none;display:flex;align-items:center;gap:8px;">
+                    <span class="brand-name" style="font-size:18px;font-weight:800;letter-spacing:1px;color:#0f172a;">PARKSAFE</span>
+                    <span style="font-size:10px;background:#eff6ff;color:#2563eb;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid #bfdbfe;">STATIC DEMO</span>
+                </a>
+            </div>
+
+            <nav class="hud-nav-pills">
+                <a href="dashboard.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    DASHBOARD
+                </a>
+                <a href="vehicle_entry.html" class="hud-pill active">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+                    CHECK-IN
+                </a>
+                <a href="vehicle_exit.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>
+                    CHECK-OUT
+                </a>
+                <a href="history.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    HISTORY
+                </a>
+                <a href="parking_management.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1 1.55V20.3h-3v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7.08 15a1.7 1.7 0 0 0-1.55-1H5.4v-3h.13a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06L8.8 5.94l.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1-1.55V4.7h3v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.55 1h.13v3h-.13a1.7 1.7 0 0 0-1.55 1Z"/></svg>
+                    PARKING MANAGEMENT
+                </a>
+            </nav>
+
+            <div class="user-action-zone" style="display:flex;align-items:center;gap:12px;">
+                <span id="live-clock" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#64748b;">11:30:00 AM</span>
+                <a href="login.html" class="btn-hud-logout">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    LOGOUT
+                </a>
+            </div>
+        </header>
+
+        <!-- ══ MAIN CANVAS ══ -->
+        <main class="hud-canvas">
+            <div class="form-container">
+                <form id="entry-form" onsubmit="handleCheckIn(event)" autocomplete="off">
+                    <!-- Vehicle Plate & State Group -->
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <div style="display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 8px; align-items: flex-end;">
+                            <div>
+                                <label for="id_vehicle_number">Vehicle Number</label>
+                                <input type="text" name="vehicle_number" id="id_vehicle_number" class="form-control" placeholder="GJ 01 AA 1234" maxlength="20" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:2px;font-size:15px;font-weight:700;" required>
+                                <div class="invalid-feedback" id="vnum-error">VEHICLE NUMBER MUST MATCH STATE CODE</div>
+                            </div>
+                            <div>
+                                <label for="id_state_code">State Code</label>
+                                <input type="text" name="state_code" id="id_state_code" class="form-control" placeholder="GJ" maxlength="5" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:3px;font-size:18px;font-weight:800;" required>
+                            </div>
+                            <div class="bh-series-control">
+                                <input type="checkbox" name="bh_series" id="id_bh_series">
+                                <label for="id_bh_series" class="bh-series-label" title="Bharat (BH) Series vehicle" aria-label="Bharat (BH) Series vehicle">
+                                    <i class="bi bi-patch-check-fill" aria-hidden="true"></i><span>BH</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3-Column Inputs -->
+                    <div class="form-grid-3col">
+                        <div class="form-group">
+                            <label>Vehicle Type</label>
+                            <select name="vehicle_type" id="id_vehicle_type" class="form-control">
+                                <option value="Car">Car / SUV</option>
+                                <option value="Bike">Bike / Motorcycle</option>
+                                <option value="Auto">Auto-rickshaw</option>
+                                <option value="Truck">Truck / Tempo / Lorry</option>
+                                <option value="Bus">Bus</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Plate Category</label>
+                            <select name="plate_type" id="id_plate_type" class="form-control">
+                                <option value="white_black">Private (White Plate / Black text)</option>
+                                <option value="yellow_black">Commercial (Yellow Plate / Black text)</option>
+                                <option value="green_white">Electric Vehicle (Green Plate / White text)</option>
+                                <option value="black_yellow">Rental / Self-Drive (Black Plate / Yellow text)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Parking Area</label>
+                            <select name="parking_area" id="id_parking_area" class="form-control">
+                                <option value="">Select Parking Area</option>
+                                <option value="1" selected>Mall Parking</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Parking Floor</label>
+                            <select name="parking_floor" id="id_parking_floor" class="form-control">
+                                <option value="">Select Parking Floor</option>
+                                <option value="1">Floor 1</option>
+                                <option value="2">Floor 2</option>
+                                <option value="3">Floor 3</option>
+                                <option value="4">Ground Floor</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Parking Slot</label>
+                            <select name="parking_slot" id="id_parking_slot" class="form-control" disabled required>
+                                <option value="">Select Parking Floor First</option>
+                            </select>
+                            <small class="field-help">Only available slots for the selected floor are shown.</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Entry Date &amp; Time</label>
+                            <input type="datetime-local" id="id_entry_time" name="entry_time" class="form-control" readonly>
+                            <small class="field-help">Set automatically when the vehicle is checked in.</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Owner Name</label>
+                            <input type="text" name="owner_name" id="id_owner_name" class="form-control" placeholder="FULL NAME" style="text-transform:uppercase;" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Mobile Number</label>
+                            <div class="mobile-input-wrap">
+                                <span class="mobile-prefix">+91</span>
+                                <input type="text" name="mobile" id="id_mobile" class="form-control" placeholder="9876543210" maxlength="10" inputmode="numeric" required>
+                            </div>
+                            <div class="invalid-feedback" id="mobile-error">MUST BE 10 DIGITS (6/7/8/9 START)</div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Slot Selection Map -->
+                    <section class="checkin-slot-map" aria-label="Select a parking slot">
+                        <div class="slot-map-heading">
+                            <strong>Select a free slot</strong>
+                            <span>Tap an available bay to auto-fill floor and slot.</span>
+                        </div>
+
+                        <!-- Floor 1 -->
+                        <div class="checkin-floor-row" data-floor-id="1">
+                            <span class="checkin-floor-label">Mall Parking • Floor 1</span>
+                            <div class="checkin-spaces">
+                                <span class="checkin-space is-occupied" title="F1-01 is occupied"><i class="fa-solid fa-car"></i> F1-01</span>
+                                <button type="button" class="checkin-space is-free" data-slot-id="2" data-floor-id="1" data-slot-number="F1-02">F1-02</button>
+                                <button type="button" class="checkin-space is-free" data-slot-id="3" data-floor-id="1" data-slot-number="F1-03">F1-03</button>
+                                <button type="button" class="checkin-space is-free" data-slot-id="4" data-floor-id="1" data-slot-number="F1-04">F1-04</button>
+                                <span class="checkin-space is-maintenance" title="F1-05 is under maintenance"><i class="fa-solid fa-wrench" style="font-size:8px;"></i> F1-05</span>
+                                <span class="checkin-space is-occupied" title="F1-06 is occupied"><i class="fa-solid fa-motorcycle"></i> F1-06</span>
+                                <button type="button" class="checkin-space is-free" data-slot-id="7" data-floor-id="1" data-slot-number="F1-07">F1-07</button>
+                                <button type="button" class="checkin-space is-free" data-slot-id="8" data-floor-id="1" data-slot-number="F1-08">F1-08</button>
+                                <button type="button" class="checkin-space is-free" data-slot-id="9" data-floor-id="1" data-slot-number="F1-09">F1-09</button>
+                                <span class="checkin-space is-occupied" title="F1-10 is occupied"><i class="fa-solid fa-car"></i> F1-10</span>
+                                <button type="button" class="checkin-space is-free" data-slot-id="11" data-floor-id="1" data-slot-number="F1-11">F1-11</button>
+                                <button type="button" class="checkin-space is-free" data-slot-id="12" data-floor-id="1" data-slot-number="F1-12">F1-12</button>
+                                <button type="button" class="checkin-space is-free" data-slot-id="13" data-floor-id="1" data-slot-number="F1-13">F1-13</button>
+                                <button type="button" class="checkin-space is-free" data-slot-id="14" data-floor-id="1" data-slot-number="F1-14">F1-14</button>
+                                <button type="button" class="checkin-space is-free" data-slot-id="15" data-floor-id="1" data-slot-number="F1-15">F1-15</button>
+                            </div>
+                        </div>
+
+                        <!-- Floor 2 -->
+                        <div class="checkin-floor-row" data-floor-id="2">
+                            <span class="checkin-floor-label">Mall Parking • Floor 2</span>
+                            <div class="checkin-spaces">
+                                <button type="button" class="checkin-space is-free" data-slot-id="26" data-floor-id="2" data-slot-number="F2-01">F2-01</button>
+                                <button type="button" class="checkin-space is-free" data-slot-id="27" data-floor-id="2" data-slot-number="F2-02">F2-02</button>
+                                <span class="checkin-space is-occupied" title="F2-03 is occupied"><i class="fa-solid fa-car"></i> F2-03</span>
+                                <button type="button" class="checkin-space is-free" data-slot-id="29" data-floor-id="2" data-slot-number="F2-04">F2-04</button>
+                                <button type="button" class="checkin-space is-free" data-slot-id="30" data-floor-id="2" data-slot-number="F2-05">F2-05</button>
+                                <button type="button" class="checkin-space is-free" data-slot-id="31" data-floor-id="2" data-slot-number="F2-06">F2-06</button>
+                                <span class="checkin-space is-maintenance" title="F2-12 is under maintenance"><i class="fa-solid fa-wrench" style="font-size:8px;"></i> F2-12</span>
+                                <span class="checkin-space is-occupied" title="F2-15 is occupied"><i class="fa-solid fa-truck"></i> F2-15</span>
+                            </div>
+                        </div>
+
+                        <!-- Floor 3 -->
+                        <div class="checkin-floor-row" data-floor-id="3">
+                            <span class="checkin-floor-label">Mall Parking • Floor 3</span>
+                            <div class="checkin-spaces">
+                                <button type="button" class="checkin-space is-free" data-slot-id="51" data-floor-id="3" data-slot-number="F3-01">F3-01</button>
+                                <span class="checkin-space is-occupied" title="F3-02 is occupied"><i class="fa-solid fa-car"></i> F3-02</span>
+                                <button type="button" class="checkin-space is-free" data-slot-id="53" data-floor-id="3" data-slot-number="F3-03">F3-03</button>
+                                <button type="button" class="checkin-space is-free" data-slot-id="54" data-floor-id="3" data-slot-number="F3-04">F3-04</button>
+                                <span class="checkin-space is-occupied" title="F3-07 is occupied"><i class="fa-solid fa-car"></i> F3-07</span>
+                                <button type="button" class="checkin-space is-free" data-slot-id="58" data-floor-id="3" data-slot-number="F3-08">F3-08</button>
+                            </div>
+                        </div>
+
+                        <!-- Ground Floor -->
+                        <div class="checkin-floor-row" data-floor-id="4">
+                            <span class="checkin-floor-label">Mall Parking • Ground Floor</span>
+                            <div class="checkin-spaces">
+                                <span class="checkin-space is-occupied" title="G-01 is occupied"><i class="fa-solid fa-car"></i> G-01</span>
+                                <button type="button" class="checkin-space is-free" data-slot-id="77" data-floor-id="4" data-slot-number="G-02">G-02</button>
+                                <button type="button" class="checkin-space is-free" data-slot-id="78" data-floor-id="4" data-slot-number="G-03">G-03</button>
+                                <span class="checkin-space is-occupied" title="G-04 is occupied"><i class="fa-solid fa-bus"></i> G-04</span>
+                                <button type="button" class="checkin-space is-free" data-slot-id="80" data-floor-id="4" data-slot-number="G-05">G-05</button>
+                                <span class="checkin-space is-occupied" title="G-11 is occupied"><i class="fa-solid fa-motorcycle"></i> G-11</span>
+                            </div>
+                        </div>
+
+                        <div class="checkin-slot-key">
+                            <span><i class="fa-solid fa-car-side" style="margin-right: 4px;"></i> Occupied</span>
+                            <span><i class="fa-solid fa-wrench" style="margin-right: 4px; color: #d97706;"></i> Under Maintenance</span>
+                            <span>Outlined bay Available</span>
+                        </div>
+                    </section>
+
+                    <!-- Price Guide -->
+                    <details class="plate-ref-table mt-4" open>
+                        <summary>Parking Price Guide</summary>
+                        <table class="modern-table">
+                            <thead>
+                                <tr><th>Vehicle</th><th>1st Hour</th><th>Each Additional Hour</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>BIKE / MOTORCYCLE</td><td>₹20</td><td>₹10</td></tr>
+                                <tr><td>CAR / JEEP / VAN</td><td>₹50</td><td>₹20</td></tr>
+                                <tr><td>AUTO-RICKSHAW</td><td>₹30</td><td>₹15</td></tr>
+                                <tr><td>TRUCK / LORRY / TEMPO</td><td>₹100</td><td>₹50</td></tr>
+                                <tr><td>BUS</td><td>₹120</td><td>₹60</td></tr>
+                            </tbody>
+                        </table>
+                    </details>
+
+                    <button type="submit" class="btn btn-primary mt-4" style="width:100%;padding:13px;">↓ CHECK IN VEHICLE</button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        // Predefined slots per floor with occupied and maintenance flags
+        const floorSlotsData = {
+            '1': [
+                { id: '1', number: 'F1-01', occupied: true },
+                { id: '2', number: 'F1-02' },
+                { id: '3', number: 'F1-03' },
+                { id: '4', number: 'F1-04' },
+                { id: '5', number: 'F1-05', under_maintenance: true },
+                { id: '6', number: 'F1-06', occupied: true },
+                { id: '7', number: 'F1-07' },
+                { id: '8', number: 'F1-08' },
+                { id: '9', number: 'F1-09' },
+                { id: '10', number: 'F1-10', occupied: true },
+                { id: '11', number: 'F1-11' },
+                { id: '12', number: 'F1-12' },
+                { id: '13', number: 'F1-13' },
+                { id: '14', number: 'F1-14' },
+                { id: '15', number: 'F1-15' },
+                { id: '16', number: 'F1-16' },
+                { id: '17', number: 'F1-17' },
+                { id: '18', number: 'F1-18' },
+                { id: '19', number: 'F1-19' },
+                { id: '20', number: 'F1-20' },
+                { id: '21', number: 'F1-21' },
+                { id: '22', number: 'F1-22' },
+                { id: '23', number: 'F1-23' },
+                { id: '24', number: 'F1-24' },
+                { id: '25', number: 'F1-25' }
+            ],
+            '2': [
+                { id: '26', number: 'F2-01' },
+                { id: '27', number: 'F2-02' },
+                { id: '28', number: 'F2-03', occupied: true },
+                { id: '29', number: 'F2-04' },
+                { id: '30', number: 'F2-05' },
+                { id: '31', number: 'F2-06' },
+                { id: '32', number: 'F2-07' },
+                { id: '33', number: 'F2-08' },
+                { id: '34', number: 'F2-09' },
+                { id: '35', number: 'F2-10' },
+                { id: '36', number: 'F2-11' },
+                { id: '37', number: 'F2-12', under_maintenance: true },
+                { id: '38', number: 'F2-13' },
+                { id: '39', number: 'F2-14' },
+                { id: '40', number: 'F2-15', occupied: true }
+            ],
+            '3': [
+                { id: '51', number: 'F3-01' },
+                { id: '52', number: 'F3-02', occupied: true },
+                { id: '53', number: 'F3-03' },
+                { id: '54', number: 'F3-04' },
+                { id: '55', number: 'F3-05' },
+                { id: '56', number: 'F3-06' },
+                { id: '57', number: 'F3-07', occupied: true },
+                { id: '58', number: 'F3-08' },
+                { id: '59', number: 'F3-09' },
+                { id: '60', number: 'F3-10' }
+            ],
+            '4': [
+                { id: '76', number: 'G-01', occupied: true },
+                { id: '77', number: 'G-02' },
+                { id: '78', number: 'G-03' },
+                { id: '79', number: 'G-04', occupied: true },
+                { id: '80', number: 'G-05' },
+                { id: '81', number: 'G-06' },
+                { id: '82', number: 'G-07' },
+                { id: '83', number: 'G-08' },
+                { id: '84', number: 'G-09' },
+                { id: '85', number: 'G-10' },
+                { id: '86', number: 'G-11', occupied: true }
+            ]
+        };
+
+        const vnumInput = document.getElementById('id_vehicle_number');
+        const stateInput = document.getElementById('id_state_code');
+        const bhSeriesCheckbox = document.getElementById('id_bh_series');
+        const vnumError = document.getElementById('vnum-error');
+        const mobileInput = document.getElementById('id_mobile');
+        const mobileError = document.getElementById('mobile-error');
+        const floorSelect = document.getElementById('id_parking_floor');
+        const slotSelect = document.getElementById('id_parking_slot');
+        const areaSelect = document.getElementById('id_parking_area');
+
+        // Set entry datetime to local now
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('id_entry_time').value = now.toISOString().slice(0, 16);
+
+        function toUpper(el) {
+            const pos = el.selectionStart;
+            el.value = el.value.toUpperCase();
+            try { el.setSelectionRange(pos, pos); } catch (e) {}
+        }
+
+        function syncBhStateCode() {
+            if (bhSeriesCheckbox.checked) {
+                if (stateInput.value !== 'BH') stateInput.dataset.previousValue = stateInput.value;
+                stateInput.value = 'BH';
+                stateInput.readOnly = true;
+            } else {
+                stateInput.readOnly = false;
+                if (stateInput.dataset.previousValue !== undefined) {
+                    stateInput.value = stateInput.dataset.previousValue;
+                    delete stateInput.dataset.previousValue;
+                }
+            }
+        }
+
+        function validateState() {
+            const vnum = vnumInput.value.trim();
+            const state = stateInput.value.trim();
+            const bhSelected = bhSeriesCheckbox.checked;
+            let invalid = false;
+
+            if (bhSelected) {
+                invalid = vnum.length >= 2 && !vnum.startsWith('BH');
+                vnumError.textContent = 'BH SERIES SELECTED: VEHICLE NUMBER MUST START WITH "BH"';
+            } else {
+                invalid = vnum.length >= 2 && state.length >= 2 && vnum.substring(0, 2) !== state.substring(0, 2);
+                vnumError.textContent = 'VEHICLE NUMBER MUST MATCH STATE CODE';
+            }
+
+            [vnumInput, stateInput].forEach(el => el.classList.toggle('is-invalid', invalid));
+            vnumError.classList.toggle('show', invalid);
+        }
+
+        vnumInput.addEventListener('input', () => { toUpper(vnumInput); validateState(); });
+        stateInput.addEventListener('input', () => { toUpper(stateInput); validateState(); });
+        bhSeriesCheckbox.addEventListener('change', () => { syncBhStateCode(); validateState(); });
+        mobileInput.addEventListener('input', () => {
+            mobileInput.value = mobileInput.value.replace(/[^0-9]/g, '');
+            const invalid = mobileInput.value.length > 0 && (mobileInput.value.length !== 10 || !'6789'.includes(mobileInput.value[0]));
+            mobileInput.classList.toggle('is-invalid', invalid);
+            mobileError.classList.toggle('show', invalid);
+        });
+
+        // Floor and Slot dynamic filtering - Shows all slots on selected floor, blocking occupied & maintenance
+        function updateSlotsForFloor() {
+            const floorId = floorSelect.value;
+            slotSelect.innerHTML = '';
+
+            if (!floorId) {
+                slotSelect.disabled = true;
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'Select Parking Floor First';
+                slotSelect.appendChild(opt);
+                return;
+            }
+
+            slotSelect.disabled = false;
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = 'Select Available Slot';
+            slotSelect.appendChild(defaultOpt);
+
+            const slots = floorSlotsData[floorId] || [];
+            slots.forEach(slot => {
+                const opt = document.createElement('option');
+                opt.value = slot.id;
+                if (slot.occupied) {
+                    opt.textContent = slot.number + ' (Occupied)';
+                    opt.disabled = true;
+                } else if (slot.under_maintenance) {
+                    opt.textContent = slot.number + ' (Under Maintenance)';
+                    opt.disabled = true;
+                } else {
+                    opt.textContent = slot.number;
+                }
+                slotSelect.appendChild(opt);
+            });
+        }
+
+        floorSelect.addEventListener('change', () => {
+            if (floorSelect.value && !areaSelect.value) {
+                areaSelect.value = '1';
+            }
+            updateSlotsForFloor();
+        });
+
+        // Bay click handler in interactive map
+        document.querySelectorAll('.checkin-space.is-free').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const floorId = btn.dataset.floorId;
+                const slotId = btn.dataset.slotId;
+
+                areaSelect.value = '1';
+                floorSelect.value = floorId;
+                updateSlotsForFloor();
+                slotSelect.value = slotId;
+
+                document.querySelectorAll('.checkin-space.is-selected').forEach(el => el.classList.remove('is-selected'));
+                btn.classList.add('is-selected');
+                slotSelect.focus();
+            });
+        });
+
+        slotSelect.addEventListener('change', () => {
+            const val = slotSelect.value;
+            document.querySelectorAll('.checkin-space.is-selected').forEach(el => el.classList.remove('is-selected'));
+            if (val) {
+                const matching = document.querySelector(`.checkin-space.is-free[data-slot-id="${val}"]`);
+                if (matching) matching.classList.add('is-selected');
+            }
+        });
+
+        function handleCheckIn(e) {
+            e.preventDefault();
+            syncBhStateCode();
+            validateState();
+            if (vnumError.classList.contains('show')) return;
+
+            alert('Vehicle checked in successfully! Redirecting to Dashboard.');
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+</html>

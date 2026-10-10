@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PARKSAFE — Vehicle Check-Out</title>
+    <meta name="description" content="Parksafe — Checkout Vehicle and Generate Receipt">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+    <div class="app-view">
+        <!-- ══ TOP NAVBAR ══ -->
+        <header class="hud-topbar">
+            <div class="brand-zone">
+                <a href="dashboard.html" style="text-decoration:none;display:flex;align-items:center;gap:8px;">
+                    <span class="brand-name" style="font-size:18px;font-weight:800;letter-spacing:1px;color:#0f172a;">PARKSAFE</span>
+                    <span style="font-size:10px;background:#eff6ff;color:#2563eb;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid #bfdbfe;">STATIC DEMO</span>
+                </a>
+            </div>
+
+            <nav class="hud-nav-pills">
+                <a href="dashboard.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    DASHBOARD
+                </a>
+                <a href="vehicle_entry.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+                    CHECK-IN
+                </a>
+                <a href="vehicle_exit.html" class="hud-pill active">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>
+                    CHECK-OUT
+                </a>
+                <a href="history.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    HISTORY
+                </a>
+                <a href="parking_management.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1 1.55V20.3h-3v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7.08 15a1.7 1.7 0 0 0-1.55-1H5.4v-3h.13a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06L8.8 5.94l.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1-1.55V4.7h3v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.55 1h.13v3h-.13a1.7 1.7 0 0 0-1.55 1Z"/></svg>
+                    PARKING MANAGEMENT
+                </a>
+            </nav>
+
+            <div class="user-action-zone" style="display:flex;align-items:center;gap:12px;">
+                <span id="live-clock" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#64748b;">11:30:00 AM</span>
+                <a href="login.html" class="btn-hud-logout">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    LOGOUT
+                </a>
+            </div>
+        </header>
+
+        <!-- ══ MAIN CANVAS ══ -->
+        <main class="hud-canvas">
+            <div class="form-container" style="max-width:540px;">
+                <h2 style="font-size:18px;font-weight:800;color:#0f172a;margin-bottom:6px;letter-spacing:-0.2px;">VEHICLE CHECK-OUT</h2>
+                <p style="font-size:12px;color:#64748b;margin-bottom:20px;">Enter vehicle registration number to calculate parking charges and release slot.</p>
+
+                <!-- Quick Select Chips -->
+                <div style="margin-bottom:20px;">
+                    <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px;">Quick Select Active Vehicle:</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        <button type="button" class="btn btn-secondary" onclick="pickVehicle('GJ 01 AB 1234')" style="padding:4px 8px;font-size:11px;font-family:'JetBrains Mono',monospace;">GJ 01 AB 1234</button>
+                        <button type="button" class="btn btn-secondary" onclick="pickVehicle('MH 02 CB 9988')" style="padding:4px 8px;font-size:11px;font-family:'JetBrains Mono',monospace;">MH 02 CB 9988</button>
+                        <button type="button" class="btn btn-secondary" onclick="pickVehicle('DL 08 EV 4455')" style="padding:4px 8px;font-size:11px;font-family:'JetBrains Mono',monospace;">DL 08 EV 4455</button>
+                        <button type="button" class="btn btn-secondary" onclick="pickVehicle('BH 22 AA 5555')" style="padding:4px 8px;font-size:11px;font-family:'JetBrains Mono',monospace;">BH 22 AA 5555</button>
+                        <button type="button" class="btn btn-secondary" onclick="pickVehicle('KA 05 MN 3322')" style="padding:4px 8px;font-size:11px;font-family:'JetBrains Mono',monospace;">KA 05 MN 3322</button>
+                    </div>
+                </div>
+
+                <form onsubmit="handleCheckout(event)" autocomplete="off">
+                    <div class="form-group" style="margin-bottom:18px;">
+                        <label>Vehicle Number</label>
+                        <input type="text" name="vehicle_number" id="id_exit_vehicle_number"
+                               class="form-control"
+                               placeholder="GJ 01 AB 1234"
+                               value="GJ 01 AB 1234"
+                               style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:2px;font-size:20px;font-weight:800;text-align:center;padding:14px;"
+                               oninput="this.value=this.value.toUpperCase(); updatePreview();"
+                               required>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:20px;">
+                        <label>Exit Date &amp; Time</label>
+                        <input type="datetime-local" id="id_exit_time" name="exit_time" class="form-control" readonly>
+                        <small class="field-help">Set automatically to current time.</small>
+                    </div>
+
+                    <!-- Live Fee Preview Box -->
+                    <div id="fee-preview-box" class="glass-panel" style="background:#f8fafc;padding:16px;border-radius:12px;margin-bottom:24px;border:1px solid #e2e8f0;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <span style="font-size:12px;color:#64748b;font-weight:600;">ACTIVE RECORD</span>
+                            <span class="count-chip" id="preview-slot">SLOT F1-01</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px dashed #cbd5e1;">
+                            <div>
+                                <span style="color:#94a3b8;font-size:11px;">OWNER</span><br>
+                                <strong id="preview-owner" style="color:#1e293b;">RAHUL SHARMA</strong>
+                            </div>
+                            <div>
+                                <span style="color:#94a3b8;font-size:11px;">VEHICLE TYPE</span><br>
+                                <strong id="preview-type" style="color:#1e293b;">CAR (₹50 1st hr / ₹20 add.)</strong>
+                            </div>
+                            <div>
+                                <span style="color:#94a3b8;font-size:11px;">CHECK-IN TIME</span><br>
+                                <strong id="preview-entry">Today, 09:15 AM</strong>
+                            </div>
+                            <div>
+                                <span style="color:#94a3b8;font-size:11px;">PARKED DURATION</span><br>
+                                <strong id="preview-duration" style="color:#2563eb;">2 hrs 15 mins (3 billed hrs)</strong>
+                            </div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="font-size:13px;font-weight:700;color:#15803d;">ESTIMATED TOTAL FEE</span>
+                            <span id="preview-fee" style="font-size:22px;font-weight:900;color:#15803d;font-family:'JetBrains Mono',monospace;">₹90</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:14px;font-weight:800;letter-spacing:0.5px;">
+                        ↑ CHECKOUT VEHICLE &amp; GENERATE RECEIPT
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        const vehicleDatabase = {
+            'GJ 01 AB 1234': { owner: 'RAHUL SHARMA', type: 'Car', slot: 'F1-01', entryTime: '09:15 AM', rate: '₹50 + ₹20/hr', duration: '2 hrs 15 mins (3 billed hrs)', fee: '₹90' },
+            'MH 02 CB 9988': { owner: 'SURESH PATEL', type: 'Tempo', slot: 'F2-15', entryTime: '10:00 AM', rate: '₹100 + ₹50/hr', duration: '1 hr 30 mins (2 billed hrs)', fee: '₹150' },
+            'DL 08 EV 4455': { owner: 'PRIYA NAIR', type: 'Car (EV)', slot: 'G-01', entryTime: '10:45 AM', rate: '₹50 + ₹20/hr', duration: '45 mins (1 billed hr)', fee: '₹50' },
+            'BH 22 AA 5555': { owner: 'VIKRAMADITYA SINGH', type: 'Car', slot: 'F3-02', entryTime: '11:05 AM', rate: '₹50 + ₹20/hr', duration: '25 mins (1 billed hr)', fee: '₹50' },
+            'KA 05 MN 3322': { owner: 'ANAND VERMA', type: 'Bike', slot: 'F1-06', entryTime: '11:15 AM', rate: '₹20 + ₹10/hr', duration: '15 mins (1 billed hr)', fee: '₹20' }
+        };
+
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('id_exit_time').value = now.toISOString().slice(0, 16);
+
+        function pickVehicle(num) {
+            document.getElementById('id_exit_vehicle_number').value = num;
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const num = document.getElementById('id_exit_vehicle_number').value.trim();
+            const data = vehicleDatabase[num] || { owner: 'PARKED VEHICLE', type: 'Car', slot: 'BAY', entryTime: '10:00 AM', duration: '1 hr (1 billed hr)', fee: '₹50' };
+            
+            document.getElementById('preview-slot').textContent = 'SLOT ' + data.slot;
+            document.getElementById('preview-owner').textContent = data.owner;
+            document.getElementById('preview-type').textContent = data.type;
+            document.getElementById('preview-entry').textContent = 'Today, ' + data.entryTime;
+            document.getElementById('preview-duration').textContent = data.duration;
+            document.getElementById('preview-fee').textContent = data.fee;
+        }
+
+        function handleCheckout(e) {
+            e.preventDefault();
+            const num = document.getElementById('id_exit_vehicle_number').value.trim();
+            window.location.href = 'receipt.html?v=' + encodeURIComponent(num);
+        }
+
+        // Check URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryV = urlParams.get('v');
+        if (queryV) {
+            document.getElementById('id_exit_vehicle_number').value = queryV;
+            updatePreview();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PARKSAFE — Smart Parking Dashboard</title>
+    <meta name="description" content="Parksafe — Smart Indian Vehicle Parking Management System">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+    <div class="app-view">
+        <!-- ══ TOP NAVBAR ══ -->
+        <header class="hud-topbar">
+            <div class="brand-zone">
+                <a href="dashboard.html" style="text-decoration:none;display:flex;align-items:center;gap:8px;">
+                    <span class="brand-name" style="font-size:18px;font-weight:800;letter-spacing:1px;color:#0f172a;">PARKSAFE</span>
+                    <span style="font-size:10px;background:#eff6ff;color:#2563eb;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid #bfdbfe;">STATIC DEMO</span>
+                </a>
+            </div>
+
+            <nav class="hud-nav-pills">
+                <a href="dashboard.html" class="hud-pill active">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    DASHBOARD
+                </a>
+                <a href="vehicle_entry.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+                    CHECK-IN
+                </a>
+                <a href="vehicle_exit.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>
+                    CHECK-OUT
+                </a>
+                <a href="history.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    HISTORY
+                </a>
+                <a href="parking_management.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1 1.55V20.3h-3v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7.08 15a1.7 1.7 0 0 0-1.55-1H5.4v-3h.13a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06L8.8 5.94l.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1-1.55V4.7h3v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.55 1h.13v3h-.13a1.7 1.7 0 0 0-1.55 1Z"/></svg>
+                    PARKING MANAGEMENT
+                </a>
+            </nav>
+
+            <div class="user-action-zone" style="display:flex;align-items:center;gap:12px;">
+                <span id="live-clock" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#64748b;">11:30:00 AM</span>
+                <a href="login.html" class="btn-hud-logout">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    LOGOUT
+                </a>
+            </div>
+        </header>
+
+        <!-- ══ MAIN CANVAS ══ -->
+        <main class="hud-canvas">
+            <!-- ══ Stats Grid ══ -->
+            <div class="stats-grid">
+                <div class="stat-card blue">
+                    <div class="stat-label">Total Slots</div>
+                    <div class="stat-value">100</div>
+                    <div class="stat-sub">TOTAL CAPACITY</div>
+                    <div class="stat-icon-bg"><i class="bi bi-p-circle-fill" aria-hidden="true"></i></div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-label">Available</div>
+                    <div class="stat-value">88</div>
+                    <div class="stat-sub">OPEN NOW</div>
+                    <div class="stat-icon-bg"><i class="bi bi-check-circle-fill" aria-hidden="true"></i></div>
+                </div>
+                <div class="stat-card red">
+                    <div class="stat-label">Occupied</div>
+                    <div class="stat-value">10</div>
+                    <div class="stat-sub">VEHICLES PARKED</div>
+                    <div class="stat-icon-bg"><i class="bi bi-car-front-fill" aria-hidden="true"></i></div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="stat-label">Today's Revenue</div>
+                    <div class="stat-value" style="font-size:26px;">₹3,840</div>
+                    <div class="stat-sub">COLLECTED TODAY</div>
+                    <div class="stat-icon-bg"><i class="bi bi-currency-rupee" aria-hidden="true"></i></div>
+                </div>
+                <div class="stat-card orange">
+                    <div class="stat-label">Today's Entries</div>
+                    <div class="stat-value">42</div>
+                    <div class="stat-sub">VEHICLES CHECKED IN</div>
+                    <div class="stat-icon-bg"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i></div>
+                </div>
+            </div>
+
+            <!-- ══ Parking Lot Map ══ -->
+            <div class="usage-bar-wrap">
+                <div class="parking-map-heading">
+                    <div>
+                        <h3>Live Parking Layout</h3>
+                        <p>Real-time visual map of slots across all floors with maintenance status</p>
+                    </div>
+                    <div class="parking-map-total"><strong>10</strong> of 100 parking occupied</div>
+                </div>
+                <div class="parking-lot-map" aria-label="Parking space occupancy map">
+                    <!-- Floor 1 -->
+                    <div class="parking-floor-row">
+                        <div class="floor-label"><strong>Mall Parking • Floor 1</strong><small>3 / 25 occupied · 1 maintenance</small></div>
+                        <div class="parking-spaces">
+                            <span class="parking-space is-occupied" title="Occupied space F1-01"><span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;"><i class="fa-solid fa-car"></i> F1-01</span></span>
+                            <span class="parking-space is-free" title="Available space F1-02"><span>F1-02</span></span>
+                            <span class="parking-space is-free" title="Available space F1-03"><span>F1-03</span></span>
+                            <span class="parking-space is-free" title="Available space F1-04"><span>F1-04</span></span>
+                            <span class="parking-space is-maintenance" title="Under Maintenance space F1-05"><span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;"><i class="fa-solid fa-wrench" style="font-size:7px;"></i> F1-05</span></span>
+                            <span class="parking-space is-occupied" title="Occupied space F1-06"><span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;"><i class="fa-solid fa-motorcycle"></i> F1-06</span></span>
+                            <span class="parking-space is-free" title="Available space F1-07"><span>F1-07</span></span>
+                            <span class="parking-space is-free" title="Available space F1-08"><span>F1-08</span></span>
+                            <span class="parking-space is-free" title="Available space F1-09"><span>F1-09</span></span>
+                            <span class="parking-space is-occupied" title="Occupied space F1-10"><span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;"><i class="fa-solid fa-car"></i> F1-10</span></span>
+                            <span class="parking-space is-free" title="Available space F1-11"><span>F1-11</span></span>
+                            <span class="parking-space is-free" title="Available space F1-12"><span>F1-12</span></span>
+                            <span class="parking-space is-free" title="Available space F1-13"><span>F1-13</span></span>
+                            <span class="parking-space is-free" title="Available space F1-14"><span>F1-14</span></span>
+                            <span class="parking-space is-free" title="Available space F1-15"><span>F1-15</span></span>
+                            <span class="parking-space is-free" title="Available space F1-16"><span>F1-16</span></span>
+                            <span class="parking-space is-free" title="Available space F1-17"><span>F1-17</span></span>
+                            <span class="parking-space is-free" title="Available space F1-18"><span>F1-18</span></span>
+                            <span class="parking-space is-free" title="Available space F1-19"><span>F1-19</span></span>
+                            <span class="parking-space is-free" title="Available space F1-20"><span>F1-20</span></span>
+                            <span class="parking-space is-free" title="Available space F1-21"><span>F1-21</span></span>
+                            <span class="parking-space is-free" title="Available space F1-22"><span>F1-22</span></span>
+                            <span class="parking-space is-free" title="Available space F1-23"><span>F1-23</span></span>
+                            <span class="parking-space is-free" title="Available space F1-24"><span>F1-24</span></span>
+                            <span class="parking-space is-free" title="Available space F1-25"><span>F1-25</span></span>
+                        </div>
+                    </div>
+                    <!-- Floor 2 -->
+                    <div class="parking-floor-row">
+                        <div class="floor-label"><strong>Mall Parking • Floor 2</strong><small>2 / 25 occupied · 1 maintenance</small></div>
+                        <div class="parking-spaces">
+                            <span class="parking-space is-free" title="Available space F2-01"><span>F2-01</span></span>
+                            <span class="parking-space is-free" title="Available space F2-02"><span>F2-02</span></span>
+                            <span class="parking-space is-occupied" title="Occupied space F2-03"><span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;"><i class="fa-solid fa-car"></i> F2-03</span></span>
+                            <span class="parking-space is-free" title="Available space F2-04"><span>F2-04</span></span>
+                            <span class="parking-space is-free" title="Available space F2-05"><span>F2-05</span></span>
+                            <span class="parking-space is-free" title="Available space F2-06"><span>F2-06</span></span>
+                            <span class="parking-space is-free" title="Available space F2-07"><span>F2-07</span></span>
+                            <span class="parking-space is-free" title="Available space F2-08"><span>F2-08</span></span>
+                            <span class="parking-space is-free" title="Available space F2-09"><span>F2-09</span></span>
+                            <span class="parking-space is-free" title="Available space F2-10"><span>F2-10</span></span>
+                            <span class="parking-space is-free" title="Available space F2-11"><span>F2-11</span></span>
+                            <span class="parking-space is-maintenance" title="Under Maintenance space F2-12"><span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;"><i class="fa-solid fa-wrench" style="font-size:7px;"></i> F2-12</span></span>
+                            <span class="parking-space is-free" title="Available space F2-13"><span>F2-13</span></span>
+                            <span class="parking-space is-free" title="Available space F2-14"><span>F2-14</span></span>
+                            <span class="parking-space is-occupied" title="Occupied space F2-15"><span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;"><i class="fa-solid fa-truck"></i> F2-15</span></span>
+                            <span class="parking-space is-free" title="Available space F2-16"><span>F2-16</span></span>
+                            <span class="parking-space is-free" title="Available space F2-17"><span>F2-17</span></span>
+                            <span class="parking-space is-free" title="Available space F2-18"><span>F2-18</span></span>
+                            <span class="parking-space is-free" title="Available space F2-19"><span>F2-19</span></span>
+                            <span class="parking-space is-free" title="Available space F2-20"><span>F2-20</span></span>
+                            <span class="parking-space is-free" title="Available space F2-21"><span>F2-21</span></span>
+                            <span class="parking-space is-free" title="Available space F2-22"><span>F2-22</span></span>
+                            <span class="parking-space is-free" title="Available space F2-23"><span>F2-23</span></span>
+                            <span class="parking-space is-free" title="Available space F2-24"><span>F2-24</span></span>
+                            <span class="parking-space is-free" title="Available space F2-25"><span>F2-25</span></span>
+                        </div>
+                    </div>
+                    <!-- Floor 3 -->
+                    <div class="parking-floor-row">
+                        <div class="floor-label"><strong>Mall Parking • Floor 3</strong><small>2 / 25 occupied</small></div>
+                        <div class="parking-spaces">
+                            <span class="parking-space is-free" title="Available space F3-01"><span>F3-01</span></span>
+                            <span class="parking-space is-occupied" title="Occupied space F3-02"><span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;"><i class="fa-solid fa-car"></i> F3-02</span></span>
+                            <span class="parking-space is-free" title="Available space F3-03"><span>F3-03</span></span>
+                            <span class="parking-space is-free" title="Available space F3-04"><span>F3-04</span></span>
+                            <span class="parking-space is-free" title="Available space F3-05"><span>F3-05</span></span>
+                            <span class="parking-space is-free" title="Available space F3-06"><span>F3-06</span></span>
+                            <span class="parking-space is-occupied" title="Occupied space F3-07"><span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;"><i class="fa-solid fa-car"></i> F3-07</span></span>
+                            <span class="parking-space is-free" title="Available space F3-08"><span>F3-08</span></span>
+                            <span class="parking-space is-free" title="Available space F3-09"><span>F3-09</span></span>
+                            <span class="parking-space is-free" title="Available space F3-10"><span>F3-10</span></span>
+                            <span class="parking-space is-free" title="Available space F3-11"><span>F3-11</span></span>
+                            <span class="parking-space is-free" title="Available space F3-12"><span>F3-12</span></span>
+                            <span class="parking-space is-free" title="Available space F3-13"><span>F3-13</span></span>
+                            <span class="parking-space is-free" title="Available space F3-14"><span>F3-14</span></span>
+                            <span class="parking-space is-free" title="Available space F3-15"><span>F3-15</span></span>
+                            <span class="parking-space is-free" title="Available space F3-16"><span>F3-16</span></span>
+                            <span class="parking-space is-free" title="Available space F3-17"><span>F3-17</span></span>
+                            <span class="parking-space is-free" title="Available space F3-18"><span>F3-18</span></span>
+                            <span class="parking-space is-free" title="Available space F3-19"><span>F3-19</span></span>
+                            <span class="parking-space is-free" title="Available space F3-20"><span>F3-20</span></span>
+                            <span class="parking-space is-free" title="Available space F3-21"><span>F3-21</span></span>
+                            <span class="parking-space is-free" title="Available space F3-22"><span>F3-22</span></span>
+                            <span class="parking-space is-free" title="Available space F3-23"><span>F3-23</span></span>
+                            <span class="parking-space is-free" title="Available space F3-24"><span>F3-24</span></span>
+                            <span class="parking-space is-free" title="Available space F3-25"><span>F3-25</span></span>
+                        </div>
+                    </div>
+                    <!-- Ground Floor -->
+                    <div class="parking-floor-row">
+                        <div class="floor-label"><strong>Mall Parking • Ground Floor</strong><small>3 / 25 occupied</small></div>
+                        <div class="parking-spaces">
+                            <span class="parking-space is-occupied" title="Occupied space G-01"><span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;"><i class="fa-solid fa-car"></i> G-01</span></span>
+                            <span class="parking-space is-free" title="Available space G-02"><span>G-02</span></span>
+                            <span class="parking-space is-free" title="Available space G-03"><span>G-03</span></span>
+                            <span class="parking-space is-occupied" title="Occupied space G-04"><span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;"><i class="fa-solid fa-bus"></i> G-04</span></span>
+                            <span class="parking-space is-free" title="Available space G-05"><span>G-05</span></span>
+                            <span class="parking-space is-free" title="Available space G-06"><span>G-06</span></span>
+                            <span class="parking-space is-free" title="Available space G-07"><span>G-07</span></span>
+                            <span class="parking-space is-free" title="Available space G-08"><span>G-08</span></span>
+                            <span class="parking-space is-free" title="Available space G-09"><span>G-09</span></span>
+                            <span class="parking-space is-free" title="Available space G-10"><span>G-10</span></span>
+                            <span class="parking-space is-occupied" title="Occupied space G-11"><span aria-hidden="true" style="display:inline-flex;align-items:center;gap:4px;"><i class="fa-solid fa-motorcycle"></i> G-11</span></span>
+                            <span class="parking-space is-free" title="Available space G-12"><span>G-12</span></span>
+                            <span class="parking-space is-free" title="Available space G-13"><span>G-13</span></span>
+                            <span class="parking-space is-free" title="Available space G-14"><span>G-14</span></span>
+                            <span class="parking-space is-free" title="Available space G-15"><span>G-15</span></span>
+                            <span class="parking-space is-free" title="Available space G-16"><span>G-16</span></span>
+                            <span class="parking-space is-free" title="Available space G-17"><span>G-17</span></span>
+                            <span class="parking-space is-free" title="Available space G-18"><span>G-18</span></span>
+                            <span class="parking-space is-free" title="Available space G-19"><span>G-19</span></span>
+                            <span class="parking-space is-free" title="Available space G-20"><span>G-20</span></span>
+                            <span class="parking-space is-free" title="Available space G-21"><span>G-21</span></span>
+                            <span class="parking-space is-free" title="Available space G-22"><span>G-22</span></span>
+                            <span class="parking-space is-free" title="Available space G-23"><span>G-23</span></span>
+                            <span class="parking-space is-free" title="Available space G-24"><span>G-24</span></span>
+                            <span class="parking-space is-free" title="Available space G-25"><span>G-25</span></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="parking-map-key">
+                    <span><i class="key-car"></i> Occupied slot</span>
+                    <span><i class="key-free"></i> Available slot</span>
+                    <span><i class="key-maintenance"></i> Under maintenance</span>
+                    <span><strong>10%</strong> occupied</span>
+                </div>
+            </div>
+
+            <!-- ══ Active Vehicles Table ══ -->
+            <div class="table-card">
+                <div class="table-card-header">
+                    <h2>CURRENTLY PARKED VEHICLES</h2>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span class="count-chip">10 ACTIVE</span>
+                        <a href="vehicle_entry.html" class="btn btn-primary" style="padding:6px 12px;font-size:12px;">+ CHECK-IN</a>
+                    </div>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>NUMBER PLATE</th>
+                                <th>CATEGORY</th>
+                                <th>TYPE</th>
+                                <th>OWNER</th>
+                                <th>MOBILE</th>
+                                <th>SLOT</th>
+                                <th>FLOOR</th>
+                                <th>ENTRY TIME</th>
+                                <th style="text-align:right;">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;">1</td>
+                                <td>
+                                    <span class="india-plate-sm" data-bg="#ffffff" data-color="#1e293b" style="background-color:#ffffff;color:#1e293b;">
+                                        GJ 01 AB 1234
+                                    </span>
+                                </td>
+                                <td><span class="plate-cat-tag">PRIVATE</span></td>
+                                <td style="font-size:12px;font-weight:700;letter-spacing:0.3px;">CAR</td>
+                                <td style="font-weight:600;font-size:13px;">RAHUL SHARMA</td>
+                                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;">+91 9876543210</td>
+                                <td><span class="slot-badge">F1-01</span></td>
+                                <td style="font-size:12px;color:#475569;"><strong>Mall Parking</strong><br>Floor 1</td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026<br><strong style="color:#1e293b;">09:15 AM</strong></td>
+                                <td style="text-align:right;">
+                                    <a href="vehicle_exit.html?v=GJ01AB1234" class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" title="Check out this vehicle">EXIT</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;">2</td>
+                                <td>
+                                    <span class="india-plate-sm" data-bg="#facc15" data-color="#000000" style="background-color:#facc15;color:#000000;">
+                                        MH 02 CB 9988
+                                    </span>
+                                </td>
+                                <td><span class="plate-cat-tag">COMMERCIAL</span></td>
+                                <td style="font-size:12px;font-weight:700;letter-spacing:0.3px;">TEMPO</td>
+                                <td style="font-weight:600;font-size:13px;">SURESH PATEL</td>
+                                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;">+91 9822334455</td>
+                                <td><span class="slot-badge">F2-15</span></td>
+                                <td style="font-size:12px;color:#475569;"><strong>Mall Parking</strong><br>Floor 2</td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026<br><strong style="color:#1e293b;">10:00 AM</strong></td>
+                                <td style="text-align:right;">
+                                    <a href="vehicle_exit.html?v=MH02CB9988" class="btn btn-secondary" style="padding:4px 8px;font-size:11px;">EXIT</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;">3</td>
+                                <td>
+                                    <span class="india-plate-sm" data-bg="#15803d" data-color="#ffffff" style="background-color:#15803d;color:#ffffff;">
+                                        DL 08 EV 4455
+                                    </span>
+                                </td>
+                                <td><span class="plate-cat-tag">EV GREEN</span></td>
+                                <td style="font-size:12px;font-weight:700;letter-spacing:0.3px;">CAR (EV)</td>
+                                <td style="font-weight:600;font-size:13px;">PRIYA NAIR</td>
+                                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;">+91 9988776655</td>
+                                <td><span class="slot-badge">G-01</span></td>
+                                <td style="font-size:12px;color:#475569;"><strong>Mall Parking</strong><br>Ground Floor</td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026<br><strong style="color:#1e293b;">10:45 AM</strong></td>
+                                <td style="text-align:right;">
+                                    <a href="vehicle_exit.html?v=DL08EV4455" class="btn btn-secondary" style="padding:4px 8px;font-size:11px;">EXIT</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;">4</td>
+                                <td>
+                                    <span class="india-plate-sm" data-bg="#ffffff" data-color="#1e293b" style="background-color:#ffffff;color:#1e293b;">
+                                        BH 22 AA 5555
+                                    </span>
+                                </td>
+                                <td><span class="plate-cat-tag">BH SERIES</span></td>
+                                <td style="font-size:12px;font-weight:700;letter-spacing:0.3px;">CAR</td>
+                                <td style="font-weight:600;font-size:13px;">VIKRAMADITYA SINGH</td>
+                                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;">+91 9123456780</td>
+                                <td><span class="slot-badge">F3-02</span></td>
+                                <td style="font-size:12px;color:#475569;"><strong>Mall Parking</strong><br>Floor 3</td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026<br><strong style="color:#1e293b;">11:05 AM</strong></td>
+                                <td style="text-align:right;">
+                                    <a href="vehicle_exit.html?v=BH22AA5555" class="btn btn-secondary" style="padding:4px 8px;font-size:11px;">EXIT</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;">5</td>
+                                <td>
+                                    <span class="india-plate-sm" data-bg="#ffffff" data-color="#1e293b" style="background-color:#ffffff;color:#1e293b;">
+                                        KA 05 MN 3322
+                                    </span>
+                                </td>
+                                <td><span class="plate-cat-tag">PRIVATE</span></td>
+                                <td style="font-size:12px;font-weight:700;letter-spacing:0.3px;">BIKE</td>
+                                <td style="font-weight:600;font-size:13px;">ANAND VERMA</td>
+                                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;">+91 9741234567</td>
+                                <td><span class="slot-badge">F1-06</span></td>
+                                <td style="font-size:12px;color:#475569;"><strong>Mall Parking</strong><br>Floor 1</td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026<br><strong style="color:#1e293b;">11:15 AM</strong></td>
+                                <td style="text-align:right;">
+                                    <a href="vehicle_exit.html?v=KA05MN3322" class="btn btn-secondary" style="padding:4px 8px;font-size:11px;">EXIT</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

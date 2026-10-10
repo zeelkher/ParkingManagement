@@ -17,20 +17,19 @@ import secrets
 
 def build_parking_layout(occupied_slots_map):
     """Return the configured places/floors/slots for dashboard and check-in."""
-    floors = ParkingFloor.objects.select_related('parking_area').prefetch_related('slots').filter(
-        is_under_maintenance=False, parking_area__is_under_maintenance=False
-    )
+    floors = ParkingFloor.objects.select_related('parking_area').prefetch_related('slots').all()
     layout = []
     for floor in floors:
+        floor_is_maint = floor.is_under_maintenance or floor.parking_area.is_under_maintenance
         spaces = [
             {
                 'id': slot.id,
                 'number': slot.number,
                 'occupied': slot.id in occupied_slots_map,
                 'vehicle_type': occupied_slots_map.get(slot.id),
-                'under_maintenance': slot.is_under_maintenance
+                'under_maintenance': floor_is_maint or slot.is_under_maintenance,
             }
-            for slot in floor.slots.all() if not slot.is_under_maintenance
+            for slot in floor.slots.all()
         ]
         layout.append({
             'id': floor.id,
@@ -38,7 +37,8 @@ def build_parking_layout(occupied_slots_map):
             'label': f'{floor.parking_area.name} • {floor.name}',
             'spaces': spaces,
             'total_slots': len(spaces),
-            'occupied_slots': sum(space['occupied'] for space in spaces),
+            'occupied_slots': sum(1 for space in spaces if space['occupied']),
+            'under_maintenance_slots': sum(1 for space in spaces if space['under_maintenance']),
         })
     return layout
 
@@ -110,8 +110,18 @@ def dashboard(request):
     active_records = ParkingRecord.objects.filter(status='Active').select_related('vehicle')
     occupied_slots = active_records.count()
     occupied_slots_map = {r.parking_slot_id: r.vehicle.vehicle_type for r in active_records if r.parking_slot_id}
-    total_slots = ParkingSlot.objects.filter(is_under_maintenance=False).count()
-    available_slots = total_slots - occupied_slots
+    active_slot_ids = set(occupied_slots_map.keys())
+
+    # Total slots represents total capacity - only affected when a slot is added or deleted
+    total_slots = ParkingSlot.objects.count()
+
+    # Available slots: slots that are not under maintenance and not occupied
+    available_slots = ParkingSlot.objects.filter(
+        is_under_maintenance=False,
+        parking_floor__is_under_maintenance=False,
+        parking_floor__parking_area__is_under_maintenance=False,
+    ).exclude(id__in=active_slot_ids).count()
+
     percent_occupied = int((occupied_slots / total_slots) * 100) if total_slots else 0
 
     today = timezone.now().date()
@@ -139,10 +149,28 @@ def vehicle_entry(request):
     active_slot_ids = set(r.parking_slot_id for r in active_records if r.parking_slot_id)
     active_slots_map = {r.parking_slot_id: r.vehicle.vehicle_type for r in active_records if r.parking_slot_id}
     available_slots = ParkingSlot.objects.filter(
-        is_under_maintenance=False
+        is_under_maintenance=False,
+        parking_floor__is_under_maintenance=False,
+        parking_floor__parking_area__is_under_maintenance=False,
     ).exclude(id__in=active_slot_ids).select_related(
         'parking_floor__parking_area'
     )
+    parking_floors = build_parking_layout(active_slots_map)
+    floor_area_map = {str(f['id']): str(f['area_id']) for f in parking_floors}
+    slot_floor_map = {str(s['id']): str(f['id']) for f in parking_floors for s in f['spaces']}
+    floor_slots_map = {
+        str(f['id']): [
+            {
+                'id': str(s['id']),
+                'number': s['number'],
+                'occupied': bool(s['occupied']),
+                'under_maintenance': bool(s['under_maintenance']),
+            }
+            for s in f['spaces']
+        ]
+        for f in parking_floors
+    }
+
     if request.method == 'POST':
         form = VehicleEntryForm(request.POST, available_slots=available_slots)
         if form.is_valid():
@@ -163,6 +191,10 @@ def vehicle_entry(request):
                 return render(request, 'parking/vehicle_entry.html', {
                     'form': form,
                     'error': f'Vehicle {vehicle_number} is already parked at {active_record.parking_number} ({active_record.floor_name}). Please check it out first before re-entry.',
+                    'parking_floors': parking_floors,
+                    'floor_area_map': floor_area_map,
+                    'slot_floor_map': slot_floor_map,
+                    'floor_slots_map': floor_slots_map,
                 })
 
             # Get or create vehicle; update details on every entry
@@ -189,7 +221,10 @@ def vehicle_entry(request):
                 return render(request, 'parking/vehicle_entry.html', {
                     'form': form,
                     'error': f'{parking_slot.label} was just occupied. Please select another free slot.',
-                    'parking_floors': build_parking_layout(active_slots_map),
+                    'parking_floors': parking_floors,
+                    'floor_area_map': floor_area_map,
+                    'slot_floor_map': slot_floor_map,
+                    'floor_slots_map': floor_slots_map,
                 })
 
             ParkingRecord.objects.create(
@@ -204,7 +239,10 @@ def vehicle_entry(request):
         )
     return render(request, 'parking/vehicle_entry.html', {
         'form': form,
-        'parking_floors': build_parking_layout(active_slots_map),
+        'parking_floors': parking_floors,
+        'floor_area_map': floor_area_map,
+        'slot_floor_map': slot_floor_map,
+        'floor_slots_map': floor_slots_map,
     })
 
 

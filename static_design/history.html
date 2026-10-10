@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PARKSAFE — Parking History &amp; Logs</title>
+    <meta name="description" content="Parksafe — Parking Activity History and Audit Logs">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+    <div class="app-view">
+        <!-- ══ TOP NAVBAR ══ -->
+        <header class="hud-topbar">
+            <div class="brand-zone">
+                <a href="dashboard.html" style="text-decoration:none;display:flex;align-items:center;gap:8px;">
+                    <span class="brand-name" style="font-size:18px;font-weight:800;letter-spacing:1px;color:#0f172a;">PARKSAFE</span>
+                    <span style="font-size:10px;background:#eff6ff;color:#2563eb;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid #bfdbfe;">STATIC DEMO</span>
+                </a>
+            </div>
+
+            <nav class="hud-nav-pills">
+                <a href="dashboard.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    DASHBOARD
+                </a>
+                <a href="vehicle_entry.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+                    CHECK-IN
+                </a>
+                <a href="vehicle_exit.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>
+                    CHECK-OUT
+                </a>
+                <a href="history.html" class="hud-pill active">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    HISTORY
+                </a>
+                <a href="parking_management.html" class="hud-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1 1.55V20.3h-3v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7.08 15a1.7 1.7 0 0 0-1.55-1H5.4v-3h.13a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06L8.8 5.94l.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1-1.55V4.7h3v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.55 1h.13v3h-.13a1.7 1.7 0 0 0-1.55 1Z"/></svg>
+                    PARKING MANAGEMENT
+                </a>
+            </nav>
+
+            <div class="user-action-zone" style="display:flex;align-items:center;gap:12px;">
+                <span id="live-clock" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#64748b;">11:30:00 AM</span>
+                <a href="login.html" class="btn-hud-logout">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    LOGOUT
+                </a>
+            </div>
+        </header>
+
+        <!-- ══ MAIN CANVAS ══ -->
+        <main class="hud-canvas">
+            <div class="glass-panel mb-4" style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 20px;">
+                <div class="search-form" style="flex:1;min-width:280px;display:flex;gap:8px;">
+                    <input type="text" id="search-input"
+                           placeholder="SEARCH BY VEHICLE NUMBER OR OWNER NAME..."
+                           class="form-control"
+                           style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:1px;"
+                           oninput="filterRecords()">
+                    <button type="button" class="btn btn-primary" onclick="filterRecords()">SEARCH</button>
+                    <button type="button" class="btn btn-secondary" onclick="clearSearch()">CLEAR</button>
+                </div>
+
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button type="button" class="btn btn-secondary" onclick="filterStatus('all')">ALL</button>
+                    <button type="button" class="btn btn-secondary" onclick="filterStatus('active')">ACTIVE</button>
+                    <button type="button" class="btn btn-secondary" onclick="filterStatus('exited')">EXITED</button>
+                </div>
+            </div>
+
+            <div class="glass-panel" style="padding:20px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <h2 style="font-size:16px;font-weight:800;color:#0f172a;letter-spacing:-0.2px;">PARKING LOGS &amp; AUDIT TRAIL</h2>
+                    <span id="record-count" class="count-chip">6 TOTAL LOGS</span>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="modern-table" id="history-table">
+                        <thead>
+                            <tr>
+                                <th>NUMBER PLATE</th>
+                                <th>CATEGORY</th>
+                                <th>TYPE</th>
+                                <th>OWNER</th>
+                                <th>MOBILE</th>
+                                <th>PARKING</th>
+                                <th>ENTRY TIME</th>
+                                <th>EXIT TIME</th>
+                                <th>DURATION</th>
+                                <th>FEE</th>
+                                <th>STATUS</th>
+                                <th style="text-align:right;">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-status="active">
+                                <td>
+                                    <span class="india-plate-sm" data-bg="#ffffff" data-color="#1e293b" style="background-color:#ffffff;color:#1e293b;">
+                                        GJ 01 AB 1234
+                                    </span>
+                                </td>
+                                <td><span class="plate-cat-tag">PRIVATE</span></td>
+                                <td style="font-weight:600;font-size:12px;">CAR</td>
+                                <td style="font-weight:600;">RAHUL SHARMA</td>
+                                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;">+91 9876543210</td>
+                                <td><span class="slot-badge">F1-01</span><br><small class="table-muted">Mall Parking • Floor 1</small></td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026 • 09:15 AM</td>
+                                <td style="font-size:12px;color:#475569;"><span style="color:#94a3b8;">—</span></td>
+                                <td style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;">2h 15m</td>
+                                <td><span style="color:#94a3b8;">—</span></td>
+                                <td><span class="status-active"><i class="fa-solid fa-circle" style="font-size:6px;"></i> ACTIVE</span></td>
+                                <td style="text-align:right;">
+                                    <a href="vehicle_exit.html?v=GJ01AB1234" class="btn btn-primary" style="padding:4px 8px;font-size:11px;">CHECKOUT</a>
+                                </td>
+                            </tr>
+                            <tr data-status="active">
+                                <td>
+                                    <span class="india-plate-sm" data-bg="#facc15" data-color="#000000" style="background-color:#facc15;color:#000000;">
+                                        MH 02 CB 9988
+                                    </span>
+                                </td>
+                                <td><span class="plate-cat-tag">COMMERCIAL</span></td>
+                                <td style="font-weight:600;font-size:12px;">TEMPO</td>
+                                <td style="font-weight:600;">SURESH PATEL</td>
+                                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;">+91 9822334455</td>
+                                <td><span class="slot-badge">F2-15</span><br><small class="table-muted">Mall Parking • Floor 2</small></td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026 • 10:00 AM</td>
+                                <td style="font-size:12px;color:#475569;"><span style="color:#94a3b8;">—</span></td>
+                                <td style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;">1h 30m</td>
+                                <td><span style="color:#94a3b8;">—</span></td>
+                                <td><span class="status-active"><i class="fa-solid fa-circle" style="font-size:6px;"></i> ACTIVE</span></td>
+                                <td style="text-align:right;">
+                                    <a href="vehicle_exit.html?v=MH02CB9988" class="btn btn-primary" style="padding:4px 8px;font-size:11px;">CHECKOUT</a>
+                                </td>
+                            </tr>
+                            <tr data-status="exited">
+                                <td>
+                                    <span class="india-plate-sm" data-bg="#ffffff" data-color="#1e293b" style="background-color:#ffffff;color:#1e293b;">
+                                        DL 04 CZ 1122
+                                    </span>
+                                </td>
+                                <td><span class="plate-cat-tag">PRIVATE</span></td>
+                                <td style="font-weight:600;font-size:12px;">CAR</td>
+                                <td style="font-weight:600;">MANISH GUPTA</td>
+                                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;">+91 9811223344</td>
+                                <td><span class="slot-badge">F1-04</span><br><small class="table-muted">Mall Parking • Floor 1</small></td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026 • 07:30 AM</td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026 • 09:30 AM</td>
+                                <td style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;">2 hrs</td>
+                                <td><span class="fee-badge">₹70</span></td>
+                                <td><span class="status-exited"><i class="fa-solid fa-circle-check"></i> EXITED</span></td>
+                                <td style="text-align:right;">
+                                    <a href="receipt.html?v=DL04CZ1122" class="btn btn-secondary" style="padding:4px 8px;font-size:11px;">RECEIPT</a>
+                                </td>
+                            </tr>
+                            <tr data-status="exited">
+                                <td>
+                                    <span class="india-plate-sm" data-bg="#15803d" data-color="#ffffff" style="background-color:#15803d;color:#ffffff;">
+                                        KA 01 EV 9000
+                                    </span>
+                                </td>
+                                <td><span class="plate-cat-tag">EV GREEN</span></td>
+                                <td style="font-weight:600;font-size:12px;">CAR (EV)</td>
+                                <td style="font-weight:600;">KAVITA RAO</td>
+                                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;">+91 9845012345</td>
+                                <td><span class="slot-badge">G-02</span><br><small class="table-muted">Mall Parking • Ground Floor</small></td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026 • 08:00 AM</td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026 • 09:00 AM</td>
+                                <td style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;">1 hr</td>
+                                <td><span class="fee-badge">₹50</span></td>
+                                <td><span class="status-exited"><i class="fa-solid fa-circle-check"></i> EXITED</span></td>
+                                <td style="text-align:right;">
+                                    <a href="receipt.html?v=KA01EV9000" class="btn btn-secondary" style="padding:4px 8px;font-size:11px;">RECEIPT</a>
+                                </td>
+                            </tr>
+                            <tr data-status="exited">
+                                <td>
+                                    <span class="india-plate-sm" data-bg="#ffffff" data-color="#1e293b" style="background-color:#ffffff;color:#1e293b;">
+                                        GJ 06 BH 8877
+                                    </span>
+                                </td>
+                                <td><span class="plate-cat-tag">PRIVATE</span></td>
+                                <td style="font-weight:600;font-size:12px;">BIKE</td>
+                                <td style="font-weight:600;">DEEPAK JOSHI</td>
+                                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;">+91 9825098765</td>
+                                <td><span class="slot-badge">F1-08</span><br><small class="table-muted">Mall Parking • Floor 1</small></td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026 • 08:30 AM</td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026 • 10:30 AM</td>
+                                <td style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;">2 hrs</td>
+                                <td><span class="fee-badge">₹30</span></td>
+                                <td><span class="status-exited"><i class="fa-solid fa-circle-check"></i> EXITED</span></td>
+                                <td style="text-align:right;">
+                                    <a href="receipt.html?v=GJ06BH8877" class="btn btn-secondary" style="padding:4px 8px;font-size:11px;">RECEIPT</a>
+                                </td>
+                            </tr>
+                            <tr data-status="exited">
+                                <td>
+                                    <span class="india-plate-sm" data-bg="#facc15" data-color="#000000" style="background-color:#facc15;color:#000000;">
+                                        MH 12 BB 7766
+                                    </span>
+                                </td>
+                                <td><span class="plate-cat-tag">COMMERCIAL</span></td>
+                                <td style="font-weight:600;font-size:12px;">BUS</td>
+                                <td style="font-weight:600;">BHARAT TRAVELS</td>
+                                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;">+91 9820011223</td>
+                                <td><span class="slot-badge">G-04</span><br><small class="table-muted">Mall Parking • Ground Floor</small></td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026 • 06:00 AM</td>
+                                <td style="font-size:12px;color:#475569;">06 Oct 2026 • 09:00 AM</td>
+                                <td style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;">3 hrs</td>
+                                <td><span class="fee-badge">₹240</span></td>
+                                <td><span class="status-exited"><i class="fa-solid fa-circle-check"></i> EXITED</span></td>
+                                <td style="text-align:right;">
+                                    <a href="receipt.html?v=MH12BB7766" class="btn btn-secondary" style="padding:4px 8px;font-size:11px;">RECEIPT</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        function filterRecords() {
+            const query = document.getElementById('search-input').value.toUpperCase();
+            const rows = document.querySelectorAll('#history-table tbody tr');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const text = row.textContent.toUpperCase();
+                const matches = text.includes(query);
+                row.style.display = matches ? '' : 'none';
+                if (matches) visibleCount++;
+            });
+
+            document.getElementById('record-count').textContent = visibleCount + ' SHOWN';
+        }
+
+        function clearSearch() {
+            document.getElementById('search-input').value = '';
+            filterRecords();
+        }
+
+        function filterStatus(status) {
+            const rows = document.querySelectorAll('#history-table tbody tr');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                if (status === 'all' || row.dataset.status === status) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            document.getElementById('record-count').textContent = visibleCount + ' SHOWN';
+        }
+    </script>
+</body>
+</html>

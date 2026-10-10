@@ -116,7 +116,10 @@ class VehicleEntryForm(forms.Form):
         return timezone.now()
 
     def clean_vehicle_number(self):
-        return self.cleaned_data['vehicle_number'].strip().upper()
+        """Normalize to standard spaced format e.g. 'GJ 05 AA 1234' / '24 BH 1234 AA'."""
+        raw = self.cleaned_data['vehicle_number'].strip().upper()
+        # Collapse any accidental double-spaces, keep single spaces between groups
+        return ' '.join(raw.split())
 
     def clean_state_code(self):
         return self.cleaned_data['state_code'].strip().upper()

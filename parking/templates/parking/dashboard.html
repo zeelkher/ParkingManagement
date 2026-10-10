@@ -40,6 +40,10 @@
 <!-- ══ Parking Lot Map ══ -->
 <div class="usage-bar-wrap">
     <div class="parking-map-heading">
+        <div>
+            <h3>Live Parking Layout</h3>
+            <p>Real-time visual map of slots across all floors</p>
+        </div>
         <div class="parking-map-total"><strong>{{ occupied_slots }}</strong> of {{ total_slots }} parking occupied</div>
     </div>
     <div class="parking-lot-map" aria-label="Parking space occupancy map">
@@ -48,8 +52,8 @@
             <div class="floor-label"><strong>{{ floor.label }}</strong><small>{{ floor.occupied_slots }} / {{ floor.total_slots }} occupied</small></div>
             <div class="parking-spaces">
                 {% for space in floor.spaces %}
-                <span class="parking-space {% if space.occupied %}is-occupied{% else %}is-free{% endif %}"
-                    title="{% if space.occupied %}Occupied{% else %}Available{% endif %} space {{ space.number }}">
+                <span class="parking-space {% if space.occupied %}is-occupied{% elif space.under_maintenance %}is-maintenance{% else %}is-free{% endif %}"
+                    title="{% if space.occupied %}Occupied{% elif space.under_maintenance %}Under Maintenance{% else %}Available{% endif %} space {{ space.number }}">
                     {% if space.occupied %}
                     <span aria-hidden="true" style="display: inline-flex; align-items: center; gap: 4px;">
                         {% if space.vehicle_type == 'Car' or space.vehicle_type == 'Jeep' or space.vehicle_type == 'Van' %}
@@ -65,6 +69,11 @@
                         {% endif %}
                         {{ space.number }}
                     </span>
+                    {% elif space.under_maintenance %}
+                    <span aria-hidden="true" style="display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-wrench" style="font-size: 7px;"></i>
+                        {{ space.number }}
+                    </span>
                     {% else %}
                     <span>{{ space.number }}</span>
                     {% endif %}
@@ -74,8 +83,12 @@
         </div>
         {% endfor %}
     </div>
-    <div class="parking-map-key"><span><i class="key-car"></i> Occupied slot</span><span><i class="key-free"></i>
-            Available slot</span><span><strong>{{ percent_occupied }}%</strong> occupied</span></div>
+    <div class="parking-map-key">
+        <span><i class="key-car"></i> Occupied slot</span>
+        <span><i class="key-free"></i> Available slot</span>
+        <span><i class="key-maintenance"></i> Under maintenance</span>
+        <span><strong>{{ percent_occupied }}%</strong> occupied</span>
+    </div>
 </div>
 
 <!-- ══ Active Vehicles Table ══ -->

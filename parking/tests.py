@@ -149,3 +149,26 @@ class ParkingDateAndFloorTests(TestCase):
         self.assertRedirects(response, reverse('parking_management'))
         self.ground_slot.parking_floor.refresh_from_db()
         self.assertTrue(self.ground_slot.parking_floor.is_under_maintenance)
+
+    def test_slot_under_maintenance_reduces_available_not_total(self):
+        initial_total = ParkingSlot.objects.count()
+        response_before = self.client.get(reverse('dashboard'))
+        initial_available = response_before.context['available_slots']
+
+        # Put a slot under maintenance
+        self.floor_two_slot.is_under_maintenance = True
+        self.floor_two_slot.save()
+
+        response_after = self.client.get(reverse('dashboard'))
+        # Total slots must NOT change when a slot is under maintenance
+        self.assertEqual(response_after.context['total_slots'], initial_total)
+        # Available slots MUST reduce
+        self.assertEqual(response_after.context['available_slots'], initial_available - 1)
+        # Dashboard renders the slot with maintenance class
+        self.assertContains(response_after, 'is-maintenance')
+
+        # Deleting a slot DOES reduce total_slots
+        self.floor_two_slot.delete()
+        response_deleted = self.client.get(reverse('dashboard'))
+        self.assertEqual(response_deleted.context['total_slots'], initial_total - 1)
+
