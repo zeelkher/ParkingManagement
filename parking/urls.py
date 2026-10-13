@@ -12,4 +12,17 @@ urlpatterns = [
     path('receipt/<int:record_id>/', views.receipt, name='receipt'),
     path('delete/<int:record_id>/', views.delete_record, name='delete_record'),
     path('clear-history/', views.clear_history, name='clear_history'),
+
+    # Operator Advance Booking Management
+    path('booking-settings/', views.booking_form_settings, name='booking_form_settings'),
+    path('booking-requests/', views.booking_requests, name='booking_requests'),
+    path('booking-requests/<int:booking_id>/action/', views.booking_request_action, name='booking_request_action'),
+    path('api/booking-lookup/', views.booking_lookup_api, name='booking_lookup_api'),
+
+    # Public Customer Advance Booking Pages
+    path('booking/', views.public_advance_booking, name='advance_booking'),
+    path('advance-booking/', views.public_advance_booking, name='advance_booking_alias'),
+    path('booking/confirmation/<str:reference>/', views.public_booking_confirmation, name='booking_confirmation'),
+    path('booking/status/', views.public_booking_status, name='booking_status'),
+    path('booking/cancel/<str:reference>/', views.public_booking_cancel, name='booking_cancel'),
 ]

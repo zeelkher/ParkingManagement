@@ -1,6 +1,9 @@
 from django import forms
 from django.utils import timezone
-from .models import ParkingArea, ParkingFloor, Vehicle, ParkingSlot, PLATE_TYPES, VEHICLE_TYPES
+from .models import (
+    ParkingArea, ParkingFloor, Vehicle, ParkingSlot, PLATE_TYPES, VEHICLE_TYPES,
+    BookingFormConfig, BookingCustomQuestion, AdvanceBooking
+)
 
 
 class ParkingFloorChoiceField(forms.ModelChoiceField):
@@ -300,3 +303,256 @@ class ParkingSlotForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['parking_floor'].empty_label = 'Select Parking Floor'
+
+
+class BookingFormSettingsForm(forms.ModelForm):
+    class Meta:
+        model = BookingFormConfig
+        fields = [
+            'title', 'description', 'is_published',
+            'field_owner_name_visible', 'field_owner_name_required',
+            'field_mobile_visible', 'field_mobile_required',
+            'field_vehicle_number_visible', 'field_vehicle_number_required',
+            'field_vehicle_type_visible', 'field_vehicle_type_required',
+            'field_expected_arrival_visible', 'field_expected_arrival_required',
+            'field_duration_hours_visible', 'field_duration_hours_required',
+            'field_state_code_visible', 'field_state_code_required',
+            'field_plate_type_visible', 'field_plate_type_required',
+            'field_preferred_area_visible', 'field_preferred_area_required',
+            'field_notes_visible', 'field_notes_required',
+            'advance_booking_lead_hours', 'max_advance_days',
+            'terms_and_conditions'
+        ]
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Advance Parking Reservation'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Instructions for visitors'}),
+            'is_published': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'form_is_published'}),
+            'advance_booking_lead_hours': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'max_advance_days': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
+            'terms_and_conditions': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+        }
+
+
+class BookingCustomQuestionForm(forms.ModelForm):
+    class Meta:
+        model = BookingCustomQuestion
+        fields = ['question_text', 'field_type', 'options', 'help_text', 'is_required', 'sort_order']
+        widgets = {
+            'question_text': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Company or Department Name'}),
+            'field_type': forms.Select(attrs={'class': 'form-control'}),
+            'options': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Option 1, Option 2, Option 3 (for Dropdown)'}),
+            'help_text': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Helpful hint for visitor'}),
+            'is_required': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'sort_order': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+        }
+
+
+class PublicAdvanceBookingForm(forms.Form):
+    def __init__(self, *args, config=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.config = config or BookingFormConfig.get_solo()
+
+        # Add standard fields conditionally based on config
+        if self.config.field_vehicle_number_visible:
+            self.fields['vehicle_number'] = forms.CharField(
+                label='Vehicle Number',
+                required=self.config.field_vehicle_number_required,
+                widget=forms.TextInput(attrs={
+                    'class': 'form-control',
+                    'placeholder': 'GJ 01 AA 1234',
+                    'id': 'id_vehicle_number',
+                    'style': 'text-transform:uppercase;font-family:"JetBrains Mono",monospace;letter-spacing:2px;font-size:16px;font-weight:700;',
+                })
+            )
+
+        if self.config.field_state_code_visible:
+            self.fields['state_code'] = forms.CharField(
+                label='State Code',
+                max_length=5,
+                required=self.config.field_state_code_required,
+                widget=forms.TextInput(attrs={
+                    'class': 'form-control',
+                    'placeholder': 'GJ',
+                    'id': 'id_state_code',
+                    'style': 'text-transform:uppercase;font-family:"JetBrains Mono",monospace;letter-spacing:3px;font-size:17px;font-weight:800;',
+                })
+            )
+            self.fields['bh_series'] = forms.BooleanField(
+                label='BH Series',
+                required=False,
+                widget=forms.CheckboxInput(attrs={
+                    'class': 'form-check-input',
+                    'id': 'id_bh_series',
+                })
+            )
+
+        if self.config.field_owner_name_visible:
+            self.fields['owner_name'] = forms.CharField(
+                label='Your Name / Driver Name',
+                max_length=100,
+                required=self.config.field_owner_name_required,
+                widget=forms.TextInput(attrs={
+                    'class': 'form-control',
+                    'placeholder': 'FULL NAME',
+                    'style': 'text-transform:uppercase;',
+                })
+            )
+
+        if self.config.field_mobile_visible:
+            self.fields['mobile'] = forms.CharField(
+                label='Mobile Number',
+                max_length=10,
+                required=self.config.field_mobile_required,
+                widget=forms.TextInput(attrs={
+                    'class': 'form-control',
+                    'placeholder': '9876543210',
+                    'maxlength': '10',
+                    'inputmode': 'numeric',
+                    'id': 'id_mobile',
+                })
+            )
+
+        if self.config.field_vehicle_type_visible:
+            self.fields['vehicle_type'] = forms.ChoiceField(
+                label='Vehicle Type',
+                choices=VEHICLE_TYPES,
+                initial='Car',
+                required=self.config.field_vehicle_type_required,
+                widget=forms.Select(attrs={'class': 'form-control'})
+            )
+
+        if self.config.field_plate_type_visible:
+            self.fields['plate_type'] = forms.ChoiceField(
+                label='Number Plate Category',
+                choices=PLATE_TYPES,
+                initial='white_black',
+                required=self.config.field_plate_type_required,
+                widget=forms.Select(attrs={'class': 'form-control'})
+            )
+
+        if self.config.field_expected_arrival_visible:
+            self.fields['expected_arrival_time'] = forms.DateTimeField(
+                label='Expected Arrival Date & Time',
+                required=self.config.field_expected_arrival_required,
+                input_formats=['%Y-%m-%dT%H:%M', '%d-%m-%Y %H:%M'],
+                widget=forms.DateTimeInput(
+                    format='%Y-%m-%dT%H:%M',
+                    attrs={'class': 'form-control', 'type': 'datetime-local'}
+                ),
+                help_text=f'Bookings can be made {self.config.advance_booking_lead_hours} hr+ in advance (up to {self.config.max_advance_days} days).'
+            )
+
+        if self.config.field_duration_hours_visible:
+            self.fields['expected_duration_hours'] = forms.FloatField(
+                label='Estimated Parking Duration (Hours)',
+                initial=2.0,
+                min_value=0.5,
+                max_value=720,
+                required=self.config.field_duration_hours_required,
+                widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5', 'placeholder': 'e.g. 2.0'})
+            )
+
+        if self.config.field_preferred_area_visible:
+            self.fields['preferred_area'] = forms.ModelChoiceField(
+                queryset=ParkingArea.objects.filter(is_under_maintenance=False),
+                label='Preferred Parking Area',
+                empty_label='Any Available Area',
+                required=self.config.field_preferred_area_required,
+                widget=forms.Select(attrs={'class': 'form-control'})
+            )
+
+        if self.config.field_notes_visible:
+            self.fields['notes'] = forms.CharField(
+                label='Special Requests / Notes',
+                required=self.config.field_notes_required,
+                widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'e.g., Near elevator, EV charging point preference, etc.'})
+            )
+
+        # Dynamic Custom Questions
+        for q in self.config.custom_questions.filter(is_active=True):
+            field_name = f'custom_question_{q.id}'
+            if q.field_type == 'textarea':
+                self.fields[field_name] = forms.CharField(
+                    label=q.question_text,
+                    help_text=q.help_text,
+                    required=q.is_required,
+                    widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2})
+                )
+            elif q.field_type == 'select':
+                options = [(opt, opt) for opt in q.get_options_list()]
+                self.fields[field_name] = forms.ChoiceField(
+                    label=q.question_text,
+                    help_text=q.help_text,
+                    choices=[('', 'Select an option')] + options,
+                    required=q.is_required,
+                    widget=forms.Select(attrs={'class': 'form-control'})
+                )
+            elif q.field_type == 'checkbox':
+                self.fields[field_name] = forms.BooleanField(
+                    label=q.question_text,
+                    help_text=q.help_text,
+                    required=q.is_required,
+                    widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+                )
+            elif q.field_type == 'number':
+                self.fields[field_name] = forms.IntegerField(
+                    label=q.question_text,
+                    help_text=q.help_text,
+                    required=q.is_required,
+                    widget=forms.NumberInput(attrs={'class': 'form-control'})
+                )
+            else:
+                self.fields[field_name] = forms.CharField(
+                    label=q.question_text,
+                    help_text=q.help_text,
+                    required=q.is_required,
+                    widget=forms.TextInput(attrs={'class': 'form-control'})
+                )
+
+    def clean_mobile(self):
+        mobile = self.cleaned_data.get('mobile', '').strip()
+        if mobile:
+            clean = ''.join(filter(str.isdigit, mobile))
+            if len(clean) != 10:
+                raise forms.ValidationError('Mobile number must be exactly 10 digits.')
+            if clean[0] not in '6789':
+                raise forms.ValidationError('Mobile number must start with 6, 7, 8, or 9.')
+            return clean
+        return mobile
+
+    def clean_vehicle_number(self):
+        vnum = self.cleaned_data.get('vehicle_number', '').strip().upper()
+        return vnum
+
+    def clean_expected_arrival_time(self):
+        arr_time = self.cleaned_data.get('expected_arrival_time')
+        if arr_time:
+            now = timezone.now()
+            max_delta = timezone.timedelta(days=self.config.max_advance_days)
+            # Allow 5 minute grace margin
+            if arr_time < (now - timezone.timedelta(minutes=5)):
+                raise forms.ValidationError('Arrival time cannot be in the past.')
+            if arr_time > (now + max_delta):
+                raise forms.ValidationError(f'Bookings can be requested at most {self.config.max_advance_days} days in advance.')
+        return arr_time
+
+
+class BookingStatusCheckForm(forms.Form):
+    booking_reference = forms.CharField(
+        label='Booking Reference',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g. BK-4920-8172',
+            'style': 'text-transform:uppercase;font-family:"JetBrains Mono",monospace;letter-spacing:2px;font-size:16px;font-weight:700;',
+        })
+    )
+    mobile = forms.CharField(
+        label='Registered Mobile Number',
+        max_length=10,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '9876543210',
+            'maxlength': '10',
+            'inputmode': 'numeric',
+        })
+    )

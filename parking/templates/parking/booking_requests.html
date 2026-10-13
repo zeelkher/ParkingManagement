@@ -1,0 +1,488 @@
+{% extends 'parking/base.html' %}
+{% block content %}
+<div style="max-width: 1400px; margin: 0 auto;">
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'warning' %}alert-warning{% else %}alert-success{% endif %} mb-4">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- ══ HEADER & CONTROLS ══ -->
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;">
+        <div>
+            <h1 style="font-size: 22px; font-weight: 800; color: var(--navy); display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                <i class="fa-solid fa-calendar-check" style="color: var(--blue);"></i>
+                Advance Booking Requests
+            </h1>
+            <p style="font-size: 13px; color: var(--text-2); margin: 0;">
+                Review incoming customer booking requests, verify slot availability, assign bays, and process arrivals.
+            </p>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <a href="{% url 'vehicle_entry' %}" class="btn btn-primary" style="padding: 9px 16px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-arrow-down-to-bracket"></i> Go to Check-In Gate
+            </a>
+            <a href="{% url 'booking_form_settings' %}" class="btn btn-secondary" style="padding: 9px 16px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-sliders"></i> Form Settings
+            </a>
+        </div>
+    </div>
+
+    <!-- ══ FILTER TABS & SEARCH BAR ══ -->
+    <div class="requests-filter-bar">
+        <!-- Status Tabs -->
+        <div class="status-pill-group">
+            <a href="{% url 'booking_requests' %}?status=all{% if query %}&q={{ query }}{% endif %}"
+               class="status-pill-btn {% if status_filter == 'all' or not status_filter %}active{% endif %}">
+                All Requests <span class="status-pill-count">{{ all_count }}</span>
+            </a>
+            <a href="{% url 'booking_requests' %}?status=pending{% if query %}&q={{ query }}{% endif %}"
+               class="status-pill-btn {% if status_filter == 'pending' %}active{% endif %} {% if status_filter != 'pending' and pending_count > 0 %}pending-highlight{% endif %}">
+                <i class="fa-solid fa-clock-rotate-left"></i> Pending
+                <span class="status-pill-count {% if pending_count > 0 %}has-pending-badge{% endif %}">{{ pending_count }}</span>
+            </a>
+            <a href="{% url 'booking_requests' %}?status=confirmed{% if query %}&q={{ query }}{% endif %}"
+               class="status-pill-btn {% if status_filter == 'confirmed' %}active{% endif %}">
+                <i class="fa-solid fa-circle-check"></i> Confirmed
+                <span class="status-pill-count">{{ confirmed_count }}</span>
+            </a>
+            <a href="{% url 'booking_requests' %}?status=checked in{% if query %}&q={{ query }}{% endif %}"
+               class="status-pill-btn {% if status_filter == 'checked in' %}active{% endif %}">
+                <i class="fa-solid fa-car-side"></i> Checked In
+                <span class="status-pill-count">{{ checked_in_count }}</span>
+            </a>
+            <a href="{% url 'booking_requests' %}?status=rejected{% if query %}&q={{ query }}{% endif %}"
+               class="status-pill-btn {% if status_filter == 'rejected' %}active{% endif %}">
+                <i class="fa-solid fa-circle-xmark"></i> Rejected
+                <span class="status-pill-count">{{ rejected_count }}</span>
+            </a>
+            <a href="{% url 'booking_requests' %}?status=cancelled{% if query %}&q={{ query }}{% endif %}"
+               class="status-pill-btn {% if status_filter == 'cancelled' %}active{% endif %}">
+                Cancelled
+                <span class="status-pill-count">{{ cancelled_count }}</span>
+            </a>
+        </div>
+
+        <!-- Search box -->
+        <form method="get" style="display: flex; gap: 8px; align-items: center;">
+            {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+            <div style="position: relative; width: 280px;">
+                <input type="text" name="q" value="{{ query }}" placeholder="Search ref, vehicle, name, mobile..."
+                       class="form-control" style="padding-left: 34px; font-size: 13px; height: 38px;">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 12px; color: var(--text-3); font-size: 13px;"></i>
+            </div>
+            {% if query %}
+            <a href="{% url 'booking_requests' %}?status={{ status_filter }}" class="btn btn-secondary btn-sm" style="height: 38px; display: inline-flex; align-items: center;" title="Clear search">
+                <i class="fa-solid fa-xmark"></i>
+            </a>
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-sm" style="height: 38px; padding: 0 16px;">Search</button>
+        </form>
+    </div>
+
+    <!-- ══ BOOKINGS TABLE ══ -->
+    <div style="overflow-x: auto; background: #fff; border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); margin-bottom: 30px;">
+        <table class="booking-requests-table">
+            <thead>
+                <tr>
+                    <th style="width: 140px;">Booking Ref</th>
+                    <th style="width: 180px;">Vehicle Plate</th>
+                    <th>Customer Details</th>
+                    <th>Requested Arrival</th>
+                    <th>Duration &amp; Area</th>
+                    <th style="text-align: center;">Status</th>
+                    <th>Assigned Bay</th>
+                    <th style="text-align: right; width: 220px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bookings %}
+                <tr>
+                    <!-- Ref -->
+                    <td>
+                        <div style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: var(--navy); display: flex; align-items: center; gap: 6px;">
+                            <span>{{ b.booking_reference }}</span>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-3);">
+                            {{ b.created_at|date:"d M, H:i" }}
+                        </div>
+                    </td>
+
+                    <!-- Vehicle -->
+                    <td>
+                        <div class="plate-mini india-plate-sm" data-bg="{{ b.get_plate_colors.0 }}" data-color="{{ b.get_plate_colors.1 }}">
+                            {% if b.plate_type == 'bh_series' %}
+                            <span style="font-size: 9px; font-weight: 900; background: #000; color: #fff; padding: 0 2px; border-radius: 2px;">BH</span>
+                            {% endif %}
+                            <span>{{ b.vehicle_number }}</span>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-2); margin-top: 3px; display: flex; align-items: center; gap: 4px;">
+                            {% if b.vehicle_type == 'Bike' or b.vehicle_type == 'Motorcycle' %}
+                                <i class="fa-solid fa-motorcycle" style="color: var(--blue);"></i>
+                            {% elif b.vehicle_type == 'Car' or b.vehicle_type == 'Jeep' or b.vehicle_type == 'Van' %}
+                                <i class="fa-solid fa-car" style="color: var(--blue);"></i>
+                            {% elif b.vehicle_type == 'Bus' %}
+                                <i class="fa-solid fa-bus" style="color: var(--blue);"></i>
+                            {% else %}
+                                <i class="fa-solid fa-truck" style="color: var(--blue);"></i>
+                            {% endif %}
+                            <span>{{ b.vehicle_type }}</span>
+                        </div>
+                    </td>
+
+                    <!-- Customer -->
+                    <td>
+                        <div style="font-weight: 600; color: var(--navy);">
+                            {{ b.owner_name|default:"—" }}
+                        </div>
+                        <div style="font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--text-2);">
+                            <a href="tel:{{ b.mobile }}" style="color: inherit; text-decoration: none;">
+                                <i class="fa-solid fa-phone" style="font-size: 10px; color: var(--text-3); margin-right: 2px;"></i> +91 {{ b.mobile }}
+                            </a>
+                        </div>
+                        {% if b.custom_answers %}
+                        <div style="margin-top: 4px;">
+                            <details style="font-size: 11px; color: var(--text-3); cursor: pointer;">
+                                <summary style="color: var(--blue); font-weight: 600;">Custom Answers ({{ b.custom_answers|length }})</summary>
+                                <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; margin-top: 4px;">
+                                    {% for qid, item in b.custom_answers.items %}
+                                    <div><strong>{{ item.question }}:</strong> {{ item.answer }}</div>
+                                    {% endfor %}
+                                </div>
+                            </details>
+                        </div>
+                        {% endif %}
+                    </td>
+
+                    <!-- Arrival -->
+                    <td>
+                        <div style="font-weight: 600; color: var(--navy);">
+                            {{ b.expected_arrival_time|date:"d M Y, h:i A" }}
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-3);">
+                            {{ b.expected_arrival_time|timeuntil }} away
+                        </div>
+                    </td>
+
+                    <!-- Duration & Area -->
+                    <td>
+                        <div style="font-size: 12px; color: var(--navy);">
+                            <strong>{{ b.expected_duration_hours|default:"2" }} hrs</strong> estimated
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-2);">
+                            {% if b.preferred_area %}
+                            <i class="fa-solid fa-location-dot" style="color: var(--blue); font-size: 10px;"></i> {{ b.preferred_area.name }}
+                            {% else %}
+                            <span style="color: var(--text-3);">Any area</span>
+                            {% endif %}
+                        </div>
+                        {% if b.notes %}
+                        <div style="font-size: 11px; color: var(--text-3); font-style: italic; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ b.notes }}">
+                            "{{ b.notes }}"
+                        </div>
+                        {% endif %}
+                    </td>
+
+                    <!-- Status Badge -->
+                    <td style="text-align: center;">
+                        {% if b.status == 'Pending' %}
+                        <span class="badge-status pending">
+                            <i class="fa-solid fa-hourglass-half"></i> Pending
+                        </span>
+                        {% elif b.status == 'Confirmed' %}
+                        <span class="badge-status confirmed">
+                            <i class="fa-solid fa-circle-check"></i> Confirmed
+                        </span>
+                        {% elif b.status == 'Checked In' %}
+                        <span class="badge-status checked-in">
+                            <i class="fa-solid fa-car"></i> Checked In
+                        </span>
+                        {% elif b.status == 'Rejected' %}
+                        <span class="badge-status rejected" title="{{ b.rejection_reason }}">
+                            <i class="fa-solid fa-circle-xmark"></i> Rejected
+                        </span>
+                        {% elif b.status == 'Cancelled' %}
+                        <span class="badge-status cancelled">
+                            Cancelled
+                        </span>
+                        {% else %}
+                        <span class="badge-status expired">
+                            {{ b.status }}
+                        </span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Assigned Bay -->
+                    <td>
+                        {% if b.assigned_slot %}
+                        <div style="display: inline-flex; align-items: center; gap: 6px; background: #eff6ff; border: 1px solid var(--blue-border); padding: 4px 8px; border-radius: var(--r-sm);">
+                            <i class="fa-solid fa-square-parking" style="color: var(--blue);"></i>
+                            <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--blue); font-size: 13px;">{{ b.assigned_slot.number }}</span>
+                        </div>
+                        <div style="font-size: 10px; color: var(--text-3); margin-top: 2px;">
+                            {{ b.assigned_slot.parking_floor.parking_area.name }} • {{ b.assigned_slot.parking_floor.name }}
+                        </div>
+                        {% else %}
+                        <span style="font-size: 12px; color: var(--text-3); font-style: italic;">Not assigned</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Actions -->
+                    <td style="text-align: right;">
+                        <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
+
+                            {% if b.status == 'Pending' %}
+                            <!-- Confirm Button (opens modal) -->
+                            <button type="button" class="btn btn-primary btn-sm"
+                                    data-id="{{ b.id }}"
+                                    data-ref="{{ b.booking_reference }}"
+                                    data-vnum="{{ b.vehicle_number }}"
+                                    data-vtype="{{ b.vehicle_type }}"
+                                    data-area="{{ b.preferred_area_id|default:'' }}"
+                                    onclick="openConfirmModalFromBtn(this)"
+                                    style="padding: 6px 12px; font-weight: 700; font-size: 11px;">
+                                <i class="fa-solid fa-check"></i> CONFIRM SLOT
+                            </button>
+
+                            <!-- Reject Button (opens modal) -->
+                            <button type="button" class="btn btn-danger btn-sm"
+                                    data-id="{{ b.id }}"
+                                    data-ref="{{ b.booking_reference }}"
+                                    data-vnum="{{ b.vehicle_number }}"
+                                    onclick="openRejectModalFromBtn(this)"
+                                    style="padding: 6px 10px; font-size: 11px;">
+                                <i class="fa-solid fa-xmark"></i> REJECT
+                            </button>
+
+                            {% elif b.status == 'Confirmed' %}
+                            <!-- Direct Check In Button -->
+                            <form method="post" action="{% url 'booking_request_action' b.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="check_in">
+                                <button type="submit" class="btn btn-primary btn-sm" style="padding: 6px 12px; font-weight: 700; font-size: 11px; background: #16a34a; border-color: #16a34a;" title="Check in vehicle now">
+                                    <i class="fa-solid fa-arrow-down-to-bracket"></i> CHECK IN
+                                </button>
+                            </form>
+
+                            <!-- Reassign Slot Button -->
+                            <button type="button" class="btn btn-secondary btn-sm"
+                                    data-id="{{ b.id }}"
+                                    data-ref="{{ b.booking_reference }}"
+                                    data-vnum="{{ b.vehicle_number }}"
+                                    data-vtype="{{ b.vehicle_type }}"
+                                    data-area="{{ b.preferred_area_id|default:'' }}"
+                                    onclick="openConfirmModalFromBtn(this)"
+                                    style="padding: 6px 8px; font-size: 11px;" title="Change Assigned Slot">
+                                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                            </button>
+
+                            <!-- Cancel Request -->
+                            <form method="post" action="{% url 'booking_request_action' b.id %}" style="display: inline;" onsubmit="return confirm('Cancel confirmed booking {{ b.booking_reference }}?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="cancel">
+                                <button type="submit" class="btn btn-secondary btn-sm" style="padding: 6px 8px; font-size: 11px;" title="Cancel Booking">
+                                    <i class="fa-solid fa-ban"></i>
+                                </button>
+                            </form>
+
+                            {% elif b.status == 'Checked In' and b.parking_record %}
+                            <a href="{% url 'receipt' b.parking_record.id %}" class="btn btn-secondary btn-sm" style="padding: 5px 10px; font-size: 11px;">
+                                <i class="fa-solid fa-receipt"></i> View Pass
+                            </a>
+
+                            {% else %}
+                            <span style="font-size: 12px; color: var(--text-3); font-style: italic;">No actions</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 48px 20px; color: var(--text-2);">
+                        <i class="fa-regular fa-folder-open" style="font-size: 32px; color: var(--text-3); margin-bottom: 12px; display: block;"></i>
+                        <strong style="font-size: 15px; color: var(--navy);">No booking requests found</strong>
+                        <p style="font-size: 13px; color: var(--text-3); margin-top: 4px;">
+                            {% if query or status_filter != 'all' %}
+                            Try resetting your filters or search keywords.
+                            {% else %}
+                            Customers have not submitted any advance booking requests yet.
+                            {% endif %}
+                        </p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- ══ MODAL 1: CONFIRM BOOKING & ASSIGN SLOT ══ -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal-box">
+        <form method="post" id="confirmForm" action="">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="confirm">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fa-solid fa-square-check" style="color: var(--blue); margin-right: 6px;"></i>
+                    Confirm Slot for <span id="confirmModalRef"></span>
+                </div>
+                <button type="button" class="modal-close" onclick="closeModals()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <div style="font-size: 11px; text-transform: uppercase; color: var(--text-3); font-weight: 700;">Vehicle Number</div>
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 800; color: var(--navy);" id="confirmModalVnum"></div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 11px; text-transform: uppercase; color: var(--text-3); font-weight: 700;">Vehicle Type</div>
+                        <div style="font-size: 13px; font-weight: 600; color: var(--navy);" id="confirmModalVtype"></div>
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label style="font-weight: 700;">Select Available Parking Slot *</label>
+                    <select name="slot_id" id="modalSlotSelect" class="form-control" required style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">
+                        <option value="">-- Choose an Available Slot --</option>
+                        {% for slot in available_slots %}
+                        <option value="{{ slot.id }}" data-area="{{ slot.parking_floor.parking_area_id }}">
+                            {{ slot.parking_floor.parking_area.name }} • {{ slot.parking_floor.name }} • Slot {{ slot.number }}
+                        </option>
+                        {% empty %}
+                        <option value="" disabled>No slots available right now</option>
+                        {% endfor %}
+                    </select>
+                    <small class="field-help">Only slots that are not occupied or under maintenance are listed.</small>
+                </div>
+
+                <div class="form-group mb-2">
+                    <label style="font-weight: 600; font-size: 13px;">Operator Confirmation Note (Optional)</label>
+                    <textarea name="operator_notes" class="form-control" rows="2" placeholder="e.g. VIP visitor, Reserved bay near gate 2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModals()">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="font-weight: 700;">
+                    <i class="fa-solid fa-check"></i> Confirm &amp; Reserve Slot
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══ MODAL 2: REJECT BOOKING ══ -->
+<div class="modal-overlay" id="rejectModal">
+    <div class="modal-box">
+        <form method="post" id="rejectForm" action="">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reject">
+            <div class="modal-header">
+                <div class="modal-title" style="color: var(--red);">
+                    <i class="fa-solid fa-circle-exclamation" style="margin-right: 6px;"></i>
+                    Reject Request <span id="rejectModalRef"></span>
+                </div>
+                <button type="button" class="modal-close" onclick="closeModals()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 13px; color: var(--text-2); margin-bottom: 16px;">
+                    The booking for vehicle <strong id="rejectModalVnum" style="color: var(--navy);"></strong> will be rejected. The customer will see the reason when checking their status online.
+                </p>
+
+                <div class="form-group mb-3">
+                    <label style="font-weight: 700; font-size: 13px;">Reason for Rejection *</label>
+                    <select name="rejection_reason_preset" id="rejectionPreset" class="form-control" onchange="updateRejectionReason(this)">
+                        <option value="No slots available for the requested time window.">No slots available for the requested time window.</option>
+                        <option value="Parking facility at maximum capacity during scheduled hours.">Parking facility at maximum capacity during scheduled hours.</option>
+                        <option value="No suitable bay for this vehicle category.">No suitable bay for this vehicle category.</option>
+                        <option value="Facility scheduled maintenance during requested time.">Facility scheduled maintenance during requested time.</option>
+                        <option value="custom">Other reason (write custom below)...</option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-2">
+                    <label style="font-weight: 600; font-size: 13px;">Customer Reason Note</label>
+                    <input type="text" name="rejection_reason" id="rejectionReasonInput" class="form-control" value="No slots available for the requested time window." required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModals()">Cancel</button>
+                <button type="submit" class="btn btn-danger" style="font-weight: 700;">
+                    <i class="fa-solid fa-xmark"></i> Confirm Rejection
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openConfirmModalFromBtn(btn) {
+    const id = btn.dataset.id;
+    const ref = btn.dataset.ref;
+    const vnum = btn.dataset.vnum;
+    const vtype = btn.dataset.vtype;
+    const preferredAreaId = btn.dataset.area;
+    openConfirmModal(id, ref, vnum, vtype, preferredAreaId);
+}
+
+function openRejectModalFromBtn(btn) {
+    const id = btn.dataset.id;
+    const ref = btn.dataset.ref;
+    const vnum = btn.dataset.vnum;
+    openRejectModal(id, ref, vnum);
+}
+
+function openConfirmModal(id, ref, vnum, vtype, preferredAreaId) {
+    document.getElementById('confirmModalRef').innerText = ref;
+    document.getElementById('confirmModalVnum').innerText = vnum;
+    document.getElementById('confirmModalVtype').innerText = vtype;
+    document.getElementById('confirmForm').action = "/booking-requests/" + id + "/action/";
+
+    // Try pre-selecting preferred area slot if available
+    const slotSelect = document.getElementById('modalSlotSelect');
+    if (preferredAreaId) {
+        for (let i = 0; i < slotSelect.options.length; i++) {
+            if (slotSelect.options[i].dataset.area === preferredAreaId) {
+                slotSelect.selectedIndex = i;
+                break;
+            }
+        }
+    }
+    document.getElementById('confirmModal').classList.add('show');
+}
+
+function openRejectModal(id, ref, vnum) {
+    document.getElementById('rejectModalRef').innerText = ref;
+    document.getElementById('rejectModalVnum').innerText = vnum;
+    document.getElementById('rejectForm').action = "/booking-requests/" + id + "/action/";
+    document.getElementById('rejectModal').classList.add('show');
+}
+
+function updateRejectionReason(sel) {
+    const input = document.getElementById('rejectionReasonInput');
+    if (sel.value === 'custom') {
+        input.value = '';
+        input.focus();
+    } else {
+        input.value = sel.value;
+    }
+}
+
+function closeModals() {
+    document.getElementById('confirmModal').classList.remove('show');
+    document.getElementById('rejectModal').classList.remove('show');
+}
+
+// Close when clicking outside
+window.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal-overlay')) {
+        closeModals();
+    }
+});
+</script>
+{% endblock %}

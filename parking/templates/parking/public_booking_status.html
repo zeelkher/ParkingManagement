@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Status — PARKSAFE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=15.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        .status-hero-card {
+            background: #1e293b;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: var(--r-xl);
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 640px;
+        }
+        .status-lookup-box {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: var(--r-lg);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .pass-confirmed-banner {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(15, 23, 42, 0.8) 100%);
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            border-radius: var(--r-lg);
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+    </style>
+</head>
+<body class="public-shell">
+
+    <!-- ══ PUBLIC NAVBAR ══ -->
+    <header class="public-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 34px; height: 34px; border-radius: 8px; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px;">
+                P
+            </div>
+            <div>
+                <div style="font-weight: 800; font-size: 16px; letter-spacing: 1px; color: #fff;">PARKSAFE</div>
+                <div style="font-size: 11px; color: #94a3b8; letter-spacing: 0.05em;">SMART ADVANCE PARKING</div>
+            </div>
+        </div>
+
+        <nav class="public-nav-links">
+            <a href="{% url 'advance_booking' %}" class="public-nav-link">
+                <i class="fa-solid fa-calendar-plus" style="margin-right: 4px;"></i> Advance Booking
+            </a>
+            <a href="{% url 'booking_status' %}" class="public-nav-link active">
+                <i class="fa-solid fa-magnifying-glass" style="margin-right: 4px;"></i> Booking Status
+            </a>
+            <a href="{% url 'login' %}" class="public-nav-link" style="border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1;">
+                <i class="fa-solid fa-lock" style="margin-right: 4px;"></i> Staff Portal
+            </a>
+        </nav>
+    </header>
+
+    <main class="public-body-wrap">
+        <div class="status-hero-card">
+
+            <div style="text-align: center; margin-bottom: 24px;">
+                <h1 style="font-size: 24px; font-weight: 800; color: #ffffff; margin-bottom: 6px;">
+                    Check Advance Booking Status
+                </h1>
+                <p style="font-size: 13px; color: #94a3b8; margin: 0;">
+                    Enter your booking reference code and registered mobile number to view live slot status.
+                </p>
+            </div>
+
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %} mb-4" style="background: rgba(37,99,235,0.2); border: 1px solid rgba(37,99,235,0.4); color: #93c5fd;">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <!-- ══ SEARCH FORM ══ -->
+            <form method="get" class="status-lookup-box" autocomplete="off">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+                    <div class="pub-form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Booking Reference</label>
+                        {{ form.booking_reference }}
+                    </div>
+                    <div class="pub-form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Mobile Number</label>
+                        {{ form.mobile }}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 700; font-size: 14px;">
+                    <i class="fa-solid fa-magnifying-glass" style="margin-right: 6px;"></i> CHECK STATUS
+                </button>
+            </form>
+
+            <!-- ══ ERROR STATE ══ -->
+            {% if error_message %}
+            <div class="alert alert-danger" style="background: rgba(220, 38, 38, 0.15); border: 1px solid rgba(220, 38, 38, 0.3); color: #fca5a5; margin-bottom: 24px;">
+                <i class="fa-solid fa-triangle-exclamation" style="margin-right: 6px;"></i>
+                {{ error_message }}
+            </div>
+            {% endif %}
+
+            <!-- ══ BOOKING RESULT FOUND ══ -->
+            {% if booking %}
+            <div class="digital-pass">
+
+                <!-- Pass Header -->
+                <div class="pass-header">
+                    <div>
+                        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; font-weight: 700;">
+                            PARKSAFE ADVANCE PASS
+                        </div>
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 800; color: #fff;">
+                            {{ booking.booking_reference }}
+                        </div>
+                    </div>
+
+                    <div>
+                        {% if booking.status == 'Pending' %}
+                        <span class="badge-status pending" style="font-size: 12px; padding: 6px 12px;">
+                            <i class="fa-solid fa-hourglass-half"></i> Pending
+                        </span>
+                        {% elif booking.status == 'Confirmed' %}
+                        <span class="badge-status confirmed" style="font-size: 12px; padding: 6px 12px;">
+                            <i class="fa-solid fa-circle-check"></i> Confirmed
+                        </span>
+                        {% elif booking.status == 'Checked In' %}
+                        <span class="badge-status checked-in" style="font-size: 12px; padding: 6px 12px;">
+                            <i class="fa-solid fa-car"></i> Checked In
+                        </span>
+                        {% elif booking.status == 'Rejected' %}
+                        <span class="badge-status rejected" style="font-size: 12px; padding: 6px 12px;">
+                            <i class="fa-solid fa-circle-xmark"></i> Rejected
+                        </span>
+                        {% elif booking.status == 'Cancelled' %}
+                        <span class="badge-status cancelled" style="font-size: 12px; padding: 6px 12px;">
+                            Cancelled
+                        </span>
+                        {% else %}
+                        <span class="badge-status expired" style="font-size: 12px; padding: 6px 12px;">
+                            {{ booking.status }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Pass Body -->
+                <div class="pass-body">
+
+                    <!-- STATUS: PENDING -->
+                    {% if booking.status == 'Pending' %}
+                    <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--r-md); padding: 18px; margin-bottom: 20px; text-align: center;">
+                        <i class="fa-solid fa-clock-rotate-left" style="font-size: 28px; color: #d97706; margin-bottom: 8px; display: block;"></i>
+                        <strong style="font-size: 16px; color: #92400e;">Awaiting Operator Confirmation</strong>
+                        <p style="font-size: 13px; color: #b45309; margin: 6px 0 0; line-height: 1.5;">
+                            Our parking team is reviewing your requested arrival time (<strong>{{ booking.expected_arrival_time|date:"d M, h:i A" }}</strong>) and allocating the best parking bay for your {{ booking.vehicle_type }}. Please check back shortly.
+                        </p>
+                    </div>
+
+                    <!-- STATUS: CONFIRMED (The Star of the show!) -->
+                    {% elif booking.status == 'Confirmed' %}
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--r-md); padding: 16px; margin-bottom: 20px; text-align: center;">
+                        <span style="color: #15803d; font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">
+                            <i class="fa-solid fa-circle-check"></i> YOUR PARKING BAY IS CONFIRMED!
+                        </span>
+                    </div>
+
+                    <!-- Prominent Bay Box -->
+                    <div class="pass-slot-big">
+                        <div style="font-size: 11px; text-transform: uppercase; font-weight: 800; color: #64748b; letter-spacing: 0.1em;">
+                            ASSIGNED PARKING BAY
+                        </div>
+                        <div class="pass-slot-num">
+                            {{ booking.assigned_slot.number }}
+                        </div>
+                        <div style="font-size: 14px; font-weight: 700; color: var(--navy); margin-top: 4px;">
+                            {{ booking.assigned_slot.parking_floor.parking_area.name }} • {{ booking.assigned_slot.parking_floor.name }}
+                        </div>
+                    </div>
+
+                    <!-- STATUS: CHECKED IN -->
+                    {% elif booking.status == 'Checked In' %}
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--r-md); padding: 16px; margin-bottom: 20px; text-align: center;">
+                        <span style="color: #1d4ed8; font-weight: 700; font-size: 14px;">
+                            <i class="fa-solid fa-car-side"></i> Vehicle is currently parked at bay {{ booking.assigned_slot.number }}.
+                        </span>
+                        <div style="font-size: 12px; color: #60a5fa; margin-top: 4px;">Checked in at {{ booking.checked_in_at|date:"d M Y, h:i A" }}</div>
+                    </div>
+
+                    <!-- STATUS: REJECTED -->
+                    {% elif booking.status == 'Rejected' %}
+                    <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--r-md); padding: 18px; margin-bottom: 20px;">
+                        <div style="color: #b91c1c; font-weight: 700; font-size: 14px; margin-bottom: 6px;">
+                            <i class="fa-solid fa-circle-xmark"></i> Reservation Request Declined
+                        </div>
+                        <div style="font-size: 13px; color: #dc2626;">
+                            <strong>Reason:</strong> {{ booking.rejection_reason|default:"No available slots during selected time." }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Perforation separator -->
+                    <div class="pass-perforation">
+                        <div class="pass-line"></div>
+                    </div>
+
+                    <!-- Vehicle & Customer Pass Details -->
+                    <div style="padding-top: 16px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 13px;">
+                            <div>
+                                <span style="font-size: 11px; text-transform: uppercase; color: var(--text-3); font-weight: 700;">Vehicle Registration</span>
+                                <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 800; color: var(--navy); margin-top: 2px;">
+                                    {{ booking.vehicle_number }}
+                                </div>
+                                <div style="font-size: 11px; color: var(--text-2);">{{ booking.vehicle_type }}</div>
+                            </div>
+
+                            <div>
+                                <span style="font-size: 11px; text-transform: uppercase; color: var(--text-3); font-weight: 700;">Registered Visitor</span>
+                                <div style="font-size: 14px; font-weight: 700; color: var(--navy); margin-top: 2px;">
+                                    {{ booking.owner_name|default:"Driver" }}
+                                </div>
+                                <div style="font-size: 11px; color: var(--text-2);">+91 {{ booking.mobile }}</div>
+                            </div>
+
+                            <div>
+                                <span style="font-size: 11px; text-transform: uppercase; color: var(--text-3); font-weight: 700;">Expected Arrival</span>
+                                <div style="font-size: 13px; font-weight: 700; color: var(--navy); margin-top: 2px;">
+                                    {{ booking.expected_arrival_time|date:"d M Y, h:i A" }}
+                                </div>
+                            </div>
+
+                            <div>
+                                <span style="font-size: 11px; text-transform: uppercase; color: var(--text-3); font-weight: 700;">Estimated Duration</span>
+                                <div style="font-size: 13px; font-weight: 700; color: var(--navy); margin-top: 2px;">
+                                    {{ booking.expected_duration_hours|default:"2" }} Hours
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Arrival gate instruction for confirmed visitor -->
+                        {% if booking.status == 'Confirmed' %}
+                        <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px 16px; margin-top: 20px; font-size: 12px; color: var(--navy); line-height: 1.5;">
+                            <strong style="color: var(--blue);"><i class="fa-solid fa-flag-checkered"></i> UPON ARRIVAL AT GATE:</strong><br>
+                            Present booking reference <strong>{{ booking.booking_reference }}</strong> or your vehicle plate number to the gate operator for 1-click check in. Drive directly to <strong>{{ booking.assigned_slot.number }}</strong> on <strong>{{ booking.assigned_slot.parking_floor.name }}</strong>.
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Pass Actions -->
+                    <div style="margin-top: 24px; display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                        <div>
+                            {% if booking.status in 'Pending,Confirmed' %}
+                            <form method="post" action="{% url 'booking_cancel' booking.booking_reference %}" onsubmit="return confirm('Are you sure you want to cancel this booking request?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="mobile" value="{{ booking.mobile }}">
+                                <button type="submit" class="btn btn-danger btn-sm" style="font-size: 12px; padding: 7px 12px;">
+                                    <i class="fa-solid fa-ban"></i> Cancel Booking
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="window.print()">
+                                <i class="fa-solid fa-print"></i> Print Pass
+                            </button>
+                            <a href="{% url 'advance_booking' %}" class="btn btn-primary btn-sm">
+                                New Booking
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </main>
+
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Request Received — PARKSAFE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=15.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        .reference-display-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 2px dashed rgba(56, 189, 248, 0.4);
+            border-radius: var(--r-lg);
+            padding: 24px;
+            text-align: center;
+            margin: 24px 0;
+        }
+        .ref-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 32px;
+            font-weight: 800;
+            color: #38bdf8;
+            letter-spacing: 3px;
+            margin: 8px 0;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="public-shell">
+
+    <!-- ══ PUBLIC NAVBAR ══ -->
+    <header class="public-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 34px; height: 34px; border-radius: 8px; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px;">
+                P
+            </div>
+            <div>
+                <div style="font-weight: 800; font-size: 16px; letter-spacing: 1px; color: #fff;">PARKSAFE</div>
+                <div style="font-size: 11px; color: #94a3b8; letter-spacing: 0.05em;">SMART ADVANCE PARKING</div>
+            </div>
+        </div>
+
+        <nav class="public-nav-links">
+            <a href="{% url 'advance_booking' %}" class="public-nav-link">
+                <i class="fa-solid fa-calendar-plus" style="margin-right: 4px;"></i> New Booking
+            </a>
+            <a href="{% url 'booking_status' %}?ref={{ booking.booking_reference }}&mobile={{ booking.mobile }}" class="public-nav-link active">
+                <i class="fa-solid fa-magnifying-glass" style="margin-right: 4px;"></i> View Status
+            </a>
+            <a href="{% url 'login' %}" class="public-nav-link" style="border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1;">
+                <i class="fa-solid fa-lock" style="margin-right: 4px;"></i> Staff Portal
+            </a>
+        </nav>
+    </header>
+
+    <main class="public-body-wrap">
+        <div class="public-card" style="max-width: 620px;">
+
+            <div class="public-card-hero" style="text-align: center; padding: 36px 30px;">
+                <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(34, 197, 94, 0.15); color: #22c55e; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px; border: 1px solid rgba(34, 197, 94, 0.3);">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+                <h1 style="font-size: 24px; font-weight: 800; color: #ffffff; margin-bottom: 8px;">
+                    Booking Request Submitted!
+                </h1>
+                <p style="font-size: 14px; color: #94a3b8; margin: 0;">
+                    Your advance parking reservation has been recorded successfully.
+                </p>
+
+                <!-- Status Banner -->
+                <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); padding: 8px 16px; border-radius: 999px; margin-top: 16px; color: #f59e0b; font-weight: 700; font-size: 13px;">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                    AWAITING OPERATOR CONFIRMATION
+                </div>
+            </div>
+
+            <div class="public-card-content">
+
+                <!-- Prominent Reference Display -->
+                <div class="reference-display-card">
+                    <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8;">
+                        Your Permanent Booking Reference
+                    </div>
+                    <div class="ref-code" id="refCodeText">{{ booking.booking_reference }}</div>
+                    <div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyRef()" style="padding: 6px 14px; font-size: 12px; font-weight: 600;">
+                            <i class="fa-solid fa-copy"></i> Copy Reference
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Next Steps Explanation -->
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--r-md); padding: 18px 20px; margin-bottom: 24px;">
+                    <div style="font-weight: 700; font-size: 13px; color: #ffffff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-list-check" style="color: #38bdf8;"></i> What happens next?
+                    </div>
+                    <ol style="font-size: 13px; color: #cbd5e1; line-height: 1.6; padding-left: 20px; margin: 0;">
+                        <li>Our facility operator reviews your vehicle details and requested time window.</li>
+                        <li>An available parking bay (Area, Floor, Slot) will be assigned to your booking.</li>
+                        <li>Once confirmed, you can present this reference code or license plate at the arrival gate.</li>
+                    </ol>
+                </div>
+
+                <!-- Submitted Details Summary -->
+                <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--r-md); padding: 18px 20px; margin-bottom: 24px;">
+                    <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em; margin-bottom: 12px;">
+                        Summary of Request
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 13px;">
+                        <div>
+                            <span style="color: #64748b;">Vehicle:</span>
+                            <div style="font-weight: 700; color: #fff; font-family: 'JetBrains Mono', monospace;">{{ booking.vehicle_number }}</div>
+                            <div style="font-size: 11px; color: #94a3b8;">{{ booking.vehicle_type }}</div>
+                        </div>
+                        <div>
+                            <span style="color: #64748b;">Contact:</span>
+                            <div style="font-weight: 700; color: #fff;">{{ booking.owner_name|default:"Driver" }}</div>
+                            <div style="font-size: 11px; color: #94a3b8;">+91 {{ booking.mobile }}</div>
+                        </div>
+                        <div>
+                            <span style="color: #64748b;">Expected Arrival:</span>
+                            <div style="font-weight: 700; color: #38bdf8;">{{ booking.expected_arrival_time|date:"d M Y, h:i A" }}</div>
+                        </div>
+                        <div>
+                            <span style="color: #64748b;">Duration &amp; Area:</span>
+                            <div style="font-weight: 700; color: #fff;">{{ booking.expected_duration_hours|default:"2" }} Hours</div>
+                            <div style="font-size: 11px; color: #94a3b8;">{{ booking.preferred_area.name|default:"Any Area" }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 12px; flex-direction: column;">
+                    <a href="{% url 'booking_status' %}?ref={{ booking.booking_reference }}&mobile={{ booking.mobile }}"
+                       class="btn btn-primary"
+                       style="padding: 14px; font-weight: 700; font-size: 14px; text-align: center; text-decoration: none;">
+                        <i class="fa-solid fa-magnifying-glass" style="margin-right: 6px;"></i> Track Booking Status
+                    </a>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button type="button" class="btn btn-secondary" onclick="window.print()" style="flex: 1; padding: 10px; font-size: 13px;">
+                            <i class="fa-solid fa-print"></i> Print Slip
+                        </button>
+                        <a href="{% url 'advance_booking' %}" class="btn btn-secondary" style="flex: 1; padding: 10px; font-size: 13px; text-align: center; text-decoration: none;">
+                            Book Another
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+    function copyRef() {
+        const ref = document.getElementById('refCodeText').innerText;
+        navigator.clipboard.writeText(ref).then(() => {
+            alert('Booking reference ' + ref + ' copied to clipboard!');
+        }).catch(() => {
+            prompt('Copy booking reference:', ref);
+        });
+    }
+    </script>
+</body>
+</html>

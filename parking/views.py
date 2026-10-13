@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.db import IntegrityError, transaction
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
@@ -10,8 +10,15 @@ from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.views.decorators.cache import never_cache
 from django.urls import reverse
-from .models import ParkingArea, ParkingFloor, ParkingRecord, ParkingSlot, Vehicle
-from .forms import ParkingAreaForm, ParkingFloorForm, ParkingSlotForm, VehicleEntryForm, VehicleExitForm
+from django.http import JsonResponse
+from .models import (
+    ParkingArea, ParkingFloor, ParkingRecord, ParkingSlot, Vehicle,
+    BookingFormConfig, BookingCustomQuestion, AdvanceBooking
+)
+from .forms import (
+    ParkingAreaForm, ParkingFloorForm, ParkingSlotForm, VehicleEntryForm, VehicleExitForm,
+    BookingFormSettingsForm, BookingCustomQuestionForm, PublicAdvanceBookingForm, BookingStatusCheckForm
+)
 import math
 import secrets
 
@@ -227,15 +234,49 @@ def vehicle_entry(request):
                     'floor_slots_map': floor_slots_map,
                 })
 
-            ParkingRecord.objects.create(
+            record = ParkingRecord.objects.create(
                 vehicle=vehicle, parking_slot=parking_slot, slot_number=parking_slot.id,
                 entry_time=entry_time
             )
+
+            # Link advance booking if submitted with a reference
+            booking_ref = request.POST.get('booking_reference', '').strip().upper()
+            if booking_ref:
+                adv = AdvanceBooking.objects.filter(booking_reference=booking_ref).first()
+                if adv:
+                    adv.status = 'Checked In'
+                    adv.checked_in_at = timezone.now()
+                    adv.parking_record = record
+                    adv.save()
+                    messages.success(request, f'Advance booking {adv.booking_reference} checked in successfully!')
+
             return redirect('dashboard')
     else:
+        booking_ref_param = request.GET.get('booking_ref', '').strip().upper()
+        imported_booking = None
+        initial_data = {'entry_time': timezone.localtime().strftime('%Y-%m-%dT%H:%M')}
+        if booking_ref_param:
+            imported_booking = AdvanceBooking.objects.filter(
+                booking_reference=booking_ref_param
+            ).select_related('assigned_slot__parking_floor__parking_area').first()
+            if imported_booking:
+                initial_data.update({
+                    'vehicle_number': imported_booking.vehicle_number,
+                    'owner_name': imported_booking.owner_name,
+                    'mobile': imported_booking.mobile,
+                    'vehicle_type': imported_booking.vehicle_type,
+                    'plate_type': imported_booking.plate_type,
+                    'state_code': imported_booking.state_code,
+                    'bh_series': imported_booking.plate_type == 'bh_series' or (imported_booking.state_code == 'BH'),
+                })
+                if imported_booking.assigned_slot:
+                    initial_data['parking_area'] = imported_booking.assigned_slot.parking_floor.parking_area_id
+                    initial_data['parking_floor'] = imported_booking.assigned_slot.parking_floor_id
+                    initial_data['parking_slot'] = imported_booking.assigned_slot_id
+
         form = VehicleEntryForm(
             available_slots=available_slots,
-            initial={'entry_time': timezone.localtime().strftime('%Y-%m-%dT%H:%M')}
+            initial=initial_data
         )
     return render(request, 'parking/vehicle_entry.html', {
         'form': form,
@@ -243,6 +284,7 @@ def vehicle_entry(request):
         'floor_area_map': floor_area_map,
         'slot_floor_map': slot_floor_map,
         'floor_slots_map': floor_slots_map,
+        'imported_booking': imported_booking,
     })
 
 
@@ -501,3 +543,393 @@ def clear_history(request):
     # Redirect back to the caller URL (usually history page)
     next_url = request.POST.get('next', 'history')
     return redirect(next_url)
+
+
+# ════════════════════════════════════════════════════════════
+# ADVANCE BOOKING MANAGEMENT & CUSTOMER VIEWS
+# ════════════════════════════════════════════════════════════
+
+@login_required(login_url='login')
+def booking_form_settings(request):
+    """Operator setup: configure visibility, required fields, custom questions, and publish state."""
+    config = BookingFormConfig.get_solo()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'save_settings':
+            settings_form = BookingFormSettingsForm(request.POST, instance=config)
+            if settings_form.is_valid():
+                settings_form.save()
+                messages.success(request, 'Booking form settings published and updated successfully!')
+                return redirect('booking_form_settings')
+            else:
+                messages.error(request, f'Could not update settings: {settings_form.errors.as_text()}')
+        elif action == 'add_question':
+            q_form = BookingCustomQuestionForm(request.POST)
+            if q_form.is_valid():
+                q = q_form.save(commit=False)
+                q.form_config = config
+                q.save()
+                messages.success(request, f'Custom question "{q.question_text}" added.')
+                return redirect('booking_form_settings')
+            else:
+                messages.error(request, f'Could not add question: {q_form.errors.as_text()}')
+        elif action == 'delete_question':
+            q_id = request.POST.get('question_id')
+            q = get_object_or_404(BookingCustomQuestion, id=q_id, form_config=config)
+            q_name = q.question_text
+            q.delete()
+            messages.success(request, f'Question "{q_name}" removed.')
+            return redirect('booking_form_settings')
+        elif action == 'toggle_question':
+            q_id = request.POST.get('question_id')
+            q = get_object_or_404(BookingCustomQuestion, id=q_id, form_config=config)
+            q.is_active = not q.is_active
+            q.save()
+            messages.success(request, f'Question "{q.question_text}" {"activated" if q.is_active else "deactivated"}.')
+            return redirect('booking_form_settings')
+
+    settings_form = BookingFormSettingsForm(instance=config)
+    question_form = BookingCustomQuestionForm()
+    questions = config.custom_questions.all().order_by('sort_order', 'id')
+    public_url = request.build_absolute_uri(reverse('advance_booking'))
+
+    return render(request, 'parking/booking_settings.html', {
+        'config': config,
+        'settings_form': settings_form,
+        'question_form': question_form,
+        'questions': questions,
+        'public_url': public_url,
+    })
+
+
+@login_required(login_url='login')
+def booking_requests(request):
+    """Operator review queue: examine incoming requests, inspect slots, confirm or reject."""
+    status_filter = request.GET.get('status', 'all').strip()
+    query = request.GET.get('q', '').strip()
+
+    bookings_qs = AdvanceBooking.objects.select_related(
+        'preferred_area', 'assigned_slot__parking_floor__parking_area', 'confirmed_by', 'parking_record'
+    ).all()
+
+    if status_filter and status_filter.lower() != 'all':
+        bookings_qs = bookings_qs.filter(status__iexact=status_filter)
+
+    if query:
+        bookings_qs = bookings_qs.filter(
+            Q(booking_reference__icontains=query) |
+            Q(vehicle_number__icontains=query) |
+            Q(owner_name__icontains=query) |
+            Q(mobile__icontains=query)
+        )
+
+    # Status counts for navigation pills
+    pending_count = AdvanceBooking.objects.filter(status='Pending').count()
+    confirmed_count = AdvanceBooking.objects.filter(status='Confirmed').count()
+    checked_in_count = AdvanceBooking.objects.filter(status='Checked In').count()
+    rejected_count = AdvanceBooking.objects.filter(status='Rejected').count()
+    cancelled_count = AdvanceBooking.objects.filter(status='Cancelled').count()
+    all_count = AdvanceBooking.objects.count()
+
+    # Slot availability data
+    active_slot_ids = set(ParkingRecord.objects.filter(status='Active').values_list('parking_slot_id', flat=True))
+    available_slots = ParkingSlot.objects.filter(
+        is_under_maintenance=False,
+        parking_floor__is_under_maintenance=False,
+        parking_floor__parking_area__is_under_maintenance=False,
+    ).exclude(id__in=active_slot_ids).select_related('parking_floor__parking_area').order_by(
+        'parking_floor__parking_area__name', 'parking_floor__sort_order', 'sort_order'
+    )
+
+    return render(request, 'parking/booking_requests.html', {
+        'bookings': bookings_qs,
+        'status_filter': status_filter,
+        'query': query,
+        'pending_count': pending_count,
+        'confirmed_count': confirmed_count,
+        'checked_in_count': checked_in_count,
+        'rejected_count': rejected_count,
+        'cancelled_count': cancelled_count,
+        'all_count': all_count,
+        'available_slots': available_slots,
+    })
+
+
+@login_required(login_url='login')
+@require_POST
+def booking_request_action(request, booking_id):
+    """Handle Confirm, Reject, Cancel, or Immediate Check-in for an Advance Booking."""
+    booking = get_object_or_404(AdvanceBooking, id=booking_id)
+    action = request.POST.get('action')
+
+    if action == 'confirm':
+        slot_id = request.POST.get('slot_id')
+        operator_notes = request.POST.get('operator_notes', '').strip()
+        if not slot_id:
+            messages.error(request, 'Please select a parking slot to confirm this booking.')
+            return redirect('booking_requests')
+
+        slot = get_object_or_404(ParkingSlot, id=slot_id)
+        if slot.is_under_maintenance or slot.parking_floor.is_under_maintenance or slot.parking_floor.parking_area.is_under_maintenance:
+            messages.error(request, f'Slot {slot.number} is under maintenance. Please choose an active bay.')
+            return redirect('booking_requests')
+        if ParkingRecord.objects.filter(parking_slot=slot, status='Active').exists():
+            messages.error(request, f'Slot {slot.number} is currently occupied by an active vehicle.')
+            return redirect('booking_requests')
+
+        booking.assigned_slot = slot
+        booking.status = 'Confirmed'
+        booking.confirmed_by = request.user
+        booking.confirmed_at = timezone.now()
+        booking.operator_notes = operator_notes
+        booking.save()
+        messages.success(request, f'Booking {booking.booking_reference} confirmed for Slot {slot.label}.')
+
+    elif action == 'reject':
+        reason = request.POST.get('rejection_reason', '').strip() or 'No slot available for requested vehicle/time.'
+        booking.status = 'Rejected'
+        booking.rejection_reason = reason
+        booking.operator_notes = request.POST.get('operator_notes', '').strip()
+        booking.save()
+        messages.warning(request, f'Booking {booking.booking_reference} has been rejected.')
+
+    elif action == 'cancel':
+        booking.status = 'Cancelled'
+        booking.save()
+        messages.info(request, f'Booking {booking.booking_reference} marked as cancelled.')
+
+    elif action == 'check_in':
+        if booking.status != 'Confirmed' or not booking.assigned_slot:
+            messages.error(request, 'Only confirmed bookings with an assigned slot can be checked in.')
+            return redirect('booking_requests')
+
+        slot = booking.assigned_slot
+        if ParkingRecord.objects.filter(parking_slot=slot, status='Active').exists():
+            messages.error(request, f'Slot {slot.number} is currently occupied! Please reassign slot before check in.')
+            return redirect('booking_requests')
+
+        vehicle, _ = Vehicle.objects.get_or_create(
+            vehicle_number=booking.vehicle_number,
+            defaults={
+                'owner_name': booking.owner_name or 'VISITOR',
+                'mobile': booking.mobile,
+                'vehicle_type': booking.vehicle_type,
+                'plate_type': booking.plate_type,
+                'state_code': booking.state_code,
+            }
+        )
+        if booking.owner_name:
+            vehicle.owner_name = booking.owner_name
+        vehicle.mobile = booking.mobile
+        vehicle.vehicle_type = booking.vehicle_type
+        vehicle.plate_type = booking.plate_type
+        vehicle.state_code = booking.state_code
+        vehicle.save()
+
+        record = ParkingRecord.objects.create(
+            vehicle=vehicle,
+            parking_slot=slot,
+            slot_number=slot.id,
+            entry_time=timezone.now(),
+            status='Active'
+        )
+        booking.status = 'Checked In'
+        booking.checked_in_at = timezone.now()
+        booking.parking_record = record
+        booking.save()
+        messages.success(request, f'Vehicle {vehicle.vehicle_number} checked in! Parking record active at {slot.label}.')
+
+    return redirect('booking_requests')
+
+
+@login_required(login_url='login')
+def booking_lookup_api(request):
+    """Quick AJAX lookup by booking reference or vehicle number for the arrival operator."""
+    q = request.GET.get('q', '').strip()
+    if not q:
+        return JsonResponse({'success': False, 'message': 'No query provided.'})
+
+    booking = AdvanceBooking.objects.filter(
+        Q(booking_reference__iexact=q) | Q(vehicle_number__iexact=q)
+    ).select_related('assigned_slot__parking_floor__parking_area').first()
+
+    if not booking:
+        booking = AdvanceBooking.objects.filter(
+            Q(booking_reference__icontains=q) | Q(vehicle_number__icontains=q)
+        ).select_related('assigned_slot__parking_floor__parking_area').first()
+
+    if not booking:
+        return JsonResponse({'success': False, 'message': f'No booking found matching "{q}".'})
+
+    slot_info = None
+    if booking.assigned_slot:
+        s = booking.assigned_slot
+        slot_info = {
+            'id': s.id,
+            'number': s.number,
+            'floor_id': s.parking_floor_id,
+            'floor_name': s.parking_floor.name,
+            'area_id': s.parking_floor.parking_area_id,
+            'area_name': s.parking_floor.parking_area.name,
+        }
+
+    return JsonResponse({
+        'success': True,
+        'booking': {
+            'id': booking.id,
+            'reference': booking.booking_reference,
+            'status': booking.status,
+            'vehicle_number': booking.vehicle_number,
+            'owner_name': booking.owner_name,
+            'mobile': booking.mobile,
+            'vehicle_type': booking.vehicle_type,
+            'plate_type': booking.plate_type,
+            'state_code': booking.state_code,
+            'expected_arrival': booking.expected_arrival_time.strftime('%Y-%m-%d %H:%M') if booking.expected_arrival_time else '',
+            'duration_hours': booking.expected_duration_hours,
+            'slot': slot_info,
+        }
+    })
+
+
+# ── Customer Public Views (No Login Required) ──
+
+def public_advance_booking(request):
+    """Customer-facing permanent advance booking form page."""
+    config = BookingFormConfig.get_solo()
+
+    if not config.is_published:
+        return render(request, 'parking/public_advance_booking_disabled.html', {'config': config})
+
+    if request.method == 'POST':
+        form = PublicAdvanceBookingForm(request.POST, config=config)
+        if form.is_valid():
+            vehicle_number = form.cleaned_data.get('vehicle_number', '').strip().upper()
+            owner_name = form.cleaned_data.get('owner_name', '').strip()
+            mobile = form.cleaned_data.get('mobile', '').strip()
+            vehicle_type = form.cleaned_data.get('vehicle_type', 'Car')
+            plate_type = form.cleaned_data.get('plate_type', 'white_black')
+            state_code = form.cleaned_data.get('state_code', '').strip().upper()
+            if form.cleaned_data.get('bh_series'):
+                plate_type = 'bh_series'
+                state_code = 'BH'
+
+            preferred_area = form.cleaned_data.get('preferred_area')
+            notes = form.cleaned_data.get('notes', '').strip()
+            expected_arrival_time = form.cleaned_data.get('expected_arrival_time') or (timezone.now() + timezone.timedelta(hours=config.advance_booking_lead_hours))
+            expected_duration_hours = form.cleaned_data.get('expected_duration_hours', 2.0)
+
+            # Extract dynamic custom question responses
+            custom_answers = {}
+            for q in config.custom_questions.filter(is_active=True):
+                val = form.cleaned_data.get(f'custom_question_{q.id}')
+                if val is not None and val != '':
+                    custom_answers[str(q.id)] = {
+                        'question': q.question_text,
+                        'answer': 'Yes' if isinstance(val, bool) and val else ('No' if isinstance(val, bool) else str(val)),
+                    }
+
+            ref = AdvanceBooking.generate_reference()
+            booking = AdvanceBooking.objects.create(
+                booking_reference=ref,
+                status='Pending',
+                owner_name=owner_name,
+                mobile=mobile,
+                vehicle_number=vehicle_number,
+                vehicle_type=vehicle_type,
+                plate_type=plate_type,
+                state_code=state_code,
+                preferred_area=preferred_area,
+                notes=notes,
+                expected_arrival_time=expected_arrival_time,
+                expected_duration_hours=expected_duration_hours,
+                custom_answers=custom_answers,
+            )
+            return redirect('booking_confirmation', reference=ref)
+    else:
+        # Default arrival time: rounded forward by lead hours
+        now = timezone.localtime()
+        default_arr = now + timezone.timedelta(hours=max(1, config.advance_booking_lead_hours))
+        minute = (default_arr.minute // 15 + 1) * 15
+        if minute >= 60:
+            default_arr = default_arr.replace(minute=0) + timezone.timedelta(hours=1)
+        else:
+            default_arr = default_arr.replace(minute=minute)
+        default_arr = default_arr.replace(second=0, microsecond=0)
+
+        form = PublicAdvanceBookingForm(
+            config=config,
+            initial={
+                'expected_arrival_time': default_arr.strftime('%Y-%m-%dT%H:%M'),
+                'expected_duration_hours': 2.0,
+                'plate_type': 'white_black',
+            }
+        )
+
+    return render(request, 'parking/public_advance_booking.html', {
+        'form': form,
+        'config': config,
+    })
+
+
+def public_booking_confirmation(request, reference):
+    """Customer-facing confirmation screen displaying generated reference and pending status."""
+    booking = get_object_or_404(
+        AdvanceBooking.objects.select_related('preferred_area', 'assigned_slot__parking_floor__parking_area'),
+        booking_reference=reference
+    )
+    config = BookingFormConfig.get_solo()
+    return render(request, 'parking/public_booking_confirmation.html', {
+        'booking': booking,
+        'config': config,
+    })
+
+
+def public_booking_status(request):
+    """Customer-facing booking status check screen (reference + mobile number)."""
+    config = BookingFormConfig.get_solo()
+    booking = None
+    search_performed = False
+    error_message = None
+
+    ref = (request.GET.get('ref') or request.POST.get('booking_reference') or '').strip().upper()
+    mobile = (request.GET.get('mobile') or request.POST.get('mobile') or '').strip()
+
+    if ref or mobile:
+        search_performed = True
+        if not ref or not mobile:
+            error_message = 'Please provide both your Booking Reference and registered Mobile Number.'
+        else:
+            booking = AdvanceBooking.objects.filter(
+                booking_reference=ref,
+                mobile=mobile
+            ).select_related(
+                'assigned_slot__parking_floor__parking_area', 'preferred_area', 'parking_record'
+            ).first()
+
+            if not booking:
+                error_message = f'No advance booking found for Reference "{ref}" with mobile "{mobile}". Please verify and try again.'
+
+    form = BookingStatusCheckForm(initial={'booking_reference': ref, 'mobile': mobile})
+
+    return render(request, 'parking/public_booking_status.html', {
+        'form': form,
+        'booking': booking,
+        'search_performed': search_performed,
+        'error_message': error_message,
+        'config': config,
+    })
+
+
+@require_POST
+def public_booking_cancel(request, reference):
+    """Allows customer to cancel their pending or confirmed advance booking."""
+    mobile = request.POST.get('mobile', '').strip()
+    booking = get_object_or_404(AdvanceBooking, booking_reference=reference, mobile=mobile)
+    if booking.status in ['Pending', 'Confirmed']:
+        booking.status = 'Cancelled'
+        booking.save()
+        messages.info(request, f'Your booking {booking.booking_reference} has been cancelled successfully.')
+    return redirect(f"{reverse('booking_status')}?ref={reference}&mobile={mobile}")
+

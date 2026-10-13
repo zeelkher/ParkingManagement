@@ -58,4 +58,56 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     applyDynamicStyles();
+
+    // Slide-Over Drawer Navigation
+    const drawerOpenBtn = document.getElementById('drawerOpenBtn');
+    const drawerCloseBtn = document.getElementById('drawerCloseBtn');
+    const slideDrawer = document.getElementById('slideDrawer');
+    const drawerBackdrop = document.getElementById('drawerBackdrop');
+
+    function openDrawer() {
+        if (slideDrawer && drawerBackdrop) {
+            slideDrawer.classList.add('open');
+            drawerBackdrop.classList.add('open');
+            slideDrawer.setAttribute('aria-hidden', 'false');
+            drawerBackdrop.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeDrawer() {
+        if (slideDrawer && drawerBackdrop) {
+            slideDrawer.classList.remove('open');
+            drawerBackdrop.classList.remove('open');
+            slideDrawer.setAttribute('aria-hidden', 'true');
+            drawerBackdrop.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+    }
+
+    if (drawerOpenBtn) {
+        drawerOpenBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openDrawer();
+        });
+    }
+
+    if (drawerCloseBtn) {
+        drawerCloseBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeDrawer();
+        });
+    }
+
+    if (drawerBackdrop) {
+        drawerBackdrop.addEventListener('click', () => {
+            closeDrawer();
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && slideDrawer && slideDrawer.classList.contains('open')) {
+            closeDrawer();
+        }
+    });
 });

@@ -121,3 +121,25 @@ classDiagram
 2. It displays a sleek authentication modal requesting staff credentials.
 3. Submitted credentials are validated via Django's backend `authenticate()` system.
 4. Deletion only takes place if credentials match a staff member.
+
+### Advance Booking Flow
+1. **Operator Setup (`views.py:booking_form_settings`)**:
+   - Operator selects visible fields, required fields, and custom questions.
+   - Sets advance booking window rules (lead notice hours, maximum advance days) and terms.
+   - Publishes the permanent public form URL and entrance QR code.
+2. **Customer Submission (`views.py:public_advance_booking`)**:
+   - Customer opens the public form, enters vehicle registration (with live preview) and details.
+   - System validates fields and creates an `AdvanceBooking` with a unique reference (`BK-XXXX-YYYY`) and `Pending` status.
+   - Customer receives confirmation screen with "Awaiting operator confirmation".
+3. **Operator Allocation (`views.py:booking_requests`)**:
+   - Operator reviews pending requests in "Booking Requests" dashboard.
+   - Checks bay availability and assigns an available slot, or rejects with an explanatory reason.
+4. **Customer Status Tracking (`views.py:public_booking_status`)**:
+   - Customer enters booking reference and mobile number.
+   - Views real-time status: Pending, Confirmed (showing Area, Floor, Bay, Time), Rejected, or Checked In.
+5. **Arrival Check-In (`views.py:vehicle_entry` / `views.py:booking_request_action`)**:
+   - Gate operator looks up reference or vehicle plate with the fast-check-in search bar.
+   - Automatically populates vehicle details and assigns the reserved bay.
+   - On check-in, booking status transitions to `Checked In` and creates the active `ParkingRecord`.
+   - Vehicle continues through standard checkout and receipt flow.
+
