@@ -25,7 +25,7 @@
     <form action="{% url 'clear_history' %}" method="post">
         {% csrf_token %}
         <input type="hidden" name="next" value="history">
-        <button type="submit" class="btn" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:10px 16px;">
+        <button type="submit" class="btn" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd);padding:10px 16px;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2-2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             CLEAR ALL RECORDS
         </button>
@@ -35,7 +35,7 @@
 
 <div class="glass-panel">
     {% if query %}
-    <p style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:16px;text-transform:uppercase;letter-spacing:0.5px;">
+    <p style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:16px;text-transform:uppercase;letter-spacing:0.5px;">
         SHOWING RESULTS FOR: "{{ query }}"
     </p>
     {% endif %}
@@ -70,12 +70,12 @@
                 <td><span class="plate-cat-tag">{{ colors.2|upper }}</span></td>
                 <td style="font-weight:600;font-size:12px;">{{ record.vehicle.vehicle_type|upper }}</td>
                 <td style="font-weight:600;">{{ record.vehicle.owner_name|upper }}</td>
-                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#64748b;">+91 {{ record.vehicle.mobile }}</td>
+                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-2);">+91 {{ record.vehicle.mobile }}</td>
                 <td><span class="slot-badge">{{ record.parking_number }}</span><br><small class="table-muted">{{ record.parking_area_name }} • {{ record.floor_name }}</small></td>
-                <td style="font-size:12px;color:#475569;">{{ record.entry_time|date:"d M Y • h:i A" }}</td>
-                <td style="font-size:12px;color:#475569;">{% if record.exit_time %}{{ record.exit_time|date:"d M Y • h:i A" }}{% else %}<span style="color:#94a3b8;">—</span>{% endif %}</td>
+                <td style="font-size:12px;color:var(--text-2);">{{ record.entry_time|date:"d M Y • h:i A" }}</td>
+                <td style="font-size:12px;color:var(--text-2);">{% if record.exit_time %}{{ record.exit_time|date:"d M Y • h:i A" }}{% else %}<span style="color:var(--text-3);">—</span>{% endif %}</td>
                 <td style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600;">{{ record.formatted_duration }}</td>
-                <td>{% if record.parking_fee %}<span class="fee-badge">₹{{ record.parking_fee }}</span>{% else %}<span style="color:#94a3b8;">—</span>{% endif %}</td>
+                <td>{% if record.parking_fee %}<span class="fee-badge">₹{{ record.parking_fee }}</span>{% else %}<span style="color:var(--text-3);">—</span>{% endif %}</td>
                 <td>
                     {% if record.status == 'Active' %}
                         <span class="status-active"><i class="fa-solid fa-circle" style="font-size: 6px;"></i> ACTIVE</span>
@@ -97,7 +97,7 @@
             {% endwith %}
             {% empty %}
             <tr>
-                <td colspan="12" style="text-align:center;padding:40px;color:#94a3b8;">
+                <td colspan="12" style="text-align:center;padding:40px;color:var(--text-3);">
                     <div style="font-size:32px;margin-bottom:10px;">📋</div>
                     <p style="font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">NO RECORDS FOUND</p>
                 </td>
@@ -125,7 +125,7 @@
         
         <div style="display: flex; gap: 12px; justify-content: flex-end;">
             <button type="button" class="btn btn-secondary" id="modal-cancel-btn" style="padding: 8px 16px;">Cancel</button>
-            <button type="button" class="btn" id="modal-confirm-btn" style="padding: 8px 16px; background: #dc2626; color: #fff; border: 1px solid #b91c1c;">Confirm Delete</button>
+            <button type="button" class="btn" id="modal-confirm-btn" style="padding: 8px 16px; background: var(--red); color: #fff; border: 1px solid var(--red-bd);">Confirm Delete</button>
         </div>
     </div>
 </div>

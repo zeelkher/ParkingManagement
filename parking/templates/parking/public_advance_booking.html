@@ -3,361 +3,707 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ config.title }} — PARKSAFE Smart Parking</title>
-    <meta name="description" content="Reserve your vehicle parking bay in advance at PARKSAFE.">
+    <title>{{ config.title }} — PARKSAFE</title>
+    <meta name="description" content="Reserve your vehicle parking slot in advance at PARKSAFE.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     {% load static %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=15.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=25.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        .pub-form-group { margin-bottom: 20px; }
-        .pub-form-group label {
+        *, *::before, *::after { -webkit-user-select: none; user-select: none; box-sizing: border-box; }
+        input, textarea, select, [contenteditable="true"] { -webkit-user-select: text !important; user-select: text !important; }
+        i, svg { pointer-events: none; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f7fa;
+            color: #111827;
+        }
+
+        /* ── Layout ── */
+        .page-wrap {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            min-height: 100vh;
+        }
+        @media (max-width: 900px) {
+            .page-wrap { grid-template-columns: 1fr; }
+            .page-sidebar { display: none !important; }
+        }
+
+        /* ── Left sidebar ── */
+        .page-sidebar {
+            background: #0f172a;
+            background-image: linear-gradient(160deg, #1a2744 0%, #0f172a 60%);
+            padding: 48px 40px;
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 64px;
+        }
+        .sidebar-brand-logo {
+            width: 40px;
+            height: 40px;
+            background: #2563eb;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .sidebar-brand-name {
+            font-size: 17px;
+            font-weight: 800;
+            color: #f8fafc;
+            letter-spacing: 0.05em;
+        }
+        .sidebar-heading {
+            font-size: 28px;
+            font-weight: 800;
+            color: #f8fafc;
+            line-height: 1.25;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+        .sidebar-sub {
+            font-size: 14px;
+            color: #94a3b8;
+            line-height: 1.65;
+            margin-bottom: 48px;
+        }
+        .sidebar-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .sidebar-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+        }
+        .step-num {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(37,99,235,0.2);
+            border: 1px solid rgba(37,99,235,0.4);
+            color: #60a5fa;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .step-text strong {
             display: block;
             font-size: 13px;
             font-weight: 600;
-            color: #cbd5e1;
-            margin-bottom: 6px;
+            color: #e2e8f0;
+            margin-bottom: 2px;
         }
-        .pub-form-group .form-control {
-            background: #0f172a;
-            border: 1px solid rgba(255,255,255,0.15);
-            color: #ffffff;
-            border-radius: var(--r-md);
-            padding: 12px 16px;
-            font-size: 14px;
-            transition: all 0.2s ease;
+        .step-text span {
+            font-size: 12px;
+            color: #64748b;
         }
-        .pub-form-group .form-control:focus {
-            border-color: #38bdf8;
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
-            background: #131d33;
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 32px;
+            border-top: 1px solid rgba(255,255,255,0.07);
         }
-        .pub-form-group select.form-control option {
-            background: #1e293b;
-            color: #fff;
+        .sidebar-footer a {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #60a5fa;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.15s;
         }
-        .plate-preview-box {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: var(--r-md);
-            padding: 16px;
-            margin-bottom: 24px;
+        .sidebar-footer a:hover { color: #93c5fd; }
+
+        /* ── Right form area ── */
+        .page-form-area {
+            padding: 48px 48px 64px;
+            overflow-y: auto;
+            max-width: 680px;
+        }
+        @media (max-width: 900px) {
+            .page-form-area { padding: 28px 20px 48px; max-width: 100%; }
+        }
+
+        .form-top-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            margin-bottom: 36px;
+        }
+        /* Mobile-only brand */
+        .mobile-brand {
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+        .mobile-brand-logo {
+            width: 32px; height: 32px; background: #2563eb;
+            border-radius: 8px; display: flex; align-items: center; justify-content: center;
+        }
+        .mobile-brand-name { font-size: 15px; font-weight: 800; color: #111827; }
+        @media (max-width: 900px) {
+            .mobile-brand { display: flex; }
+        }
+
+        .status-check-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #2563eb;
+            text-decoration: none;
+            padding: 7px 14px;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            background: #eff6ff;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .status-check-link:hover {
+            background: #dbeafe;
+            border-color: #2563eb;
+        }
+
+        .form-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #111827;
+            letter-spacing: -0.02em;
+            margin-bottom: 6px;
+        }
+        .form-subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 32px;
+            line-height: 1.5;
+        }
+
+        /* Dividers between sections */
+        .form-section {
+            margin-bottom: 28px;
+        }
+        .form-section-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #9ca3af;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        /* Form fields */
+        .field-row {
+            display: grid;
             gap: 16px;
-            flex-wrap: wrap;
+            margin-bottom: 0;
+        }
+        .field-row.cols-2 { grid-template-columns: 1fr 1fr; }
+        .field-row.cols-3 { grid-template-columns: 1fr 90px 68px; align-items: flex-end; }
+        .field-row.cols-arrival { grid-template-columns: 1.2fr 0.8fr; }
+        @media (max-width: 600px) {
+            .field-row.cols-2, .field-row.cols-arrival { grid-template-columns: 1fr; }
+            .field-row.cols-3 { grid-template-columns: 1fr 80px 64px; }
+        }
+
+        .field-group { display: flex; flex-direction: column; gap: 6px; }
+        .field-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+        }
+        .field-group label .req { color: #ef4444; margin-left: 2px; }
+        .field-group .help-text {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 3px;
+        }
+        .field-group .form-control {
+            width: 100%;
+            height: 44px;
+            padding: 0 14px;
+            font-size: 14px;
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            color: #111827;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            font-family: inherit;
+        }
+        .field-group .form-control:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        .field-group textarea.form-control {
+            height: auto;
+            padding: 12px 14px;
+            resize: vertical;
+            min-height: 80px;
+        }
+        .field-group select.form-control {
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            -webkit-appearance: none;
+            appearance: none;
+            padding-right: 36px;
+        }
+        .field-group select.form-control option { background: #fff; color: #111827; }
+
+        /* BH toggle */
+        .bh-series-control { position: relative; }
+        .bh-series-control input[type="checkbox"] { position: absolute; opacity: 0; pointer-events: none; }
+        .bh-series-label {
+            display: flex; align-items: center; justify-content: center; gap: 5px;
+            height: 44px; background: #fff; border: 1px solid #d1d5db;
+            color: #374151; border-radius: 8px; font-weight: 600; font-size: 13px;
+            cursor: pointer; transition: all 0.15s; margin: 0;
+        }
+        .bh-series-control input[type="checkbox"]:checked + .bh-series-label {
+            background: #eff6ff; border-color: #2563eb; color: #1d4ed8;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+
+        /* Vehicle number */
+        #id_vehicle_number {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+        #id_state_code {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-size: 15px;
+        }
+
+        /* Terms */
+        .terms-box {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 24px;
+        }
+        .terms-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+        .terms-text {
+            font-size: 12px;
+            color: #6b7280;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+
+        /* Submit */
+        .submit-btn {
+            width: 100%;
+            height: 48px;
+            font-size: 14px;
+            font-weight: 700;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            letter-spacing: 0.01em;
+        }
+        .submit-btn:hover { background: #1d4ed8; transform: translateY(-1px); }
+        .submit-btn:active { transform: none; }
+
+        /* Error alert */
+        .alert-errors {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 13px;
+        }
+        .alert-errors strong { display: block; margin-bottom: 4px; }
+
+        /* Bottom link */
+        .bottom-link {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 13px;
+            color: #9ca3af;
+        }
+        .bottom-link a { color: #2563eb; text-decoration: none; font-weight: 600; }
+        .bottom-link a:hover { text-decoration: underline; }
+
+        /* Subtle parking-map background decoration on sidebar */
+        .sidebar-deco {
+            position: absolute;
+            bottom: -40px;
+            right: -40px;
+            width: 280px;
+            height: 280px;
+            border: 40px solid rgba(37,99,235,0.08);
+            border-radius: 50%;
+            pointer-events: none;
         }
     </style>
 </head>
-<body class="public-shell">
+<body>
 
-    <!-- ══ PUBLIC NAVBAR ══ -->
-    <header class="public-header">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 34px; height: 34px; border-radius: 8px; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px;">
-                P
+<div class="page-wrap">
+
+    <!-- ── LEFT SIDEBAR ── -->
+    <aside class="page-sidebar">
+        <div style="position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%;">
+            <div class="sidebar-brand">
+                <div class="sidebar-brand-logo">
+                    <img src="{% static 'images/logo_white_transparent.png' %}" alt="PARKSAFE" style="width:24px;height:24px;object-fit:contain;">
+                </div>
+                <span class="sidebar-brand-name">PARKSAFE</span>
             </div>
-            <div>
-                <div style="font-weight: 800; font-size: 16px; letter-spacing: 1px; color: #fff;">PARKSAFE</div>
-                <div style="font-size: 11px; color: #94a3b8; letter-spacing: 0.05em;">SMART ADVANCE PARKING</div>
+
+            <div class="sidebar-heading">Book your parking slot in advance</div>
+            <p class="sidebar-sub">
+                Fill out the form to request a reserved parking bay. Our team reviews and confirms your slot — you'll get a reference number to track your booking.
+            </p>
+
+            <div class="sidebar-steps">
+                <div class="sidebar-step">
+                    <div class="step-num">1</div>
+                    <div class="step-text">
+                        <strong>Submit your details</strong>
+                        <span>Vehicle number, name, arrival time</span>
+                    </div>
+                </div>
+                <div class="sidebar-step">
+                    <div class="step-num">2</div>
+                    <div class="step-text">
+                        <strong>Get a reference number</strong>
+                        <span>Instantly generated after submission</span>
+                    </div>
+                </div>
+                <div class="sidebar-step">
+                    <div class="step-num">3</div>
+                    <div class="step-text">
+                        <strong>Await slot confirmation</strong>
+                        <span>Staff reviews and assigns your bay</span>
+                    </div>
+                </div>
+                <div class="sidebar-step">
+                    <div class="step-num">4</div>
+                    <div class="step-text">
+                        <strong>Arrive &amp; park</strong>
+                        <span>Show your reference at the gate</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <a href="{% url 'booking_status' %}">
+                    <i class="fa-solid fa-magnifying-glass"></i> Check existing booking status
+                </a>
             </div>
         </div>
+        <div class="sidebar-deco"></div>
+    </aside>
 
-        <nav class="public-nav-links">
-            <a href="{% url 'advance_booking' %}" class="public-nav-link active">
-                <i class="fa-solid fa-calendar-plus" style="margin-right: 4px;"></i> Advance Booking
-            </a>
-            <a href="{% url 'booking_status' %}" class="public-nav-link">
-                <i class="fa-solid fa-magnifying-glass" style="margin-right: 4px;"></i> Booking Status
-            </a>
-            <a href="{% url 'login' %}" class="public-nav-link" style="border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1;">
-                <i class="fa-solid fa-lock" style="margin-right: 4px;"></i> Staff Portal
-            </a>
-        </nav>
-    </header>
+    <!-- ── RIGHT FORM AREA ── -->
+    <div class="page-form-area">
 
-    <!-- ══ MAIN BODY ══ -->
-    <main class="public-body-wrap">
-        <div class="public-card">
-
-            <div class="public-card-hero">
-                <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 11px; padding: 4px 10px; border-radius: 999px; margin-bottom: 12px; display: inline-block;">
-                    <i class="fa-solid fa-bolt"></i> FAST ONLINE RESERVATION
-                </span>
-                <h1 style="font-size: 24px; font-weight: 800; color: #ffffff; margin-bottom: 8px;">
-                    {{ config.title }}
-                </h1>
-                <p style="font-size: 14px; color: #94a3b8; line-height: 1.5; margin: 0;">
-                    {{ config.description }}
-                </p>
-            </div>
-
-            <div class="public-card-content">
-                {% if form.errors %}
-                <div class="alert alert-danger mb-4" style="background: rgba(220, 38, 38, 0.15); border: 1px solid rgba(220, 38, 38, 0.3); color: #fca5a5;">
-                    <div><strong>PLEASE FIX THE FOLLOWING ERRORS:</strong></div>
-                    {% for field in form %}
-                    {% for err in field.errors %}
-                    <div style="font-size: 13px; margin-top: 2px;">• {{ field.label }}: {{ err }}</div>
-                    {% endfor %}
-                    {% endfor %}
-                    {% for err in form.non_field_errors %}
-                    <div style="font-size: 13px; margin-top: 2px;">• {{ err }}</div>
-                    {% endfor %}
+        <div class="form-top-bar">
+            <!-- Mobile-only brand -->
+            <div class="mobile-brand">
+                <div class="mobile-brand-logo">
+                    <img src="{% static 'images/logo_white_transparent.png' %}" alt="PARKSAFE" style="width:18px;height:18px;object-fit:contain;">
                 </div>
-                {% endif %}
+                <span class="mobile-brand-name">PARKSAFE</span>
+            </div>
+            <a href="{% url 'booking_status' %}" class="status-check-link" style="margin-left:auto;">
+                <i class="fa-solid fa-receipt"></i> Track Booking
+            </a>
+        </div>
 
-                <form method="post" autocomplete="off" id="publicBookingForm">
-                    {% csrf_token %}
+        <h1 class="form-title">{{ config.title }}</h1>
+        <p class="form-subtitle">{{ config.description }}</p>
 
-                    <!-- Live Plate Preview Widget if vehicle number is visible -->
-                    {% if config.field_vehicle_number_visible %}
-                    <div class="plate-preview-box">
-                        <div>
-                            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700;">Live License Plate Preview</div>
-                            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Format will be validated upon arrival</div>
-                        </div>
-                        <div id="plate-preview" class="plate-mini" style="background: #ffffff; color: #000000; border: 2px solid #000; padding: 6px 14px; font-size: 16px; border-radius: 6px;">
-                            <span id="preview-ind" style="font-size: 10px; font-weight: 900; background: #003580; color: #fff; padding: 1px 4px; border-radius: 2px; margin-right: 4px;">IND</span>
-                            <span id="preview-number">GJ 01 AA 1234</span>
-                        </div>
+        <!-- Error display -->
+        {% if form.errors %}
+        <div class="alert-errors">
+            <strong>Please fix the following before submitting:</strong>
+            {% for field in form %}{% for err in field.errors %}
+            <div>• <strong>{{ field.label }}</strong>: {{ err }}</div>
+            {% endfor %}{% endfor %}
+            {% for err in form.non_field_errors %}
+            <div>• {{ err }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" autocomplete="off" id="publicBookingForm">
+            {% csrf_token %}
+
+            <!-- VEHICLE DETAILS -->
+            {% if config.field_vehicle_number_visible %}
+            <div class="form-section">
+                <div class="form-section-label">Vehicle Details</div>
+                <div class="field-row {% if config.field_state_code_visible %}cols-3{% endif %}" style="margin-bottom:0;">
+                    <div class="field-group">
+                        <label for="id_vehicle_number">
+                            Registration Number{% if config.field_vehicle_number_required %}<span class="req">*</span>{% endif %}
+                        </label>
+                        {{ form.vehicle_number }}
                     </div>
+                    {% if config.field_state_code_visible %}
+                    <div class="field-group">
+                        <label for="id_state_code">State</label>
+                        {{ form.state_code }}
+                    </div>
+                    <div class="bh-series-control field-group">
+                        <label style="visibility:hidden;font-size:13px;">BH</label>
+                        {{ form.bh_series }}
+                        <label for="id_bh_series" class="bh-series-label" title="Bharat (BH) Series">
+                            <i class="bi bi-patch-check-fill" style="color:#2563eb;font-size:15px;"></i>
+                            <span>BH</span>
+                        </label>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
 
-                    <!-- Vehicle & State Inputs -->
-                    <div class="{% if config.field_state_code_visible %}grid-vehicle-state{% else %}grid-vehicle-only{% endif %}">
-                        <div class="pub-form-group" style="margin-bottom: 0;">
-                            <label for="id_vehicle_number">
-                                Vehicle Registration Number {% if config.field_vehicle_number_required %}<span style="color: #f87171;">*</span>{% endif %}
-                            </label>
-                            {{ form.vehicle_number }}
-                        </div>
-                        {% if config.field_state_code_visible %}
-                        <div class="pub-form-group" style="margin-bottom: 0;">
-                            <label for="id_state_code">State Code</label>
-                            {{ form.state_code }}
-                        </div>
-                        <div class="bh-series-control" style="padding-bottom: 0;">
-                            {{ form.bh_series }}
-                            <label for="id_bh_series" class="bh-series-label" title="BH (Bharat) Series" style="height: 46px; min-height: 46px; background: #0f172a; border-color: rgba(255,255,255,0.15); color: #fff;">
-                                <i class="bi bi-patch-check-fill" style="color: #38bdf8;"></i><span>BH</span>
-                            </label>
-                        </div>
+            <!-- OWNER INFO -->
+            {% if config.field_owner_name_visible or config.field_mobile_visible %}
+            <div class="form-section">
+                <div class="form-section-label">Owner Information</div>
+                <div class="field-row {% if config.field_owner_name_visible and config.field_mobile_visible %}cols-2{% endif %}">
+                    {% if config.field_owner_name_visible %}
+                    <div class="field-group">
+                        <label for="id_owner_name">
+                            Full Name{% if config.field_owner_name_required %}<span class="req">*</span>{% endif %}
+                        </label>
+                        {{ form.owner_name }}
+                    </div>
+                    {% endif %}
+                    {% if config.field_mobile_visible %}
+                    <div class="field-group">
+                        <label for="id_mobile">
+                            Mobile Number{% if config.field_mobile_required %}<span class="req">*</span>{% endif %}
+                        </label>
+                        {{ form.mobile }}
+                        <span class="help-text">10-digit number, used for status updates</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- VEHICLE TYPE & PLATE -->
+            {% if config.field_vehicle_type_visible or config.field_plate_type_visible %}
+            <div class="form-section">
+                <div class="form-section-label">Vehicle Classification</div>
+                <div class="field-row {% if config.field_vehicle_type_visible and config.field_plate_type_visible %}cols-2{% endif %}">
+                    {% if config.field_vehicle_type_visible %}
+                    <div class="field-group">
+                        <label for="id_vehicle_type">
+                            Vehicle Type{% if config.field_vehicle_type_required %}<span class="req">*</span>{% endif %}
+                        </label>
+                        {{ form.vehicle_type }}
+                    </div>
+                    {% endif %}
+                    {% if config.field_plate_type_visible %}
+                    <div class="field-group">
+                        <label for="id_plate_type">
+                            Number Plate Type{% if config.field_plate_type_required %}<span class="req">*</span>{% endif %}
+                        </label>
+                        {{ form.plate_type }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ARRIVAL & DURATION -->
+            {% if config.field_expected_arrival_visible or config.field_duration_hours_visible %}
+            <div class="form-section">
+                <div class="form-section-label">Arrival Schedule</div>
+                <div class="field-row {% if config.field_expected_arrival_visible and config.field_duration_hours_visible %}cols-arrival{% endif %}">
+                    {% if config.field_expected_arrival_visible %}
+                    <div class="field-group">
+                        <label for="id_expected_arrival_time">
+                            Expected Arrival{% if config.field_expected_arrival_required %}<span class="req">*</span>{% endif %}
+                        </label>
+                        {{ form.expected_arrival_time }}
+                        {% if form.expected_arrival_time.help_text %}
+                        <span class="help-text">{{ form.expected_arrival_time.help_text }}</span>
                         {% endif %}
                     </div>
                     {% endif %}
-
-                    <!-- Customer Personal Details -->
-                    <div class="{% if config.field_owner_name_visible and config.field_mobile_visible %}grid-2col{% else %}grid-1col{% endif %}">
-                        {% if config.field_owner_name_visible %}
-                        <div class="pub-form-group">
-                            <label for="id_owner_name">
-                                Full Name {% if config.field_owner_name_required %}<span style="color: #f87171;">*</span>{% endif %}
-                            </label>
-                            {{ form.owner_name }}
-                        </div>
-                        {% endif %}
-
-                        {% if config.field_mobile_visible %}
-                        <div class="pub-form-group">
-                            <label for="id_mobile">
-                                Mobile Number (10 digits) {% if config.field_mobile_required %}<span style="color: #f87171;">*</span>{% endif %}
-                            </label>
-                            {{ form.mobile }}
-                            <small style="color: #64748b; font-size: 11px;">Used to verify and track your booking status</small>
-                        </div>
-                        {% endif %}
+                    {% if config.field_duration_hours_visible %}
+                    <div class="field-group">
+                        <label for="id_expected_duration_hours">
+                            Duration{% if config.field_duration_hours_required %}<span class="req">*</span>{% endif %}
+                        </label>
+                        {{ form.expected_duration_hours }}
+                        <span class="help-text">Max 24 hours</span>
                     </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
 
-                    <!-- Vehicle Type & Plate Type -->
-                    <div class="{% if config.field_vehicle_type_visible and config.field_plate_type_visible %}grid-2col{% else %}grid-1col{% endif %}">
-                        {% if config.field_vehicle_type_visible %}
-                        <div class="pub-form-group">
-                            <label for="id_vehicle_type">
-                                Vehicle Type {% if config.field_vehicle_type_required %}<span style="color: #f87171;">*</span>{% endif %}
-                            </label>
-                            {{ form.vehicle_type }}
-                        </div>
-                        {% endif %}
-
-                        {% if config.field_plate_type_visible %}
-                        <div class="pub-form-group">
-                            <label for="id_plate_type">
-                                Plate Category {% if config.field_plate_type_required %}<span style="color: #f87171;">*</span>{% endif %}
-                            </label>
-                            {{ form.plate_type }}
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Arrival & Duration -->
-                    <div class="{% if config.field_expected_arrival_visible and config.field_duration_hours_visible %}grid-arrival-duration{% else %}grid-1col{% endif %}">
-                        {% if config.field_expected_arrival_visible %}
-                        <div class="pub-form-group">
-                            <label for="id_expected_arrival_time">
-                                Expected Arrival Date &amp; Time {% if config.field_expected_arrival_required %}<span style="color: #f87171;">*</span>{% endif %}
-                            </label>
-                            {{ form.expected_arrival_time }}
-                            <small style="color: #64748b; font-size: 11px;">{{ form.expected_arrival_time.help_text }}</small>
-                        </div>
-                        {% endif %}
-
-                        {% if config.field_duration_hours_visible %}
-                        <div class="pub-form-group">
-                            <label for="id_expected_duration_hours">
-                                Estimated Duration (Hours) {% if config.field_duration_hours_required %}<span style="color: #f87171;">*</span>{% endif %}
-                            </label>
-                            {{ form.expected_duration_hours }}
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Preferred Area -->
-                    {% if config.field_preferred_area_visible %}
-                    <div class="pub-form-group">
+            <!-- PREFERRED AREA -->
+            {% if config.field_preferred_area_visible %}
+            <div class="form-section">
+                <div class="form-section-label">Parking Preference</div>
+                <div class="field-row">
+                    <div class="field-group">
                         <label for="id_preferred_area">
-                            Preferred Parking Area / Building {% if config.field_preferred_area_required %}<span style="color: #f87171;">*</span>{% endif %}
+                            Preferred Area{% if config.field_preferred_area_required %}<span class="req">*</span>{% endif %}
                         </label>
                         {{ form.preferred_area }}
                     </div>
-                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
 
-                    <!-- Special Requests -->
-                    {% if config.field_notes_visible %}
-                    <div class="pub-form-group">
+            <!-- NOTES -->
+            {% if config.field_notes_visible %}
+            <div class="form-section">
+                <div class="form-section-label">Additional Notes</div>
+                <div class="field-row">
+                    <div class="field-group">
                         <label for="id_notes">
-                            Special Requests / Preferences {% if config.field_notes_required %}<span style="color: #f87171;">*</span>{% endif %}
+                            Special Requests{% if config.field_notes_required %}<span class="req">*</span>{% endif %}
                         </label>
                         {{ form.notes }}
                     </div>
-                    {% endif %}
-
-                    <!-- Dynamic Custom Questions -->
-                    {% for q in config.custom_questions.all %}
-                    {% if q.is_active %}
-                    <div class="pub-form-group">
-                        <label>
-                            {{ q.question_text }} {% if q.is_required %}<span style="color: #f87171;">*</span>{% endif %}
-                        </label>
-                        {% with field_name="custom_question_"|add:q.id|stringformat:"s" %}
-                            {% for key, field in form.fields.items %}
-                                {% if key == field_name %}
-                                    {{ form|dictsort:key }}
-                                {% endif %}
-                            {% endfor %}
-                        {% endwith %}
-                        {% with f=form|default:None %}
-                            {# Django dynamic field rendering #}
-                            {% for bound_field in form %}
-                                {% if bound_field.name == "custom_question_"|add:q.id|stringformat:"s" %}
-                                    {{ bound_field }}
-                                    {% if bound_field.help_text %}
-                                    <small style="color: #64748b; font-size: 11px;">{{ bound_field.help_text }}</small>
-                                    {% endif %}
-                                {% endif %}
-                            {% endfor %}
-                        {% endwith %}
-                    </div>
-                    {% endif %}
-                    {% endfor %}
-
-                    <!-- Terms & Conditions Note -->
-                    {% if config.terms_and_conditions %}
-                    <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--r-md); padding: 14px 18px; margin-bottom: 24px;">
-                        <div style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px;">
-                            <i class="fa-solid fa-circle-info" style="color: #38bdf8;"></i> Terms &amp; Arrival Instructions
-                        </div>
-                        <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; white-space: pre-line;">{{ config.terms_and_conditions }}</div>
-                    </div>
-                    {% endif %}
-
-                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 15px; font-weight: 800; letter-spacing: 0.05em; background: #2563eb; border: none; border-radius: var(--r-md); box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
-                        <i class="fa-solid fa-paper-plane" style="margin-right: 8px;"></i> SUBMIT ADVANCE BOOKING REQUEST
-                    </button>
-
-                    <div style="text-align: center; margin-top: 18px; font-size: 13px; color: #94a3b8;">
-                        Already requested?
-                        <a href="{% url 'booking_status' %}" style="color: #38bdf8; text-decoration: none; font-weight: 600;">
-                            Check your Booking Status here &rarr;
-                        </a>
-                    </div>
-                </form>
+                </div>
             </div>
-        </div>
-    </main>
+            {% endif %}
 
-    <!-- Client-side script for plate formatting and sync -->
-    <script>
-    const vnumInput = document.getElementById('id_vehicle_number');
-    const stateInput = document.getElementById('id_state_code');
-    const bhCheckbox = document.getElementById('id_bh_series');
-    const previewNumber = document.getElementById('preview-number');
-    const previewInd = document.getElementById('preview-ind');
-    const plateTypeSelect = document.getElementById('id_plate_type');
-    const platePreviewEl = document.getElementById('plate-preview');
+            <!-- TERMS -->
+            {% if config.terms_and_conditions %}
+            <div class="terms-box">
+                <div class="terms-title"><i class="fa-solid fa-circle-info" style="color:#2563eb;"></i> Booking Terms</div>
+                <div class="terms-text">{{ config.terms_and_conditions }}</div>
+            </div>
+            {% endif %}
 
-    function updatePreview() {
-        if (!vnumInput || !previewNumber) return;
-        const val = vnumInput.value.trim().toUpperCase();
-        previewNumber.textContent = val || 'GJ 01 AA 1234';
+            <button type="submit" class="submit-btn">
+                Request Parking Slot
+            </button>
 
-        if (bhCheckbox && bhCheckbox.checked) {
-            previewInd.textContent = 'BH';
-            previewInd.style.background = '#000000';
-        } else {
-            previewInd.textContent = 'IND';
-            previewInd.style.background = '#003580';
+            <div class="bottom-link">
+                Already submitted? <a href="{% url 'booking_status' %}">Track your booking &rarr;</a>
+            </div>
+        </form>
+
+    </div><!-- .page-form-area -->
+</div><!-- .page-wrap -->
+
+<script>
+const vnumInput   = document.getElementById('id_vehicle_number');
+const stateInput  = document.getElementById('id_state_code');
+const bhCheckbox  = document.getElementById('id_bh_series');
+const plateSelect = document.getElementById('id_plate_type');
+
+const NORMAL_PH = 'GJ 01 AA 1234';
+const BH_PH     = '24 BH 1234 AA';
+
+function formatVehicleNumber(raw, isBH) {
+    const clean = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    if (!clean) return '';
+    if (isBH) {
+        const p = [];
+        if (clean.length > 0) p.push(clean.substring(0, Math.min(2, clean.length)));
+        if (clean.length > 2) p.push(clean.substring(2, Math.min(4, clean.length)));
+        if (clean.length > 4) p.push(clean.substring(4, Math.min(8, clean.length)));
+        if (clean.length > 8) p.push(clean.substring(8, Math.min(10, clean.length)));
+        return p.join(' ');
+    } else {
+        const m = clean.match(/^([A-Z]{0,2})([0-9]{0,2})([A-Z]{0,3})([0-9]{0,4})/);
+        if (m) {
+            const p = [];
+            if (m[1]) p.push(m[1]);
+            if (m[2]) p.push(m[2]);
+            if (m[3]) p.push(m[3]);
+            if (m[4]) p.push(m[4]);
+            return p.join(' ');
         }
-
-        // Color map for plate categories
-        const colorMap = {
-            'white_black': ['#FFFFFF', '#000000'],
-            'yellow_black': ['#FFD700', '#000000'],
-            'green_white': ['#008000', '#FFFFFF'],
-            'green_yellow': ['#008000', '#FFD700'],
-            'black_yellow': ['#1a1a1a', '#FFD700'],
-            'red_white': ['#FFD700', '#CC0000'],
-            'bh_series': ['#FFFFFF', '#000000']
-        };
-
-        if (plateTypeSelect && platePreviewEl) {
-            const pType = plateTypeSelect.value;
-            const colors = colorMap[pType] || ['#FFFFFF', '#000000'];
-            platePreviewEl.style.backgroundColor = colors[0];
-            previewNumber.style.color = colors[1];
-        }
+        return clean;
     }
+}
 
+function handleBhChange() {
+    if (!bhCheckbox) return;
+    const isBH = bhCheckbox.checked;
     if (vnumInput) {
-        vnumInput.addEventListener('input', () => {
-            vnumInput.value = vnumInput.value.toUpperCase();
-            if (stateInput && !bhCheckbox?.checked && vnumInput.value.length >= 2) {
-                stateInput.value = vnumInput.value.substring(0, 2);
-            }
-            updatePreview();
-        });
+        vnumInput.placeholder = isBH ? BH_PH : NORMAL_PH;
+        if (vnumInput.value) vnumInput.value = formatVehicleNumber(vnumInput.value, isBH);
     }
-
-    if (bhCheckbox) {
-        bhCheckbox.addEventListener('change', () => {
-            if (bhCheckbox.checked && stateInput) {
-                stateInput.value = 'BH';
-                stateInput.readOnly = true;
-            } else if (stateInput) {
-                stateInput.readOnly = false;
-            }
-            updatePreview();
-        });
+    if (stateInput) {
+        if (isBH) {
+            if (stateInput.value && stateInput.value !== 'BH') stateInput.dataset.prev = stateInput.value;
+            stateInput.value = 'BH';
+            stateInput.readOnly = true;
+            stateInput.style.opacity = '0.6';
+        } else {
+            stateInput.value = stateInput.dataset.prev || (vnumInput && vnumInput.value.length >= 2 ? vnumInput.value.substring(0, 2) : 'GJ');
+            stateInput.readOnly = false;
+            stateInput.style.opacity = '1';
+        }
     }
-
-    if (plateTypeSelect) {
-        plateTypeSelect.addEventListener('change', updatePreview);
+    if (plateSelect) {
+        if (isBH) plateSelect.value = 'bh_series';
+        else if (plateSelect.value === 'bh_series') plateSelect.value = 'white_black';
     }
+}
 
-    updatePreview();
-    </script>
+if (vnumInput) {
+    vnumInput.addEventListener('input', () => {
+        const isBH = bhCheckbox && bhCheckbox.checked;
+        vnumInput.value = formatVehicleNumber(vnumInput.value, isBH);
+        if (stateInput && !isBH && vnumInput.value.length >= 2) {
+            stateInput.value = vnumInput.value.substring(0, 2);
+        }
+    });
+}
+if (bhCheckbox) bhCheckbox.addEventListener('change', handleBhChange);
+if (bhCheckbox && bhCheckbox.checked) handleBhChange();
+</script>
 </body>
 </html>

@@ -124,3 +124,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ── SMS Notifications (Fast2SMS — free tier for India) ─────────────────────
+# Sign up at https://www.fast2sms.com/ → Dashboard → Dev API Key
+# Set this to your actual key (or keep blank to disable SMS)
+FAST2SMS_API_KEY = os.environ.get('FAST2SMS_API_KEY', '')

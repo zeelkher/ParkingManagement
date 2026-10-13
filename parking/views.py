@@ -21,6 +21,32 @@ from .forms import (
 )
 import math
 import secrets
+import os
+import re
+import pathlib
+from .sms_utils import send_booking_confirmation_sms, send_booking_approved_sms, send_booking_rejected_sms
+
+# ── Load .env on startup (if it exists) ────────────────────────────────────
+_ENV_PATH = pathlib.Path(__file__).resolve().parent.parent / '.env'
+if _ENV_PATH.exists():
+    for _line in _ENV_PATH.read_text().splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith('#') and '=' in _line:
+            _k, _v = _line.split('=', 1)
+            os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
+
+
+def _write_env_key(env_path: pathlib.Path, key: str, value: str):
+    """Persist a single key=value pair to a .env file."""
+    content = env_path.read_text() if env_path.exists() else ''
+    pattern = re.compile(rf'^{re.escape(key)}\s*=.*$', re.MULTILINE)
+    new_line = f'{key}={value}'
+    if pattern.search(content):
+        content = pattern.sub(new_line, content)
+    else:
+        content = content.rstrip('\n') + '\n' + new_line + '\n'
+    env_path.write_text(content)
+
 
 def build_parking_layout(occupied_slots_map):
     """Return the configured places/floors/slots for dashboard and check-in."""
@@ -290,6 +316,21 @@ def vehicle_entry(request):
 
 @login_required(login_url='login')
 def vehicle_exit(request):
+    # Build list of currently parked vehicles grouped by area, for the quick-checkout list
+    active_records = (
+        ParkingRecord.objects
+        .filter(status='Active')
+        .select_related('vehicle', 'parking_slot__parking_floor__parking_area')
+        .order_by('parking_slot__parking_floor__parking_area__name', 'parking_slot__parking_floor__name', 'parking_slot__number')
+    )
+    # Group by area
+    from collections import defaultdict
+    by_area = defaultdict(list)
+    for rec in active_records:
+        area_name = rec.parking_slot.parking_floor.parking_area.name if rec.parking_slot else 'Unassigned'
+        by_area[area_name].append(rec)
+    parked_by_area = dict(by_area)
+
     if request.method == 'POST':
         form = VehicleExitForm(request.POST)
         if form.is_valid():
@@ -301,7 +342,7 @@ def vehicle_exit(request):
                 )
                 if exit_time <= record.entry_time:
                     form.add_error('exit_time', 'Exit date and time must be after the entry date and time.')
-                    return render(request, 'parking/vehicle_exit.html', {'form': form})
+                    return render(request, 'parking/vehicle_exit.html', {'form': form, 'parked_by_area': parked_by_area})
                 record.exit_time   = exit_time
                 duration           = record.exit_time - record.entry_time
                 total_hours        = duration.total_seconds() / 3600
@@ -318,17 +359,19 @@ def vehicle_exit(request):
                 if already_exited:
                     return render(request, 'parking/vehicle_exit.html', {
                         'form': form,
+                        'parked_by_area': parked_by_area,
                         'error': f'Vehicle {vehicle_number} has already checked out. It is not currently parked.',
                     })
                 return render(request, 'parking/vehicle_exit.html', {
                     'form': form,
+                    'parked_by_area': parked_by_area,
                     'error': f'Vehicle {vehicle_number} not found in active parking records. Please verify the number.',
                 })
     else:
         form = VehicleExitForm(initial={
             'exit_time': timezone.localtime().strftime('%Y-%m-%dT%H:%M')
         })
-    return render(request, 'parking/vehicle_exit.html', {'form': form})
+    return render(request, 'parking/vehicle_exit.html', {'form': form, 'parked_by_area': parked_by_area})
 
 
 @login_required(login_url='login')
@@ -588,11 +631,34 @@ def booking_form_settings(request):
             q.save()
             messages.success(request, f'Question "{q.question_text}" {"activated" if q.is_active else "deactivated"}.')
             return redirect('booking_form_settings')
+        elif action == 'save_sms_key':
+            new_key = request.POST.get('fast2sms_api_key', '').strip()
+            # Persist to a .env-style file or update the environment
+            env_path = __import__('pathlib').Path(__file__).resolve().parent.parent / '.env'
+            _write_env_key(env_path, 'FAST2SMS_API_KEY', new_key)
+            # Also update in-process for current server session
+            import os
+            os.environ['FAST2SMS_API_KEY'] = new_key
+            from django.conf import settings as djsettings
+            djsettings.FAST2SMS_API_KEY = new_key
+            if new_key:
+                messages.success(request, 'SMS API key saved. SMS notifications are now active.')
+            else:
+                messages.info(request, 'SMS API key cleared. SMS notifications are disabled.')
+            return redirect('booking_form_settings')
 
     settings_form = BookingFormSettingsForm(instance=config)
     question_form = BookingCustomQuestionForm()
     questions = config.custom_questions.all().order_by('sort_order', 'id')
     public_url = request.build_absolute_uri(reverse('advance_booking'))
+
+    from django.conf import settings as django_settings
+    import os
+    from .sms_utils import _get_api_key
+    sms_key = _get_api_key()
+    sms_configured = bool(sms_key)
+    # Show masked key: first 4 chars + asterisks
+    sms_key_masked = (sms_key[:4] + '••••••••••••' + sms_key[-3:]) if len(sms_key) > 8 else ('••••••••' if sms_key else '')
 
     return render(request, 'parking/booking_settings.html', {
         'config': config,
@@ -600,6 +666,8 @@ def booking_form_settings(request):
         'question_form': question_form,
         'questions': questions,
         'public_url': public_url,
+        'sms_configured': sms_configured,
+        'sms_key_masked': sms_key_masked,
     })
 
 
@@ -685,14 +753,20 @@ def booking_request_action(request, booking_id):
         booking.operator_notes = operator_notes
         booking.save()
         messages.success(request, f'Booking {booking.booking_reference} confirmed for Slot {slot.label}.')
+        # Send slot-confirmed SMS
+        if booking.mobile:
+            send_booking_approved_sms(booking.mobile, booking.booking_reference, slot.label, booking.owner_name)
 
     elif action == 'reject':
-        reason = request.POST.get('rejection_reason', '').strip() or 'No slot available for requested vehicle/time.'
+        reason = request.POST.get('rejection_reason', '').strip()
         booking.status = 'Rejected'
         booking.rejection_reason = reason
         booking.operator_notes = request.POST.get('operator_notes', '').strip()
         booking.save()
         messages.warning(request, f'Booking {booking.booking_reference} has been rejected.')
+        # Send rejection SMS
+        if booking.mobile:
+            send_booking_rejected_sms(booking.mobile, booking.booking_reference, reason, booking.owner_name)
 
     elif action == 'cancel':
         booking.status = 'Cancelled'
@@ -846,6 +920,9 @@ def public_advance_booking(request):
                 expected_duration_hours=expected_duration_hours,
                 custom_answers=custom_answers,
             )
+            # Send confirmation SMS with reference number (non-blocking)
+            if mobile:
+                send_booking_confirmation_sms(mobile, ref, owner_name)
             return redirect('booking_confirmation', reference=ref)
     else:
         # Default arrival time: rounded forward by lead hours

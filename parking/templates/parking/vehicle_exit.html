@@ -9,26 +9,194 @@
     </div>
     {% endif %}
 
-    <form method="post" autocomplete="off">
-        {% csrf_token %}
-        <div class="form-group">
-            <label>Vehicle Number</label>
-            <input type="text" name="vehicle_number" id="id_exit_vehicle_number"
-                   class="form-control"
-                   placeholder="GJ 00 AA 0000"
-                   style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:2px;font-size:20px;font-weight:800;text-align:center;padding:16px;"
-                   oninput="this.value=this.value.toUpperCase()"
-                   required>
+    <!-- ══ PAGE HEADER ══ -->
+    <div style="margin-bottom:20px;">
+        <h1 style="font-size:20px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+            <i class="fa-solid fa-arrow-right-from-bracket" style="color:var(--red);"></i>
+            Vehicle Checkout
+        </h1>
+        <p style="font-size:13px;color:var(--text-2);margin:0;">
+            Select a vehicle from the list below to instantly checkout, or enter details manually.
+        </p>
+    </div>
+
+    <!-- ══ CURRENTLY PARKED VEHICLE LIST ══ -->
+    {% if parked_by_area %}
+    <div class="glass-panel mb-4">
+        <div class="table-card-header" style="margin-bottom:14px;">
+            <h2 style="display:flex;align-items:center;gap:8px;font-size:15px;">
+                <i class="fa-solid fa-square-parking" style="color:var(--blue);"></i>
+                Currently Parked Vehicles
+            </h2>
+            <span class="count-chip" id="total-parked-count">
+                {% with total=0 %}
+                {% for area, recs in parked_by_area.items %}{% with total=total|add:recs|length %}{% endwith %}{% endfor %}
+                {% endwith %}
+                {{ parked_by_area.values|length }} AREA{{ parked_by_area.values|length|pluralize }}
+            </span>
         </div>
-        <div class="form-group">
-            <label>Exit Date &amp; Time</label>
-            {{ form.exit_time }}
-            <small class="field-help">{{ form.exit_time.help_text }}</small>
-            {% for error in form.exit_time.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        <div class="alert alert-success" style="margin-bottom:16px;font-size:13px;padding:10px 14px;">
+            <i class="fa-solid fa-bolt" style="color:#f59e0b;"></i>
+            &nbsp;Click <strong>Checkout Now</strong> on any vehicle to instantly process checkout and generate a receipt.
         </div>
-        <button type="submit" class="btn btn-primary mt-4" style="width:100%;padding:13px;font-size:14px;">
-            ↑ CHECKOUT VEHICLE &amp; GENERATE RECEIPT
-        </button>
-    </form>
+
+        {% for area_name, records in parked_by_area.items %}
+        <details open style="margin-bottom:10px;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--border);">
+            <summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--text);padding:10px 14px;background:var(--surface-2);list-style:none;display:flex;align-items:center;gap:10px;outline:none;">
+                <i class="bi bi-building" style="color:var(--blue);font-size:14px;"></i>
+                <span>{{ area_name }}</span>
+                <span style="margin-left:auto;font-size:11px;font-weight:700;background:var(--blue-soft);color:var(--blue);padding:3px 10px;border-radius:99px;">
+                    {{ records|length }} vehicle{{ records|length|pluralize }}
+                </span>
+                <i class="bi bi-chevron-down" style="font-size:11px;color:var(--text-3);margin-left:4px;"></i>
+            </summary>
+            <div style="overflow-x:auto;background:var(--surface);">
+                <table class="modern-table" style="min-width:680px;">
+                    <thead>
+                        <tr>
+                            <th style="width:80px;">Slot</th>
+                            <th>Floor</th>
+                            <th>Plate Number</th>
+                            <th>Type</th>
+                            <th>Owner</th>
+                            <th>Entry Time</th>
+                            <th style="text-align:right;width:160px;">Quick Checkout</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        {% with colors=record.vehicle.get_plate_colors %}
+                        <tr>
+                            <td>
+                                <span class="slot-badge">{{ record.parking_number }}</span>
+                            </td>
+                            <td style="font-size:12px;color:var(--text-2);font-weight:500;">{{ record.floor_name }}</td>
+                            <td>
+                                <span class="india-plate-sm"
+                                      data-bg="{{ colors.0 }}"
+                                      data-color="{{ colors.1 }}"
+                                      style="border:1px solid rgba(0,0,0,0.15);">
+                                    {{ record.vehicle.vehicle_number }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="plate-cat-tag">{{ record.vehicle.vehicle_type|upper }}</span>
+                            </td>
+                            <td style="font-weight:600;font-size:13px;">{{ record.vehicle.owner_name|upper }}</td>
+                            <td style="font-size:12px;color:var(--text-2);">
+                                {{ record.entry_time|date:"d M Y" }}<br>
+                                <strong style="color:var(--text);">{{ record.entry_time|date:"h:i A" }}</strong>
+                            </td>
+                            <td style="text-align:right;">
+                                <button type="button"
+                                        class="btn btn-primary btn-sm"
+                                        style="font-size:12px;padding:6px 14px;display:inline-flex;align-items:center;gap:5px;"
+                                        onclick="quickCheckout('{{ record.vehicle.vehicle_number }}')">
+                                    <i class="fa-solid fa-right-from-bracket"></i>
+                                    Checkout Now
+                                </button>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </details>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <!-- No parked vehicles -->
+    <div class="glass-panel mb-4" style="text-align:center;padding:40px 24px;">
+        <div style="font-size:48px;margin-bottom:12px;opacity:0.5;">🅿️</div>
+        <p style="font-weight:800;color:var(--text);font-size:16px;margin-bottom:6px;">No Vehicles Currently Parked</p>
+        <p style="color:var(--text-2);font-size:13px;">All parking slots are currently free. Check-in a vehicle first.</p>
+        <a href="{% url 'vehicle_entry' %}" class="btn btn-primary" style="margin-top:16px;display:inline-flex;align-items:center;gap:6px;">
+            <i class="fa-solid fa-arrow-down-to-bracket"></i> Go to Check-In
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- ══ MANUAL CHECKOUT FORM ══ -->
+    <div class="glass-panel">
+        <div class="table-card-header" style="margin-bottom:20px;">
+            <div>
+                <h2 style="font-size:15px;display:flex;align-items:center;gap:8px;">
+                    <i class="fa-solid fa-keyboard" style="color:var(--text-3);"></i>
+                    Manual Checkout
+                </h2>
+                <p style="font-size:12px;color:var(--text-3);margin-top:3px;">Type a vehicle number manually if not listed above</p>
+            </div>
+        </div>
+
+        <form method="post" autocomplete="off" id="exit-form">
+            {% csrf_token %}
+            <div class="form-group" style="margin-bottom:18px;">
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-2);margin-bottom:6px;display:block;">
+                    Vehicle Registration Number
+                </label>
+                <input type="text" name="vehicle_number" id="id_exit_vehicle_number"
+                       class="form-control"
+                       placeholder="GJ 00 AA 0000"
+                       style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:2px;font-size:20px;font-weight:800;text-align:center;padding:16px;"
+                       oninput="this.value=this.value.toUpperCase()"
+                       required>
+            </div>
+            <div class="form-group" style="margin-bottom:24px;">
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-2);margin-bottom:6px;display:block;">
+                    Exit Date &amp; Time
+                </label>
+                {{ form.exit_time }}
+                <small class="field-help">{{ form.exit_time.help_text }}</small>
+                {% for error in form.exit_time.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                CHECKOUT VEHICLE &amp; GENERATE RECEIPT
+            </button>
+        </form>
+    </div>
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Apply india-plate-sm colours from data attributes */
+document.querySelectorAll('.india-plate-sm[data-bg]').forEach(el => {
+    el.style.background = el.dataset.bg;
+    el.style.color = el.dataset.color;
+});
+
+/* Pre-fill the manual form with vehicle number and auto-submit */
+function quickCheckout(vehicleNumber) {
+    const vInput = document.getElementById('id_exit_vehicle_number');
+    const form   = document.getElementById('exit-form');
+    if (!vInput || !form) return;
+
+    vInput.value = vehicleNumber;
+
+    // Scroll to form smoothly
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Brief visual flash on the input, then submit
+    vInput.classList.add('input-highlight');
+    setTimeout(() => {
+        form.submit();
+    }, 450);
+}
+</script>
+<style>
+@keyframes inputPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(37,99,235,0.5); }
+    70%  { box-shadow: 0 0 0 8px rgba(37,99,235,0); }
+    100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); }
+}
+.input-highlight {
+    animation: inputPulse 0.4s ease-out;
+    border-color: var(--blue) !important;
+}
+details summary::-webkit-details-marker { display: none; }
+</style>
 {% endblock %}

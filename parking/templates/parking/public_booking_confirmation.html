@@ -6,12 +6,26 @@
     <title>Booking Request Received — PARKSAFE</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
     {% load static %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=15.0">
+    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=24.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <style>
+        body.public-shell {
+            min-height: 100vh;
+            background: #f1f5f9 !important;
+            background-image: radial-gradient(circle at 50% 0%, #e2e8f0 0%, #f1f5f9 75%) !important;
+            color: #0f172a !important;
+            font-family: 'Inter', sans-serif;
+        }
+        .public-card {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: var(--r-xl) !important;
+            box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.08) !important;
+        }
         .reference-display-card {
-            background: rgba(15, 23, 42, 0.7);
-            border: 2px dashed rgba(56, 189, 248, 0.4);
+            background: #f8fafc;
+            border: 2px dashed #93c5fd;
             border-radius: var(--r-lg);
             padding: 24px;
             text-align: center;
@@ -21,7 +35,7 @@
             font-family: 'JetBrains Mono', monospace;
             font-size: 32px;
             font-weight: 800;
-            color: #38bdf8;
+            color: #2563eb;
             letter-spacing: 3px;
             margin: 8px 0;
             display: inline-block;
@@ -30,73 +44,48 @@
 </head>
 <body class="public-shell">
 
-    <!-- ══ PUBLIC NAVBAR ══ -->
-    <header class="public-header">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 34px; height: 34px; border-radius: 8px; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px;">
-                P
-            </div>
-            <div>
-                <div style="font-weight: 800; font-size: 16px; letter-spacing: 1px; color: #fff;">PARKSAFE</div>
-                <div style="font-size: 11px; color: #94a3b8; letter-spacing: 0.05em;">SMART ADVANCE PARKING</div>
-            </div>
-        </div>
-
-        <nav class="public-nav-links">
-            <a href="{% url 'advance_booking' %}" class="public-nav-link">
-                <i class="fa-solid fa-calendar-plus" style="margin-right: 4px;"></i> New Booking
-            </a>
-            <a href="{% url 'booking_status' %}?ref={{ booking.booking_reference }}&mobile={{ booking.mobile }}" class="public-nav-link active">
-                <i class="fa-solid fa-magnifying-glass" style="margin-right: 4px;"></i> View Status
-            </a>
-            <a href="{% url 'login' %}" class="public-nav-link" style="border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1;">
-                <i class="fa-solid fa-lock" style="margin-right: 4px;"></i> Staff Portal
-            </a>
-        </nav>
-    </header>
-
-    <main class="public-body-wrap">
+    <main class="public-body-wrap" style="padding-top: 32px;">
         <div class="public-card" style="max-width: 620px;">
 
-            <div class="public-card-hero" style="text-align: center; padding: 36px 30px;">
-                <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(34, 197, 94, 0.15); color: #22c55e; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px; border: 1px solid rgba(34, 197, 94, 0.3);">
+            <div class="public-card-hero" style="text-align: center; padding: 36px 30px; background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%); border-bottom: 1px solid #f1f5f9;">
+                <div style="width: 64px; height: 64px; border-radius: 50%; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px; border: 1px solid #bbf7d0;">
                     <i class="fa-solid fa-check"></i>
                 </div>
-                <h1 style="font-size: 24px; font-weight: 800; color: #ffffff; margin-bottom: 8px;">
+                <h1 style="font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 8px;">
                     Booking Request Submitted!
                 </h1>
-                <p style="font-size: 14px; color: #94a3b8; margin: 0;">
+                <p style="font-size: 14px; color: #64748b; margin: 0;">
                     Your advance parking reservation has been recorded successfully.
                 </p>
 
                 <!-- Status Banner -->
-                <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); padding: 8px 16px; border-radius: 999px; margin-top: 16px; color: #f59e0b; font-weight: 700; font-size: 13px;">
+                <div style="display: inline-flex; align-items: center; gap: 8px; background: #fef3c7; border: 1px solid #fde68a; padding: 8px 16px; border-radius: 999px; margin-top: 16px; color: #b45309; font-weight: 700; font-size: 13px;">
                     <i class="fa-solid fa-hourglass-half"></i>
                     AWAITING OPERATOR CONFIRMATION
                 </div>
             </div>
 
-            <div class="public-card-content">
+            <div class="public-card-content" style="padding: 28px 32px;">
 
                 <!-- Prominent Reference Display -->
                 <div class="reference-display-card">
-                    <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8;">
+                    <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b;">
                         Your Permanent Booking Reference
                     </div>
                     <div class="ref-code" id="refCodeText">{{ booking.booking_reference }}</div>
                     <div>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyRef()" style="padding: 6px 14px; font-size: 12px; font-weight: 600;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyRef()" style="padding: 6px 14px; font-size: 12px; font-weight: 600; background: #ffffff; border: 1px solid #cbd5e1; color: #1e293b;">
                             <i class="fa-solid fa-copy"></i> Copy Reference
                         </button>
                     </div>
                 </div>
 
                 <!-- Next Steps Explanation -->
-                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--r-md); padding: 18px 20px; margin-bottom: 24px;">
-                    <div style="font-weight: 700; font-size: 13px; color: #ffffff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-list-check" style="color: #38bdf8;"></i> What happens next?
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--r-md); padding: 18px 20px; margin-bottom: 24px;">
+                    <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-list-check" style="color: #2563eb;"></i> What happens next?
                     </div>
-                    <ol style="font-size: 13px; color: #cbd5e1; line-height: 1.6; padding-left: 20px; margin: 0;">
+                    <ol style="font-size: 13px; color: #475569; line-height: 1.6; padding-left: 20px; margin: 0;">
                         <li>Our facility operator reviews your vehicle details and requested time window.</li>
                         <li>An available parking bay (Area, Floor, Slot) will be assigned to your booking.</li>
                         <li>Once confirmed, you can present this reference code or license plate at the arrival gate.</li>
@@ -104,29 +93,29 @@
                 </div>
 
                 <!-- Submitted Details Summary -->
-                <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--r-md); padding: 18px 20px; margin-bottom: 24px;">
-                    <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em; margin-bottom: 12px;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--r-md); padding: 18px 20px; margin-bottom: 24px;">
+                    <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.05em; margin-bottom: 12px;">
                         Summary of Request
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 13px;">
                         <div>
                             <span style="color: #64748b;">Vehicle:</span>
-                            <div style="font-weight: 700; color: #fff; font-family: 'JetBrains Mono', monospace;">{{ booking.vehicle_number }}</div>
-                            <div style="font-size: 11px; color: #94a3b8;">{{ booking.vehicle_type }}</div>
+                            <div style="font-weight: 700; color: #0f172a; font-family: 'JetBrains Mono', monospace;">{{ booking.vehicle_number }}</div>
+                            <div style="font-size: 11px; color: #64748b;">{{ booking.vehicle_type }}</div>
                         </div>
                         <div>
                             <span style="color: #64748b;">Contact:</span>
-                            <div style="font-weight: 700; color: #fff;">{{ booking.owner_name|default:"Driver" }}</div>
-                            <div style="font-size: 11px; color: #94a3b8;">+91 {{ booking.mobile }}</div>
+                            <div style="font-weight: 700; color: #0f172a;">{{ booking.owner_name|default:"Driver" }}</div>
+                            <div style="font-size: 11px; color: #64748b;">+91 {{ booking.mobile }}</div>
                         </div>
                         <div>
                             <span style="color: #64748b;">Expected Arrival:</span>
-                            <div style="font-weight: 700; color: #38bdf8;">{{ booking.expected_arrival_time|date:"d M Y, h:i A" }}</div>
+                            <div style="font-weight: 700; color: #2563eb;">{{ booking.expected_arrival_time|date:"d M Y, h:i A" }}</div>
                         </div>
                         <div>
                             <span style="color: #64748b;">Duration &amp; Area:</span>
-                            <div style="font-weight: 700; color: #fff;">{{ booking.expected_duration_hours|default:"2" }} Hours</div>
-                            <div style="font-size: 11px; color: #94a3b8;">{{ booking.preferred_area.name|default:"Any Area" }}</div>
+                            <div style="font-weight: 700; color: #0f172a;">{{ booking.expected_duration_hours|default:"2" }} Hours</div>
+                            <div style="font-size: 11px; color: #64748b;">{{ booking.preferred_area.name|default:"Any Area" }}</div>
                         </div>
                     </div>
                 </div>

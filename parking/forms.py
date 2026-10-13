@@ -1,9 +1,37 @@
+import re
 from django import forms
 from django.utils import timezone
 from .models import (
     ParkingArea, ParkingFloor, Vehicle, ParkingSlot, PLATE_TYPES, VEHICLE_TYPES,
     BookingFormConfig, BookingCustomQuestion, AdvanceBooking
 )
+
+DURATION_CHOICES = [
+    (1.0, '1 Hour'),
+    (2.0, '2 Hours'),
+    (3.0, '3 Hours'),
+    (4.0, '4 Hours'),
+    (5.0, '5 Hours'),
+    (6.0, '6 Hours'),
+    (7.0, '7 Hours'),
+    (8.0, '8 Hours'),
+    (9.0, '9 Hours'),
+    (10.0, '10 Hours'),
+    (11.0, '11 Hours'),
+    (12.0, '12 Hours (Half Day)'),
+    (13.0, '13 Hours'),
+    (14.0, '14 Hours'),
+    (15.0, '15 Hours'),
+    (16.0, '16 Hours'),
+    (17.0, '17 Hours'),
+    (18.0, '18 Hours'),
+    (19.0, '19 Hours'),
+    (20.0, '20 Hours'),
+    (21.0, '21 Hours'),
+    (22.0, '22 Hours'),
+    (23.0, '23 Hours'),
+    (24.0, '24 Hours (1 Day)'),
+]
 
 
 class ParkingFloorChoiceField(forms.ModelChoiceField):
@@ -443,13 +471,17 @@ class PublicAdvanceBookingForm(forms.Form):
             )
 
         if self.config.field_duration_hours_visible:
-            self.fields['expected_duration_hours'] = forms.FloatField(
-                label='Estimated Parking Duration (Hours)',
+            self.fields['expected_duration_hours'] = forms.TypedChoiceField(
+                label='Estimated Parking Duration',
+                choices=DURATION_CHOICES,
                 initial=2.0,
-                min_value=0.5,
-                max_value=720,
+                coerce=float,
                 required=self.config.field_duration_hours_required,
-                widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5', 'placeholder': 'e.g. 2.0'})
+                widget=forms.Select(attrs={
+                    'class': 'form-control',
+                    'id': 'id_expected_duration_hours',
+                }),
+                help_text='Select expected stay duration (1 to 24 hours).'
             )
 
         if self.config.field_preferred_area_visible:
@@ -522,7 +554,42 @@ class PublicAdvanceBookingForm(forms.Form):
 
     def clean_vehicle_number(self):
         vnum = self.cleaned_data.get('vehicle_number', '').strip().upper()
-        return vnum
+        if not vnum:
+            return vnum
+
+        clean = re.sub(r'[^A-Z0-9]', '', vnum)
+
+        # 1. BH Series: YY BH NNNN LL (e.g. 24 BH 1234 AA or 22 BH 9999 A)
+        bh_m = re.match(r'^([0-9]{2})(BH)([0-9]{4})([A-Z]{1,2})$', clean)
+        if bh_m:
+            return f"{bh_m.group(1)} {bh_m.group(2)} {bh_m.group(3)} {bh_m.group(4)}"
+
+        # 2. Standard Indian vehicle number: SS DD LL NNNN (e.g. GJ 01 AA 1234, MH 12 1234, DL 01 C 1234)
+        std_m = re.match(r'^([A-Z]{2})([0-9]{1,2})([A-Z]{0,3})([0-9]{1,4})$', clean)
+        if std_m:
+            s, r, ser, n = std_m.groups()
+            if len(r) == 1:
+                r = f"0{r}"
+            n = n.zfill(4)
+            parts = [s, r]
+            if ser:
+                parts.append(ser)
+            parts.append(n)
+            return ' '.join(parts)
+
+        # 3. DL special / vintage series: DL 3C AB 1234
+        dl_m = re.match(r'^([A-Z]{2})([0-9][A-Z])([A-Z]{0,2})([0-9]{1,4})$', clean)
+        if dl_m:
+            s, r, ser, n = dl_m.groups()
+            parts = [s, r]
+            if ser:
+                parts.append(ser)
+            parts.append(n.zfill(4))
+            return ' '.join(parts)
+
+        raise forms.ValidationError(
+            'Please enter a valid vehicle registration number in proper format (e.g. GJ 01 AA 1234 or 24 BH 1234 AA).'
+        )
 
     def clean_expected_arrival_time(self):
         arr_time = self.cleaned_data.get('expected_arrival_time')

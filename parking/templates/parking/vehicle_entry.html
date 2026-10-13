@@ -3,8 +3,42 @@
 <div class="form-container">
     {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
     {% if form.errors %}<div class="alert alert-danger"><div><strong>PLEASE FIX THE FOLLOWING ERRORS:</strong>{% for field in form %}{% for error in field.errors %}<div>• {{ field.label|upper }}: {{ error }}</div>{% endfor %}{% endfor %}{% for error in form.non_field_errors %}<div>• {{ error }}</div>{% endfor %}</div></div>{% endif %}
+
+    <!-- ══ ADVANCE BOOKING ARRIVAL LOOKUP ══ -->
+    <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px 18px; margin-bottom: 20px; box-shadow: var(--shadow-xs);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; flex-wrap: wrap;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> Fast Arrival Check-In: Search Advance Booking
+            </div>
+            <a href="{% url 'booking_requests' %}" style="font-size: 12px; color: var(--blue); text-decoration: none; font-weight: 600;">
+                View All Booking Requests &rarr;
+            </a>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <div style="position: relative; flex: 1;">
+                <input type="text" id="booking-lookup-input" class="form-control" placeholder="Enter Booking Reference (e.g. BK-4920-8172) or Vehicle Number..." style="font-family:'JetBrains Mono',monospace; font-size: 13px; text-transform: uppercase;">
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="lookupAdvanceBooking()" style="padding: 0 16px; font-weight: 700;">
+                <i class="fa-solid fa-magnifying-glass"></i> Find &amp; Fill
+            </button>
+        </div>
+        <div id="booking-lookup-result" style="display: none; margin-top: 10px; padding: 10px 14px; border-radius: var(--r-sm); font-size: 12px;"></div>
+    </div>
+
+    {% if imported_booking %}
+    <div class="alert alert-success mb-3" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+        <div>
+            <strong><i class="fa-solid fa-circle-check"></i> Imported Confirmed Booking: {{ imported_booking.booking_reference }}</strong>
+            <div style="font-size: 12px; margin-top: 2px;">Assigned Bay: {{ imported_booking.assigned_slot.number }} ({{ imported_booking.assigned_slot.parking_floor.name }})</div>
+        </div>
+        <span class="badge" style="background: #16a34a; color: #fff; padding: 6px 12px; border-radius: 999px;">Ready to Check In</span>
+    </div>
+    {% endif %}
+
     <form method="post" autocomplete="off" id="entry-form">
         {% csrf_token %}
+        <input type="hidden" name="booking_reference" id="id_booking_reference" value="{{ imported_booking.booking_reference|default:'' }}">
+
         <div class="form-group" style="margin-bottom: 16px;">
             <div style="display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 8px; align-items: flex-end;">
                 <div>
@@ -384,5 +418,67 @@ document.querySelectorAll('.checkin-space.is-free').forEach(button => {
 });
 
 document.getElementById('entry-form').addEventListener('submit', e => { syncBhStateCode(); validateState(); if (vnumError.classList.contains('show')) e.preventDefault(); }); syncBhStateCode(); validateState();
+
+function lookupAdvanceBooking() {
+    const input = document.getElementById('booking-lookup-input');
+    const resultBox = document.getElementById('booking-lookup-result');
+    const q = input.value.trim();
+    if (!q) {
+        alert('Please enter a booking reference or vehicle number');
+        return;
+    }
+    fetch('/api/booking-lookup/?q=' + encodeURIComponent(q))
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                resultBox.style.display = 'block';
+                resultBox.style.background = '#fef2f2';
+                resultBox.style.border = '1px solid #fecaca';
+                resultBox.style.color = '#dc2626';
+                resultBox.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> ' + data.message;
+            } else {
+                const b = data.booking;
+                resultBox.style.display = 'block';
+                resultBox.style.background = '#f0fdf4';
+                resultBox.style.border = '1px solid #bbf7d0';
+                resultBox.style.color = '#15803d';
+                resultBox.innerHTML = `<strong><i class="fa-solid fa-circle-check"></i> Found Booking: ${b.reference} (${b.status})</strong><br>Vehicle: ${b.vehicle_number} • Customer: ${b.owner_name || 'Driver'} • Slot: ${b.slot ? b.slot.number : 'Unassigned'}`;
+
+                if (vnumInput) { vnumInput.value = b.vehicle_number; }
+                if (stateInput && b.state_code) { stateInput.value = b.state_code; }
+                if (bhSeriesCheckbox) {
+                    bhSeriesCheckbox.checked = (b.plate_type === 'bh_series' || b.state_code === 'BH');
+                    syncBhStateCode();
+                }
+                const ownerInput = document.getElementById('id_owner_name');
+                if (ownerInput && b.owner_name) { ownerInput.value = b.owner_name; }
+                if (mobileInput && b.mobile) { mobileInput.value = b.mobile; }
+                const vtypeSelect = document.getElementById('id_vehicle_type');
+                if (vtypeSelect && b.vehicle_type) { vtypeSelect.value = b.vehicle_type; }
+                const ptypeSelect = document.getElementById('id_plate_type');
+                if (ptypeSelect && b.plate_type) { ptypeSelect.value = b.plate_type; }
+
+                const hiddenRef = document.getElementById('id_booking_reference');
+                if (hiddenRef) { hiddenRef.value = b.reference; }
+
+                if (b.slot && areaSelect && floorSelect && slotSelect) {
+                    areaSelect.value = b.slot.area_id;
+                    filterParkingChoices();
+                    floorSelect.value = b.slot.floor_id;
+                    filterParkingChoices();
+                    slotSelect.value = b.slot.id;
+
+                    document.querySelectorAll('.checkin-space.is-selected').forEach(item => item.classList.remove('is-selected'));
+                    const btn = document.querySelector(`.checkin-space.is-free[data-slot-id="${b.slot.id}"]`);
+                    if (btn) btn.classList.add('is-selected');
+                }
+
+                validateState();
+            }
+        })
+        .catch(err => {
+            alert('Lookup error: ' + err);
+        });
+}
 </script>
 {% endblock %}
