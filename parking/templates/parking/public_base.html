@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PARK NEST{% endblock %}</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=27.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <style>
+        *, *::before, *::after {
+            -webkit-user-select: none;
+            user-select: none;
+            box-sizing: border-box;
+        }
+        input, textarea, select, [contenteditable="true"] {
+            -webkit-user-select: text !important;
+            user-select: text !important;
+        }
+        i, svg { pointer-events: none; }
+
+        body.pub-body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f1f5f9;
+            color: #0f172a;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        /* ── Input UI Fix: Force clean light inputs with dark text ── */
+        .pub-body input.form-control,
+        .pub-body select.form-control,
+        .pub-body textarea.form-control,
+        .pub-body .form-control {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border: 1.5px solid #cbd5e1 !important;
+            border-radius: 8px !important;
+            font-size: 14px !important;
+            padding: 10px 14px !important;
+            font-family: inherit !important;
+            outline: none !important;
+            box-shadow: none !important;
+            transition: border-color 0.15s, box-shadow 0.15s !important;
+        }
+
+        .pub-body input.form-control:focus,
+        .pub-body select.form-control:focus,
+        .pub-body textarea.form-control:focus,
+        .pub-body .form-control:focus {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+        }
+
+        .pub-body select.form-control {
+            cursor: pointer !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 14px center !important;
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            padding-right: 36px !important;
+        }
+
+        .pub-body select.form-control option {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+        }
+
+        .pub-body input.form-control::placeholder,
+        .pub-body textarea.form-control::placeholder {
+            color: #94a3b8 !important;
+            opacity: 1 !important;
+        }
+
+        /* Main Container Wrapper */
+        .pub-page-wrap {
+            width: 100%;
+            max-width: 660px;
+            margin: 32px auto 48px;
+            padding: 0 16px;
+        }
+
+        /* Top Brand Header Bar */
+        .pub-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 0 4px;
+        }
+        .pub-header-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: inherit;
+        }
+        .pub-header-logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+            flex-shrink: 0;
+        }
+        .pub-header-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: 0.03em;
+            line-height: 1;
+        }
+        .pub-header-sub {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 2px;
+        }
+
+        .pub-header-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #2563eb;
+            text-decoration: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            transition: all 0.15s ease;
+        }
+        .pub-header-link:hover {
+            background: #dbeafe;
+            border-color: #2563eb;
+        }
+
+        /* Clean White Card */
+        .pub-main-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 32px 32px;
+            box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.05);
+        }
+        @media (max-width: 600px) {
+            .pub-page-wrap { margin: 16px auto 32px; }
+            .pub-main-card { padding: 22px 18px; border-radius: 12px; }
+        }
+
+        /* Card Title */
+        .pub-card-heading {
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 4px;
+            letter-spacing: -0.02em;
+        }
+        .pub-card-subheading {
+            font-size: 13px;
+            color: #64748b;
+            margin: 0 0 24px;
+            line-height: 1.5;
+        }
+
+        /* Form Sections */
+        .pub-section {
+            margin-bottom: 22px;
+        }
+        .pub-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #64748b;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Form Grid Rows */
+        .pub-row {
+            display: grid;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+        .pub-row:last-child { margin-bottom: 0; }
+        .pub-row.cols-2 { grid-template-columns: 1fr 1fr; }
+        .pub-row.cols-3 { grid-template-columns: 1fr 90px 68px; align-items: flex-end; }
+        @media (max-width: 600px) {
+            .pub-row.cols-2 { grid-template-columns: 1fr; }
+            .pub-row.cols-3 { grid-template-columns: 1fr 85px 64px; }
+        }
+
+        .pub-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .pub-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .pub-group label .req {
+            color: #ef4444;
+            font-weight: 700;
+        }
+        .pub-group .help-text {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        /* Primary Submit Button */
+        .pub-btn-primary {
+            width: 100%;
+            height: 48px;
+            background: #2563eb;
+            background-image: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            letter-spacing: 0.01em;
+            margin-top: 12px;
+        }
+        .pub-btn-primary:hover {
+            background: #1e40af;
+            box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
+        }
+        .pub-btn-primary:active { transform: translateY(1px); }
+
+        /* Error Alert */
+        .pub-alert-danger {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="pub-body">
+
+    <div class="pub-page-wrap">
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

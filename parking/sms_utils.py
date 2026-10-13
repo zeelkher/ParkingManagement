@@ -1,5 +1,5 @@
 """
-PARKSAFE SMS Utility — Fast2SMS (free tier, India)
+PARK NEST SMS Utility — Fast2SMS (free tier, India)
 ---------------------------------------------------
 Free API:  https://www.fast2sms.com/  (No DLT required for DND-route quick SMS)
 Sign up → Dashboard → Dev API key
@@ -79,10 +79,10 @@ def send_booking_confirmation_sms(mobile: str, ref: str, owner_name: str = '') -
     """Send booking submission confirmation SMS."""
     name = owner_name.split()[0].title() if owner_name else 'Customer'
     msg = (
-        f"Hi {name}, your PARKSAFE advance booking is received!\n"
+        f"Hi {name}, your PARK NEST advance booking is received!\n"
         f"Ref: {ref}\n"
         f"Track status: /booking/status/\n"
-        f"Keep this ref safe. — PARKSAFE"
+        f"Keep this ref safe. — PARK NEST"
     )
     return send_sms(mobile, msg)
 
@@ -91,9 +91,9 @@ def send_booking_approved_sms(mobile: str, ref: str, slot_label: str, owner_name
     """Send slot-confirmed SMS when operator approves a booking."""
     name = owner_name.split()[0].title() if owner_name else 'Customer'
     msg = (
-        f"Hi {name}, your PARKSAFE booking {ref} is CONFIRMED!\n"
+        f"Hi {name}, your PARK NEST booking {ref} is CONFIRMED!\n"
         f"Assigned Slot: {slot_label}\n"
-        f"Please show this SMS at the gate. — PARKSAFE"
+        f"Please show this SMS at the gate. — PARK NEST"
     )
     return send_sms(mobile, msg)
 
@@ -104,6 +104,6 @@ def send_booking_rejected_sms(mobile: str, ref: str, reason: str = '', owner_nam
     reason_text = f" Reason: {reason}" if reason else ""
     msg = (
         f"Hi {name}, booking {ref} could not be confirmed.{reason_text} "
-        f"Please re-book at /booking/ — PARKSAFE"
+        f"Please re-book at /booking/ — PARK NEST"
     )
     return send_sms(mobile, msg)

@@ -401,7 +401,7 @@ def receipt(request, record_id):
     payment_qr_image = area.payment_qr_image
     return render(request, 'parking/receipt.html', {
         'record': record,
-        'qr_data': payment_qr_data or f'PARKSAFE-RECEIPT-{record.id}-{record.vehicle.vehicle_number}-FEE-{record.parking_fee}',
+        'qr_data': payment_qr_data or f'PARKNEST-RECEIPT-{record.id}-{record.vehicle.vehicle_number}-FEE-{record.parking_fee}',
         'is_payment_qr': bool(payment_qr_data or payment_qr_image),
         'payment_qr_image': payment_qr_image,
     })

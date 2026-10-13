@@ -1,5 +1,5 @@
 /* ============================================
-   PARKSAFE — Coding Dark / Light Theme System
+   PARK NEST — Coding Dark / Light Theme System
    ============================================ */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
 
@@ -2261,5 +2261,14 @@ select.form-control option {
 .grid-vehicle-state { display: grid; grid-template-columns: 1fr 110px 70px; gap: 12px; margin-bottom: 20px; }
 .grid-vehicle-only { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 20px; }
 .grid-arrival-duration { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; }
+
+#id_booking_reference {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 2px;
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
 
 

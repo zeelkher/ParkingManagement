@@ -1,709 +1,442 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ config.title }} — PARKSAFE</title>
-    <meta name="description" content="Reserve your vehicle parking slot in advance at PARKSAFE.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
-    {% load static %}
-    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=25.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-        *, *::before, *::after { -webkit-user-select: none; user-select: none; box-sizing: border-box; }
-        input, textarea, select, [contenteditable="true"] { -webkit-user-select: text !important; user-select: text !important; }
-        i, svg { pointer-events: none; }
+{% extends "parking/public_base.html" %}
+{% load static %}
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f5f7fa;
-            color: #111827;
-        }
+{% block title %}Advance Parking Reservation — PARK NEST{% endblock %}
 
-        /* ── Layout ── */
-        .page-wrap {
-            display: grid;
-            grid-template-columns: 420px 1fr;
-            min-height: 100vh;
-        }
-        @media (max-width: 900px) {
-            .page-wrap { grid-template-columns: 1fr; }
-            .page-sidebar { display: none !important; }
-        }
+{% block extra_css %}
+<style>
+    /* Vehicle Plate Input & Live Badge */
+    #id_vehicle_number {
+        font-family: 'JetBrains Mono', monospace !important;
+        font-weight: 700 !important;
+        font-size: 15px !important;
+        letter-spacing: 1.5px !important;
+        text-transform: uppercase !important;
+    }
+    #id_state_code {
+        font-family: 'JetBrains Mono', monospace !important;
+        font-weight: 700 !important;
+        font-size: 15px !important;
+        letter-spacing: 2px !important;
+        text-transform: uppercase !important;
+    }
 
-        /* ── Left sidebar ── */
-        .page-sidebar {
-            background: #0f172a;
-            background-image: linear-gradient(160deg, #1a2744 0%, #0f172a 60%);
-            padding: 48px 40px;
-            display: flex;
-            flex-direction: column;
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .sidebar-brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 64px;
-        }
-        .sidebar-brand-logo {
-            width: 40px;
-            height: 40px;
-            background: #2563eb;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .sidebar-brand-name {
-            font-size: 17px;
-            font-weight: 800;
-            color: #f8fafc;
-            letter-spacing: 0.05em;
-        }
-        .sidebar-heading {
-            font-size: 28px;
-            font-weight: 800;
-            color: #f8fafc;
-            line-height: 1.25;
-            margin-bottom: 16px;
-            letter-spacing: -0.02em;
-        }
-        .sidebar-sub {
-            font-size: 14px;
-            color: #94a3b8;
-            line-height: 1.65;
-            margin-bottom: 48px;
-        }
-        .sidebar-steps {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .sidebar-step {
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-        }
-        .step-num {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: rgba(37,99,235,0.2);
-            border: 1px solid rgba(37,99,235,0.4);
-            color: #60a5fa;
-            font-size: 12px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
-        .step-text strong {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: #e2e8f0;
-            margin-bottom: 2px;
-        }
-        .step-text span {
-            font-size: 12px;
-            color: #64748b;
-        }
-        .sidebar-footer {
-            margin-top: auto;
-            padding-top: 32px;
-            border-top: 1px solid rgba(255,255,255,0.07);
-        }
-        .sidebar-footer a {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            color: #60a5fa;
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.15s;
-        }
-        .sidebar-footer a:hover { color: #93c5fd; }
+    /* BH Series Toggle */
+    .bh-control { position: relative; }
+    .bh-control input[type="checkbox"] { position: absolute; opacity: 0; pointer-events: none; }
+    .bh-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 44px;
+        background: #f8fafc;
+        border: 1.5px solid #cbd5e1;
+        color: #475569;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+        margin: 0;
+    }
+    .bh-control input[type="checkbox"]:checked + .bh-label {
+        background: #eff6ff;
+        border-color: #2563eb;
+        color: #1d4ed8;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
 
-        /* ── Right form area ── */
-        .page-form-area {
-            padding: 48px 48px 64px;
-            overflow-y: auto;
-            max-width: 680px;
-        }
-        @media (max-width: 900px) {
-            .page-form-area { padding: 28px 20px 48px; max-width: 100%; }
-        }
+    /* License Plate Bar Preview */
+    .plate-preview-bar {
+        display: flex;
+        align-items: center;
+        margin-top: 8px;
+        padding: 8px 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        gap: 12px;
+    }
+    .plate-badge {
+        display: inline-flex;
+        align-items: center;
+        border: 2px solid #000000;
+        border-radius: 5px;
+        background: #ffffff;
+        padding: 2px 8px 2px 5px;
+        height: 30px;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 800;
+    }
+    .plate-ind-tag {
+        font-size: 9px;
+        font-weight: 800;
+        color: #ffffff;
+        background: #003580;
+        padding: 2px 4px;
+        border-radius: 3px;
+        margin-right: 6px;
+        letter-spacing: 0.5px;
+    }
+    .plate-badge-num {
+        font-size: 13px;
+        letter-spacing: 1.5px;
+        color: #000000;
+    }
+</style>
+{% endblock %}
 
-        .form-top-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 36px;
-        }
-        /* Mobile-only brand */
-        .mobile-brand {
-            display: none;
-            align-items: center;
-            gap: 10px;
-        }
-        .mobile-brand-logo {
-            width: 32px; height: 32px; background: #2563eb;
-            border-radius: 8px; display: flex; align-items: center; justify-content: center;
-        }
-        .mobile-brand-name { font-size: 15px; font-weight: 800; color: #111827; }
-        @media (max-width: 900px) {
-            .mobile-brand { display: flex; }
-        }
+{% block content %}
 
-        .status-check-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #2563eb;
-            text-decoration: none;
-            padding: 7px 14px;
-            border: 1px solid #bfdbfe;
-            border-radius: 8px;
-            background: #eff6ff;
-            transition: all 0.15s;
-            white-space: nowrap;
-        }
-        .status-check-link:hover {
-            background: #dbeafe;
-            border-color: #2563eb;
-        }
-
-        .form-title {
-            font-size: 22px;
-            font-weight: 800;
-            color: #111827;
-            letter-spacing: -0.02em;
-            margin-bottom: 6px;
-        }
-        .form-subtitle {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 32px;
-            line-height: 1.5;
-        }
-
-        /* Dividers between sections */
-        .form-section {
-            margin-bottom: 28px;
-        }
-        .form-section-label {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.07em;
-            color: #9ca3af;
-            margin-bottom: 14px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        /* Form fields */
-        .field-row {
-            display: grid;
-            gap: 16px;
-            margin-bottom: 0;
-        }
-        .field-row.cols-2 { grid-template-columns: 1fr 1fr; }
-        .field-row.cols-3 { grid-template-columns: 1fr 90px 68px; align-items: flex-end; }
-        .field-row.cols-arrival { grid-template-columns: 1.2fr 0.8fr; }
-        @media (max-width: 600px) {
-            .field-row.cols-2, .field-row.cols-arrival { grid-template-columns: 1fr; }
-            .field-row.cols-3 { grid-template-columns: 1fr 80px 64px; }
-        }
-
-        .field-group { display: flex; flex-direction: column; gap: 6px; }
-        .field-group label {
-            font-size: 13px;
-            font-weight: 500;
-            color: #374151;
-        }
-        .field-group label .req { color: #ef4444; margin-left: 2px; }
-        .field-group .help-text {
-            font-size: 11px;
-            color: #9ca3af;
-            margin-top: 3px;
-        }
-        .field-group .form-control {
-            width: 100%;
-            height: 44px;
-            padding: 0 14px;
-            font-size: 14px;
-            background: #ffffff;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            color: #111827;
-            outline: none;
-            transition: border-color 0.15s, box-shadow 0.15s;
-            font-family: inherit;
-        }
-        .field-group .form-control:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-        }
-        .field-group textarea.form-control {
-            height: auto;
-            padding: 12px 14px;
-            resize: vertical;
-            min-height: 80px;
-        }
-        .field-group select.form-control {
-            cursor: pointer;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            -webkit-appearance: none;
-            appearance: none;
-            padding-right: 36px;
-        }
-        .field-group select.form-control option { background: #fff; color: #111827; }
-
-        /* BH toggle */
-        .bh-series-control { position: relative; }
-        .bh-series-control input[type="checkbox"] { position: absolute; opacity: 0; pointer-events: none; }
-        .bh-series-label {
-            display: flex; align-items: center; justify-content: center; gap: 5px;
-            height: 44px; background: #fff; border: 1px solid #d1d5db;
-            color: #374151; border-radius: 8px; font-weight: 600; font-size: 13px;
-            cursor: pointer; transition: all 0.15s; margin: 0;
-        }
-        .bh-series-control input[type="checkbox"]:checked + .bh-series-label {
-            background: #eff6ff; border-color: #2563eb; color: #1d4ed8;
-            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-        }
-
-        /* Vehicle number */
-        #id_vehicle_number {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
-            font-size: 15px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-        }
-        #id_state_code {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            font-size: 15px;
-        }
-
-        /* Terms */
-        .terms-box {
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 14px 18px;
-            margin-bottom: 24px;
-        }
-        .terms-title {
-            font-size: 11px;
-            font-weight: 700;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 6px;
-        }
-        .terms-text {
-            font-size: 12px;
-            color: #6b7280;
-            line-height: 1.6;
-            white-space: pre-line;
-        }
-
-        /* Submit */
-        .submit-btn {
-            width: 100%;
-            height: 48px;
-            font-size: 14px;
-            font-weight: 700;
-            background: #2563eb;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.15s;
-            letter-spacing: 0.01em;
-        }
-        .submit-btn:hover { background: #1d4ed8; transform: translateY(-1px); }
-        .submit-btn:active { transform: none; }
-
-        /* Error alert */
-        .alert-errors {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #991b1b;
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-bottom: 24px;
-            font-size: 13px;
-        }
-        .alert-errors strong { display: block; margin-bottom: 4px; }
-
-        /* Bottom link */
-        .bottom-link {
-            text-align: center;
-            margin-top: 16px;
-            font-size: 13px;
-            color: #9ca3af;
-        }
-        .bottom-link a { color: #2563eb; text-decoration: none; font-weight: 600; }
-        .bottom-link a:hover { text-decoration: underline; }
-
-        /* Subtle parking-map background decoration on sidebar */
-        .sidebar-deco {
-            position: absolute;
-            bottom: -40px;
-            right: -40px;
-            width: 280px;
-            height: 280px;
-            border: 40px solid rgba(37,99,235,0.08);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-    </style>
-</head>
-<body>
-
-<div class="page-wrap">
-
-    <!-- ── LEFT SIDEBAR ── -->
-    <aside class="page-sidebar">
-        <div style="position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%;">
-            <div class="sidebar-brand">
-                <div class="sidebar-brand-logo">
-                    <img src="{% static 'images/logo_white_transparent.png' %}" alt="PARKSAFE" style="width:24px;height:24px;object-fit:contain;">
-                </div>
-                <span class="sidebar-brand-name">PARKSAFE</span>
-            </div>
-
-            <div class="sidebar-heading">Book your parking slot in advance</div>
-            <p class="sidebar-sub">
-                Fill out the form to request a reserved parking bay. Our team reviews and confirms your slot — you'll get a reference number to track your booking.
-            </p>
-
-            <div class="sidebar-steps">
-                <div class="sidebar-step">
-                    <div class="step-num">1</div>
-                    <div class="step-text">
-                        <strong>Submit your details</strong>
-                        <span>Vehicle number, name, arrival time</span>
-                    </div>
-                </div>
-                <div class="sidebar-step">
-                    <div class="step-num">2</div>
-                    <div class="step-text">
-                        <strong>Get a reference number</strong>
-                        <span>Instantly generated after submission</span>
-                    </div>
-                </div>
-                <div class="sidebar-step">
-                    <div class="step-num">3</div>
-                    <div class="step-text">
-                        <strong>Await slot confirmation</strong>
-                        <span>Staff reviews and assigns your bay</span>
-                    </div>
-                </div>
-                <div class="sidebar-step">
-                    <div class="step-num">4</div>
-                    <div class="step-text">
-                        <strong>Arrive &amp; park</strong>
-                        <span>Show your reference at the gate</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sidebar-footer">
-                <a href="{% url 'booking_status' %}">
-                    <i class="fa-solid fa-magnifying-glass"></i> Check existing booking status
-                </a>
-            </div>
+<!-- Top Header Bar -->
+<div class="pub-header-bar">
+    <a href="{% url 'advance_booking' %}" class="pub-header-brand">
+        <div class="pub-header-logo">
+            <img src="{% static 'images/logo_white_transparent.png' %}" alt="PARK NEST" style="width:22px;height:22px;object-fit:contain;">
         </div>
-        <div class="sidebar-deco"></div>
-    </aside>
-
-    <!-- ── RIGHT FORM AREA ── -->
-    <div class="page-form-area">
-
-        <div class="form-top-bar">
-            <!-- Mobile-only brand -->
-            <div class="mobile-brand">
-                <div class="mobile-brand-logo">
-                    <img src="{% static 'images/logo_white_transparent.png' %}" alt="PARKSAFE" style="width:18px;height:18px;object-fit:contain;">
-                </div>
-                <span class="mobile-brand-name">PARKSAFE</span>
-            </div>
-            <a href="{% url 'booking_status' %}" class="status-check-link" style="margin-left:auto;">
-                <i class="fa-solid fa-receipt"></i> Track Booking
-            </a>
+        <div>
+            <div class="pub-header-title">PARK NEST</div>
+            <div class="pub-header-sub">Smart Parking</div>
         </div>
+    </a>
 
-        <h1 class="form-title">{{ config.title }}</h1>
-        <p class="form-subtitle">{{ config.description }}</p>
+    <a href="{% url 'booking_status' %}" class="pub-header-link">
+        <i class="fa-solid fa-receipt"></i>
+        <span>Track Booking</span>
+    </a>
+</div>
 
-        <!-- Error display -->
-        {% if form.errors %}
-        <div class="alert-errors">
-            <strong>Please fix the following before submitting:</strong>
-            {% for field in form %}{% for err in field.errors %}
-            <div>• <strong>{{ field.label }}</strong>: {{ err }}</div>
-            {% endfor %}{% endfor %}
-            {% for err in form.non_field_errors %}
-            <div>• {{ err }}</div>
-            {% endfor %}
+<!-- Main Form Card -->
+<div class="pub-main-card">
+    <h1 class="pub-card-heading">{{ config.title }}</h1>
+    <p class="pub-card-subheading">{{ config.description }}</p>
+
+    {% if form.errors %}
+    <div class="pub-alert-danger">
+        <div style="font-weight:700;margin-bottom:4px;">
+            <i class="fa-solid fa-circle-exclamation"></i> Please fix the following before submitting:
+        </div>
+        {% for field in form %}{% for err in field.errors %}
+        <div>• <strong>{{ field.label }}</strong>: {{ err }}</div>
+        {% endfor %}{% endfor %}
+        {% for err in form.non_field_errors %}
+        <div>• {{ err }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" autocomplete="off" id="bookingForm">
+        {% csrf_token %}
+
+        <!-- SCHEDULE -->
+        {% if config.field_expected_arrival_visible or config.field_duration_hours_visible %}
+        <div class="pub-section">
+            <div class="pub-section-title">
+                <i class="fa-regular fa-calendar-check" style="color:#2563eb;"></i>
+                <span>Arrival Schedule</span>
+            </div>
+
+            <div class="pub-row {% if config.field_expected_arrival_visible and config.field_duration_hours_visible %}cols-2{% endif %}">
+                {% if config.field_expected_arrival_visible %}
+                <div class="pub-group">
+                    <label for="id_expected_arrival_time">
+                        Expected Arrival Date &amp; Time
+                        {% if config.field_expected_arrival_required %}<span class="req">*</span>{% endif %}
+                    </label>
+                    {{ form.expected_arrival_time }}
+                    <span class="help-text">Up to {{ config.max_advance_days }} days in advance. 30-min grace period applies.</span>
+                </div>
+                {% endif %}
+
+                {% if config.field_duration_hours_visible %}
+                <div class="pub-group">
+                    <label for="id_expected_duration_hours">
+                        Estimated Stay Duration
+                        {% if config.field_duration_hours_required %}<span class="req">*</span>{% endif %}
+                    </label>
+                    {{ form.expected_duration_hours }}
+                </div>
+                {% endif %}
+            </div>
         </div>
         {% endif %}
 
-        <form method="post" autocomplete="off" id="publicBookingForm">
-            {% csrf_token %}
+        <!-- VEHICLE DETAILS -->
+        {% if config.field_vehicle_number_visible or config.field_vehicle_type_visible or config.field_plate_type_visible %}
+        <div class="pub-section">
+            <div class="pub-section-title">
+                <i class="fa-solid fa-car" style="color:#2563eb;"></i>
+                <span>Vehicle Details</span>
+            </div>
 
-            <!-- VEHICLE DETAILS -->
             {% if config.field_vehicle_number_visible %}
-            <div class="form-section">
-                <div class="form-section-label">Vehicle Details</div>
-                <div class="field-row {% if config.field_state_code_visible %}cols-3{% endif %}" style="margin-bottom:0;">
-                    <div class="field-group">
-                        <label for="id_vehicle_number">
-                            Registration Number{% if config.field_vehicle_number_required %}<span class="req">*</span>{% endif %}
-                        </label>
-                        {{ form.vehicle_number }}
-                    </div>
-                    {% if config.field_state_code_visible %}
-                    <div class="field-group">
-                        <label for="id_state_code">State</label>
-                        {{ form.state_code }}
-                    </div>
-                    <div class="bh-series-control field-group">
-                        <label style="visibility:hidden;font-size:13px;">BH</label>
-                        {{ form.bh_series }}
-                        <label for="id_bh_series" class="bh-series-label" title="Bharat (BH) Series">
-                            <i class="bi bi-patch-check-fill" style="color:#2563eb;font-size:15px;"></i>
-                            <span>BH</span>
-                        </label>
-                    </div>
-                    {% endif %}
+            <div class="pub-row {% if config.field_state_code_visible %}cols-3{% endif %}">
+                <div class="pub-group">
+                    <label for="id_vehicle_number">
+                        Vehicle Registration Number
+                        {% if config.field_vehicle_number_required %}<span class="req">*</span>{% endif %}
+                    </label>
+                    {{ form.vehicle_number }}
                 </div>
+
+                {% if config.field_state_code_visible %}
+                <div class="pub-group">
+                    <label for="id_state_code">State</label>
+                    {{ form.state_code }}
+                </div>
+
+                <div class="pub-group bh-control">
+                    <label style="visibility:hidden;">BH</label>
+                    {{ form.bh_series }}
+                    <label for="id_bh_series" class="bh-label" title="Bharat Series Registration">
+                        BH
+                    </label>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Plate Badge Preview -->
+            <div class="plate-preview-bar">
+                <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">Plate Preview:</span>
+                <div class="plate-badge" id="platePreviewBadge">
+                    <span class="plate-ind-tag" id="plateIndTag">IND</span>
+                    <span class="plate-badge-num" id="plateNumberPreview">GJ 01 AA 1234</span>
+                </div>
+                <span style="font-size:11px;color:#94a3b8;margin-left:auto;">Indian Standard HSRP</span>
             </div>
             {% endif %}
 
-            <!-- OWNER INFO -->
-            {% if config.field_owner_name_visible or config.field_mobile_visible %}
-            <div class="form-section">
-                <div class="form-section-label">Owner Information</div>
-                <div class="field-row {% if config.field_owner_name_visible and config.field_mobile_visible %}cols-2{% endif %}">
-                    {% if config.field_owner_name_visible %}
-                    <div class="field-group">
-                        <label for="id_owner_name">
-                            Full Name{% if config.field_owner_name_required %}<span class="req">*</span>{% endif %}
-                        </label>
-                        {{ form.owner_name }}
-                    </div>
-                    {% endif %}
-                    {% if config.field_mobile_visible %}
-                    <div class="field-group">
-                        <label for="id_mobile">
-                            Mobile Number{% if config.field_mobile_required %}<span class="req">*</span>{% endif %}
-                        </label>
-                        {{ form.mobile }}
-                        <span class="help-text">10-digit number, used for status updates</span>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- VEHICLE TYPE & PLATE -->
             {% if config.field_vehicle_type_visible or config.field_plate_type_visible %}
-            <div class="form-section">
-                <div class="form-section-label">Vehicle Classification</div>
-                <div class="field-row {% if config.field_vehicle_type_visible and config.field_plate_type_visible %}cols-2{% endif %}">
-                    {% if config.field_vehicle_type_visible %}
-                    <div class="field-group">
-                        <label for="id_vehicle_type">
-                            Vehicle Type{% if config.field_vehicle_type_required %}<span class="req">*</span>{% endif %}
-                        </label>
-                        {{ form.vehicle_type }}
-                    </div>
-                    {% endif %}
-                    {% if config.field_plate_type_visible %}
-                    <div class="field-group">
-                        <label for="id_plate_type">
-                            Number Plate Type{% if config.field_plate_type_required %}<span class="req">*</span>{% endif %}
-                        </label>
-                        {{ form.plate_type }}
-                    </div>
-                    {% endif %}
+            <div class="pub-row cols-2" style="margin-top:14px;">
+                {% if config.field_vehicle_type_visible %}
+                <div class="pub-group">
+                    <label for="id_vehicle_type">
+                        Vehicle Classification
+                        {% if config.field_vehicle_type_required %}<span class="req">*</span>{% endif %}
+                    </label>
+                    {{ form.vehicle_type }}
                 </div>
+                {% endif %}
+
+                {% if config.field_plate_type_visible %}
+                <div class="pub-group">
+                    <label for="id_plate_type">
+                        Number Plate Category
+                        {% if config.field_plate_type_required %}<span class="req">*</span>{% endif %}
+                    </label>
+                    {{ form.plate_type }}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- DRIVER & PREFERENCES -->
+        {% if config.field_owner_name_visible or config.field_mobile_visible or config.field_preferred_area_visible or config.field_notes_visible %}
+        <div class="pub-section">
+            <div class="pub-section-title">
+                <i class="fa-solid fa-user" style="color:#2563eb;"></i>
+                <span>Driver Contact &amp; Area</span>
+            </div>
+
+            {% if config.field_owner_name_visible or config.field_mobile_visible %}
+            <div class="pub-row {% if config.field_owner_name_visible and config.field_mobile_visible %}cols-2{% endif %}">
+                {% if config.field_owner_name_visible %}
+                <div class="pub-group">
+                    <label for="id_owner_name">
+                        Full Name / Driver Name
+                        {% if config.field_owner_name_required %}<span class="req">*</span>{% endif %}
+                    </label>
+                    {{ form.owner_name }}
+                </div>
+                {% endif %}
+
+                {% if config.field_mobile_visible %}
+                <div class="pub-group">
+                    <label for="id_mobile">
+                        Mobile Number
+                        {% if config.field_mobile_required %}<span class="req">*</span>{% endif %}
+                    </label>
+                    {{ form.mobile }}
+                    <span class="help-text">10-digit number. Booking reference delivered via SMS.</span>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
 
-            <!-- ARRIVAL & DURATION -->
-            {% if config.field_expected_arrival_visible or config.field_duration_hours_visible %}
-            <div class="form-section">
-                <div class="form-section-label">Arrival Schedule</div>
-                <div class="field-row {% if config.field_expected_arrival_visible and config.field_duration_hours_visible %}cols-arrival{% endif %}">
-                    {% if config.field_expected_arrival_visible %}
-                    <div class="field-group">
-                        <label for="id_expected_arrival_time">
-                            Expected Arrival{% if config.field_expected_arrival_required %}<span class="req">*</span>{% endif %}
-                        </label>
-                        {{ form.expected_arrival_time }}
-                        {% if form.expected_arrival_time.help_text %}
-                        <span class="help-text">{{ form.expected_arrival_time.help_text }}</span>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                    {% if config.field_duration_hours_visible %}
-                    <div class="field-group">
-                        <label for="id_expected_duration_hours">
-                            Duration{% if config.field_duration_hours_required %}<span class="req">*</span>{% endif %}
-                        </label>
-                        {{ form.expected_duration_hours }}
-                        <span class="help-text">Max 24 hours</span>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- PREFERRED AREA -->
             {% if config.field_preferred_area_visible %}
-            <div class="form-section">
-                <div class="form-section-label">Parking Preference</div>
-                <div class="field-row">
-                    <div class="field-group">
-                        <label for="id_preferred_area">
-                            Preferred Area{% if config.field_preferred_area_required %}<span class="req">*</span>{% endif %}
-                        </label>
-                        {{ form.preferred_area }}
-                    </div>
+            <div class="pub-row" style="margin-top:14px;">
+                <div class="pub-group">
+                    <label for="id_preferred_area">
+                        Preferred Parking Area
+                        {% if config.field_preferred_area_required %}<span class="req">*</span>{% endif %}
+                    </label>
+                    {{ form.preferred_area }}
                 </div>
             </div>
             {% endif %}
 
-            <!-- NOTES -->
             {% if config.field_notes_visible %}
-            <div class="form-section">
-                <div class="form-section-label">Additional Notes</div>
-                <div class="field-row">
-                    <div class="field-group">
-                        <label for="id_notes">
-                            Special Requests{% if config.field_notes_required %}<span class="req">*</span>{% endif %}
-                        </label>
-                        {{ form.notes }}
-                    </div>
+            <div class="pub-row" style="margin-top:14px;">
+                <div class="pub-group">
+                    <label for="id_notes">
+                        Special Requests / Notes
+                        {% if config.field_notes_required %}<span class="req">*</span>{% endif %}
+                    </label>
+                    {{ form.notes }}
                 </div>
             </div>
             {% endif %}
+        </div>
+        {% endif %}
 
-            <!-- TERMS -->
-            {% if config.terms_and_conditions %}
-            <div class="terms-box">
-                <div class="terms-title"><i class="fa-solid fa-circle-info" style="color:#2563eb;"></i> Booking Terms</div>
-                <div class="terms-text">{{ config.terms_and_conditions }}</div>
+        <!-- DYNAMIC CUSTOM QUESTIONS -->
+        {% for bound_field in form %}
+            {% if "custom_question_" in bound_field.name %}
+            <div class="pub-section">
+                <div class="pub-group">
+                    <label for="{{ bound_field.id_for_label }}">
+                        {{ bound_field.label }}{% if bound_field.field.required %}<span class="req">*</span>{% endif %}
+                    </label>
+                    {{ bound_field }}
+                    {% if bound_field.help_text %}
+                    <span class="help-text">{{ bound_field.help_text }}</span>
+                    {% endif %}
+                </div>
             </div>
             {% endif %}
+        {% endfor %}
 
-            <button type="submit" class="submit-btn">
-                Request Parking Slot
-            </button>
+        <!-- SUBMIT -->
+        <button type="submit" class="pub-btn-primary" id="submitBtn">
+            Request Parking Slot
+        </button>
 
-            <div class="bottom-link">
-                Already submitted? <a href="{% url 'booking_status' %}">Track your booking &rarr;</a>
-            </div>
-        </form>
+        <div style="text-align:center;margin-top:16px;font-size:13px;color:#64748b;">
+            Already submitted? <a href="{% url 'booking_status' %}" style="color:#2563eb;text-decoration:none;font-weight:600;">Track your booking &rarr;</a>
+        </div>
+    </form>
+</div>
 
-    </div><!-- .page-form-area -->
-</div><!-- .page-wrap -->
+{% endblock %}
 
+{% block extra_js %}
 <script>
-const vnumInput   = document.getElementById('id_vehicle_number');
-const stateInput  = document.getElementById('id_state_code');
-const bhCheckbox  = document.getElementById('id_bh_series');
-const plateSelect = document.getElementById('id_plate_type');
+document.addEventListener('DOMContentLoaded', function() {
+    const vnumInput   = document.getElementById('id_vehicle_number');
+    const stateInput  = document.getElementById('id_state_code');
+    const bhCheckbox  = document.getElementById('id_bh_series');
+    const plateSelect = document.getElementById('id_plate_type');
+    const previewBadge= document.getElementById('platePreviewBadge');
+    const previewNum  = document.getElementById('plateNumberPreview');
+    const previewInd  = document.getElementById('plateIndTag');
 
-const NORMAL_PH = 'GJ 01 AA 1234';
-const BH_PH     = '24 BH 1234 AA';
+    const NORMAL_PH = 'GJ 01 AA 1234';
+    const BH_PH     = '24 BH 1234 AA';
 
-function formatVehicleNumber(raw, isBH) {
-    const clean = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    if (!clean) return '';
-    if (isBH) {
-        const p = [];
-        if (clean.length > 0) p.push(clean.substring(0, Math.min(2, clean.length)));
-        if (clean.length > 2) p.push(clean.substring(2, Math.min(4, clean.length)));
-        if (clean.length > 4) p.push(clean.substring(4, Math.min(8, clean.length)));
-        if (clean.length > 8) p.push(clean.substring(8, Math.min(10, clean.length)));
-        return p.join(' ');
-    } else {
-        const m = clean.match(/^([A-Z]{0,2})([0-9]{0,2})([A-Z]{0,3})([0-9]{0,4})/);
-        if (m) {
-            const p = [];
-            if (m[1]) p.push(m[1]);
-            if (m[2]) p.push(m[2]);
-            if (m[3]) p.push(m[3]);
-            if (m[4]) p.push(m[4]);
-            return p.join(' ');
-        }
-        return clean;
-    }
-}
+    const colorMap = {
+        'white_black':  { bg: '#ffffff', text: '#000000', border: '#000000' },
+        'yellow_black': { bg: '#ffd700', text: '#000000', border: '#000000' },
+        'green_white':  { bg: '#15803d', text: '#ffffff', border: '#15803d' },
+        'green_yellow': { bg: '#15803d', text: '#ffd700', border: '#15803d' },
+        'black_yellow': { bg: '#0f172a', text: '#ffd700', border: '#0f172a' },
+        'red_white':    { bg: '#b91c1c', text: '#ffffff', border: '#b91c1c' },
+        'bh_series':    { bg: '#ffffff', text: '#000000', border: '#000000' }
+    };
 
-function handleBhChange() {
-    if (!bhCheckbox) return;
-    const isBH = bhCheckbox.checked;
-    if (vnumInput) {
-        vnumInput.placeholder = isBH ? BH_PH : NORMAL_PH;
-        if (vnumInput.value) vnumInput.value = formatVehicleNumber(vnumInput.value, isBH);
-    }
-    if (stateInput) {
+    function formatNumber(raw, isBH) {
+        const clean = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        if (!clean) return '';
         if (isBH) {
-            if (stateInput.value && stateInput.value !== 'BH') stateInput.dataset.prev = stateInput.value;
-            stateInput.value = 'BH';
-            stateInput.readOnly = true;
-            stateInput.style.opacity = '0.6';
+            const p = [];
+            if (clean.length > 0) p.push(clean.substring(0, Math.min(2, clean.length)));
+            if (clean.length > 2) p.push(clean.substring(2, Math.min(4, clean.length)));
+            if (clean.length > 4) p.push(clean.substring(4, Math.min(8, clean.length)));
+            if (clean.length > 8) p.push(clean.substring(8, Math.min(10, clean.length)));
+            return p.join(' ');
         } else {
-            stateInput.value = stateInput.dataset.prev || (vnumInput && vnumInput.value.length >= 2 ? vnumInput.value.substring(0, 2) : 'GJ');
-            stateInput.readOnly = false;
-            stateInput.style.opacity = '1';
+            const m = clean.match(/^([A-Z]{0,2})([0-9]{0,2})([A-Z]{0,3})([0-9]{0,4})/);
+            if (m) {
+                const p = [];
+                if (m[1]) p.push(m[1]);
+                if (m[2]) p.push(m[2]);
+                if (m[3]) p.push(m[3]);
+                if (m[4]) p.push(m[4]);
+                return p.join(' ');
+            }
+            return clean;
         }
     }
-    if (plateSelect) {
-        if (isBH) plateSelect.value = 'bh_series';
-        else if (plateSelect.value === 'bh_series') plateSelect.value = 'white_black';
-    }
-}
 
-if (vnumInput) {
-    vnumInput.addEventListener('input', () => {
+    function updatePlatePreview() {
+        if (!vnumInput) return;
         const isBH = bhCheckbox && bhCheckbox.checked;
-        vnumInput.value = formatVehicleNumber(vnumInput.value, isBH);
-        if (stateInput && !isBH && vnumInput.value.length >= 2) {
-            stateInput.value = vnumInput.value.substring(0, 2);
+        const val = vnumInput.value.trim().toUpperCase();
+        const display = val || (isBH ? BH_PH : NORMAL_PH);
+
+        if (previewNum) previewNum.textContent = display;
+
+        if (previewInd) {
+            if (isBH) {
+                previewInd.textContent = 'BH';
+                previewInd.style.background = '#0f172a';
+            } else {
+                previewInd.textContent = 'IND';
+                previewInd.style.background = '#003580';
+            }
         }
-    });
-}
-if (bhCheckbox) bhCheckbox.addEventListener('change', handleBhChange);
-if (bhCheckbox && bhCheckbox.checked) handleBhChange();
+
+        if (previewBadge && plateSelect) {
+            const scheme = colorMap[plateSelect.value] || colorMap['white_black'];
+            previewBadge.style.backgroundColor = scheme.bg;
+            previewBadge.style.borderColor = scheme.border;
+            if (previewNum) previewNum.style.color = scheme.text;
+        }
+    }
+
+    function handleBhToggle() {
+        if (!bhCheckbox) return;
+        const isBH = bhCheckbox.checked;
+        if (vnumInput) {
+            vnumInput.placeholder = isBH ? BH_PH : NORMAL_PH;
+            if (vnumInput.value) vnumInput.value = formatNumber(vnumInput.value, isBH);
+        }
+        if (stateInput) {
+            if (isBH) {
+                if (stateInput.value && stateInput.value !== 'BH') stateInput.dataset.prev = stateInput.value;
+                stateInput.value = 'BH';
+                stateInput.readOnly = true;
+                stateInput.style.opacity = '0.6';
+            } else {
+                stateInput.value = stateInput.dataset.prev || (vnumInput && vnumInput.value.length >= 2 ? vnumInput.value.substring(0, 2) : 'GJ');
+                stateInput.readOnly = false;
+                stateInput.style.opacity = '1';
+            }
+        }
+        if (plateSelect) {
+            if (isBH) plateSelect.value = 'bh_series';
+            else if (plateSelect.value === 'bh_series') plateSelect.value = 'white_black';
+        }
+        updatePlatePreview();
+    }
+
+    if (vnumInput) {
+        vnumInput.addEventListener('input', function() {
+            const isBH = bhCheckbox && bhCheckbox.checked;
+            this.value = formatNumber(this.value, isBH);
+            if (stateInput && !isBH && this.value.length >= 2) {
+                stateInput.value = this.value.substring(0, 2);
+            }
+            updatePlatePreview();
+        });
+    }
+
+    if (bhCheckbox)  bhCheckbox.addEventListener('change', handleBhToggle);
+    if (plateSelect) plateSelect.addEventListener('change', updatePlatePreview);
+
+    if (bhCheckbox && bhCheckbox.checked) handleBhToggle();
+    updatePlatePreview();
+});
 </script>
-</body>
-</html>
+{% endblock %}

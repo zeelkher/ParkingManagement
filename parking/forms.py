@@ -389,7 +389,6 @@ class PublicAdvanceBookingForm(forms.Form):
                     'class': 'form-control',
                     'placeholder': 'GJ 01 AA 1234',
                     'id': 'id_vehicle_number',
-                    'style': 'text-transform:uppercase;font-family:"JetBrains Mono",monospace;letter-spacing:2px;font-size:16px;font-weight:700;',
                 })
             )
 
@@ -402,7 +401,6 @@ class PublicAdvanceBookingForm(forms.Form):
                     'class': 'form-control',
                     'placeholder': 'GJ',
                     'id': 'id_state_code',
-                    'style': 'text-transform:uppercase;font-family:"JetBrains Mono",monospace;letter-spacing:3px;font-size:17px;font-weight:800;',
                 })
             )
             self.fields['bh_series'] = forms.BooleanField(
@@ -421,8 +419,7 @@ class PublicAdvanceBookingForm(forms.Form):
                 required=self.config.field_owner_name_required,
                 widget=forms.TextInput(attrs={
                     'class': 'form-control',
-                    'placeholder': 'FULL NAME',
-                    'style': 'text-transform:uppercase;',
+                    'placeholder': 'Full Name',
                 })
             )
 
@@ -595,9 +592,11 @@ class PublicAdvanceBookingForm(forms.Form):
         arr_time = self.cleaned_data.get('expected_arrival_time')
         if arr_time:
             now = timezone.now()
+            if timezone.is_naive(arr_time):
+                arr_time = timezone.make_aware(arr_time, timezone.get_current_timezone())
             max_delta = timezone.timedelta(days=self.config.max_advance_days)
-            # Allow 5 minute grace margin
-            if arr_time < (now - timezone.timedelta(minutes=5)):
+            # Allow 15 minute grace margin for clock skew
+            if arr_time < (now - timezone.timedelta(minutes=15)):
                 raise forms.ValidationError('Arrival time cannot be in the past.')
             if arr_time > (now + max_delta):
                 raise forms.ValidationError(f'Bookings can be requested at most {self.config.max_advance_days} days in advance.')
@@ -610,7 +609,7 @@ class BookingStatusCheckForm(forms.Form):
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': 'e.g. BK-4920-8172',
-            'style': 'text-transform:uppercase;font-family:"JetBrains Mono",monospace;letter-spacing:2px;font-size:16px;font-weight:700;',
+            'id': 'id_booking_reference',
         })
     )
     mobile = forms.CharField(
