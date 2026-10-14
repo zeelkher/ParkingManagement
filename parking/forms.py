@@ -1,6 +1,6 @@
 from django import forms
 from django.utils import timezone
-from .models import ParkingArea, ParkingFloor, Vehicle, ParkingSlot, PLATE_TYPES, VEHICLE_TYPES
+from .models import ParkingArea, ParkingFloor, Vehicle, ParkingSlot, PLATE_TYPES, VEHICLE_TYPES, AdvanceBooking
 
 
 class ParkingFloorChoiceField(forms.ModelChoiceField):
@@ -300,3 +300,184 @@ class ParkingSlotForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['parking_floor'].empty_label = 'Select Parking Floor'
+
+
+class AdvanceBookingForm(forms.Form):
+    vehicle_number = forms.CharField(
+        max_length=20,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'GJ 00 AA 0000',
+            'style': 'text-transform:uppercase;font-family:"JetBrains Mono",monospace;letter-spacing:2px;font-size:16px;',
+            'id': 'id_adv_vehicle_number',
+        })
+    )
+    owner_name = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'FULL NAME',
+            'style': 'text-transform:uppercase;',
+            'id': 'id_adv_owner_name',
+        })
+    )
+    mobile = forms.CharField(
+        max_length=15,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '9876543210',
+            'maxlength': '10',
+            'inputmode': 'numeric',
+            'id': 'id_adv_mobile',
+        })
+    )
+    vehicle_type = forms.ChoiceField(
+        choices=VEHICLE_TYPES,
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_adv_vehicle_type'})
+    )
+    plate_type = forms.ChoiceField(
+        choices=PLATE_TYPES,
+        initial='white_black',
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_adv_plate_type'})
+    )
+    state_code = forms.CharField(
+        max_length=5,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'GJ',
+            'maxlength': '5',
+            'style': 'text-transform:uppercase;font-family:"JetBrains Mono",monospace;letter-spacing:3px;font-size:18px;font-weight:700;',
+            'id': 'id_adv_state_code',
+        })
+    )
+    bh_series = forms.BooleanField(
+        label='BH Series Vehicle',
+        required=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input',
+            'id': 'id_adv_bh_series',
+        })
+    )
+    parking_area = forms.ModelChoiceField(
+        queryset=ParkingArea.objects.filter(is_under_maintenance=False),
+        label='Parking Area',
+        empty_label='Select Parking Area',
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_adv_parking_area'}),
+    )
+    parking_floor = ParkingFloorChoiceField(
+        queryset=ParkingFloor.objects.filter(is_under_maintenance=False),
+        label='Parking Floor',
+        empty_label='Select Parking Floor',
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_adv_parking_floor'}),
+    )
+    parking_slot = ParkingSlotChoiceField(
+        queryset=ParkingSlot.objects.filter(is_under_maintenance=False),
+        label='Reserved Slot (Optional)',
+        required=False,
+        empty_label='Auto-assign or Select Slot',
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_adv_parking_slot'}),
+        help_text='Select a slot to reserve in advance, or leave blank to assign on arrival.'
+    )
+    booking_from = forms.DateTimeField(
+        label='Reservation From',
+        input_formats=['%Y-%m-%dT%H:%M', '%d-%m-%Y %H:%M'],
+        widget=forms.DateTimeInput(
+            format='%Y-%m-%dT%H:%M',
+            attrs={'class': 'form-control', 'type': 'datetime-local', 'id': 'id_adv_booking_from'}
+        ),
+        help_text='Expected arrival date and time.'
+    )
+    booking_to = forms.DateTimeField(
+        label='Reservation Until',
+        input_formats=['%Y-%m-%dT%H:%M', '%d-%m-%Y %H:%M'],
+        widget=forms.DateTimeInput(
+            format='%Y-%m-%dT%H:%M',
+            attrs={'class': 'form-control', 'type': 'datetime-local', 'id': 'id_adv_booking_to'}
+        ),
+        help_text='Expected departure date and time.'
+    )
+    advance_fee = forms.DecimalField(
+        label='Advance Fee (₹)',
+        required=False,
+        initial=50.00,
+        max_digits=10,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_adv_advance_fee', 'min': '0', 'step': '10'}),
+        help_text='Token or advance deposit amount.'
+    )
+    notes = forms.CharField(
+        label='Special Notes / Requests',
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional remarks or driver instructions', 'id': 'id_adv_notes'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        now = timezone.localtime().replace(second=0, microsecond=0)
+        self.fields['booking_from'].initial = now.strftime('%Y-%m-%dT%H:%M')
+        self.fields['booking_to'].initial = (now + timezone.timedelta(hours=4)).strftime('%Y-%m-%dT%H:%M')
+        self.fields['parking_area'].queryset = ParkingArea.objects.filter(is_under_maintenance=False)
+        self.fields['parking_floor'].queryset = ParkingFloor.objects.filter(is_under_maintenance=False, parking_area__is_under_maintenance=False)
+        self.fields['parking_slot'].queryset = ParkingSlot.objects.filter(
+            is_under_maintenance=False,
+            parking_floor__is_under_maintenance=False,
+            parking_floor__parking_area__is_under_maintenance=False
+        )
+
+    def clean_vehicle_number(self):
+        raw = self.cleaned_data['vehicle_number'].strip().upper()
+        return ' '.join(raw.split())
+
+    def clean_state_code(self):
+        return self.cleaned_data['state_code'].strip().upper()
+
+    def clean_owner_name(self):
+        return self.cleaned_data['owner_name'].strip().upper()
+
+    def clean_mobile(self):
+        mobile = self.cleaned_data['mobile'].strip()
+        if mobile.startswith('+91'):
+            mobile = mobile[3:].strip()
+        elif mobile.startswith('91') and len(mobile) == 12:
+            mobile = mobile[2:].strip()
+        mobile = mobile.replace(' ', '').replace('-', '')
+        if not mobile.isdigit():
+            raise forms.ValidationError('Mobile number must contain only digits.')
+        if len(mobile) != 10:
+            raise forms.ValidationError('Mobile number must be exactly 10 digits.')
+        if mobile[0] not in '6789':
+            raise forms.ValidationError('Mobile number must start with 6, 7, 8, or 9.')
+        return mobile
+
+    def clean(self):
+        cleaned = super().clean()
+        vnum = cleaned.get('vehicle_number', '').upper()
+        state = cleaned.get('state_code', '').upper()
+        bh_series = cleaned.get('bh_series', False)
+        b_from = cleaned.get('booking_from')
+        b_to = cleaned.get('booking_to')
+        slot = cleaned.get('parking_slot')
+        floor = cleaned.get('parking_floor')
+        area = cleaned.get('parking_area')
+
+        if bh_series:
+            cleaned['state_code'] = 'BH'
+            if not vnum.startswith('BH'):
+                raise forms.ValidationError('BH Series is selected, but vehicle number must start with "BH".')
+
+        if vnum and state and len(vnum) >= 2 and len(state) >= 2 and not bh_series:
+            if vnum[:2] != state[:2]:
+                raise forms.ValidationError(
+                    f"Vehicle number prefix '{vnum[:2]}' does not match state code '{state[:2]}'."
+                )
+
+        if b_from and b_to and b_to <= b_from:
+            raise forms.ValidationError('Reservation end time must be after the start time.')
+
+        if floor and area and floor.parking_area_id != area.id:
+            self.add_error('parking_floor', 'Selected floor does not belong to selected parking area.')
+
+        if slot and floor and slot.parking_floor_id != floor.id:
+            self.add_error('parking_slot', 'Selected slot does not belong to selected floor.')
+
+        return cleaned

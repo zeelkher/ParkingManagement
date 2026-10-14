@@ -57,5 +57,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // Apply dynamic plate styles
     applyDynamicStyles();
+
+    // ══ 3-Line Menu Toggle (right side) opens right-side drawer ══
+    const drawer = document.getElementById('hudDrawerSidebar');
+    const backdrop = document.getElementById('hudDrawerBackdrop');
+    const closeBtn = document.getElementById('hudDrawerCloseBtn');
+    const toggleRight = document.getElementById('hud3LineToggleRight');
+
+    function openDrawer() {
+        if (drawer && backdrop) {
+            drawer.classList.add('is-open');
+            backdrop.classList.add('is-open');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeDrawer() {
+        if (drawer && backdrop) {
+            drawer.classList.remove('is-open');
+            backdrop.classList.remove('is-open');
+            document.body.style.overflow = '';
+        }
+    }
+
+    if (toggleRight) toggleRight.addEventListener('click', openDrawer);
+    if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+    if (backdrop) backdrop.addEventListener('click', closeDrawer);
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && drawer && drawer.classList.contains('is-open')) {
+            closeDrawer();
+        }
+    });
 });

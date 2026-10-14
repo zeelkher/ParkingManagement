@@ -207,3 +207,66 @@ class ParkingRecord(models.Model):
             
         # Join components with space (e.g. '1d 5h 30m')
         return " ".join(parts)
+
+
+class AdvanceBooking(models.Model):
+    STATUS_CHOICES = [
+        ('Confirmed', 'Confirmed'),
+        ('Checked-in', 'Checked-in'),
+        ('Cancelled', 'Cancelled'),
+        ('Completed', 'Completed'),
+    ]
+
+    booking_id = models.CharField(max_length=24, unique=True, editable=False)
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True, related_name='advance_bookings')
+    vehicle_number = models.CharField(max_length=20, help_text="e.g. GJ 01 AB 1234")
+    owner_name = models.CharField(max_length=100)
+    mobile = models.CharField(max_length=15)
+    vehicle_type = models.CharField(max_length=20, choices=VEHICLE_TYPES, default='Car')
+    plate_type = models.CharField(max_length=20, choices=PLATE_TYPES, default='white_black')
+    state_code = models.CharField(max_length=5, blank=True)
+    parking_slot = models.ForeignKey(ParkingSlot, on_delete=models.SET_NULL, null=True, blank=True, related_name='advance_bookings')
+    booking_from = models.DateTimeField(help_text="Expected check-in time")
+    booking_to = models.DateTimeField(help_text="Expected check-out time")
+    advance_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Advance booking or deposit fee")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Confirmed')
+    parking_record = models.OneToOneField(ParkingRecord, on_delete=models.SET_NULL, null=True, blank=True, related_name='advance_booking_origin')
+    notes = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('-created_at',)
+
+    def __str__(self):
+        return f"{self.booking_id} - {self.vehicle_number} ({self.status})"
+
+    def get_plate_colors(self):
+        """Return plate colors using vehicle plate_type."""
+        color_map = {
+            'white_black':  ('#FFFFFF', '#000000', 'Private Vehicle'),
+            'yellow_black': ('#FFD700', '#000000', 'Commercial Vehicle'),
+            'green_white':  ('#008000', '#FFFFFF', 'Electric Vehicle (Private)'),
+            'green_yellow': ('#008000', '#FFD700', 'Electric Vehicle (Commercial)'),
+            'black_yellow': ('#1a1a1a', '#FFD700', 'Self-Drive Rental'),
+            'red_white':    ('#FFD700', '#CC0000', 'Temporary Registration'),
+            'dealer_trade': ('#CC0000', '#FFFFFF', 'Dealer / Trade Plate'),
+            'blue_white':   ('#003580', '#FFFFFF', 'Diplomatic / Consular'),
+            'military_black': ('#1a1a1a', '#FFFFFF', 'Military (Armed Forces)'),
+            'military_police': ('#FFFFFF', '#CC0000', 'Military Police'),
+            'red_emblem':   ('#CC0000', '#FFD700', 'Constitutional Authorities'),
+            'arrow_red':    ('#1a1a1a', '#CC0000', 'Military'),
+            'bh_series':    ('#FFFFFF', '#000000', 'BH Series'),
+        }
+        return color_map.get(self.plate_type, ('#FFFFFF', '#000000', 'Unknown'))
+
+    def save(self, *args, **kwargs):
+        if not self.booking_id:
+            import secrets
+            from django.utils import timezone
+            today_str = timezone.now().strftime('%y%m%d')
+            rand_suffix = secrets.token_hex(2).upper()
+            self.booking_id = f"BK-{today_str}-{rand_suffix}"
+            while AdvanceBooking.objects.filter(booking_id=self.booking_id).exists():
+                rand_suffix = secrets.token_hex(2).upper()
+                self.booking_id = f"BK-{today_str}-{rand_suffix}"
+        super().save(*args, **kwargs)

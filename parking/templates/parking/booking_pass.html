@@ -1,0 +1,126 @@
+{% extends 'parking/base.html' %}
+{% block page_title %}Booking Pass #{{ booking.booking_id }}{% endblock %}
+
+{% block content %}
+
+<div class="receipt-container glass-panel mx-auto" style="max-width:540px; margin: 0 auto;">
+
+    <!-- Header -->
+    <div style="text-align:center; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid #e2e8f0;">
+        <div style="display:inline-flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <div class="brand-badge" style="width:28px; height:28px; font-size:13px;">P</div>
+            <h2 style="font-size:22px; font-weight:900; color:#0f172a; letter-spacing:1px; margin:0;">PARKSAFE</h2>
+        </div>
+        <p style="font-size:12px; font-weight:700; color:#2563eb; text-transform:uppercase; letter-spacing:1px; margin:4px 0 0;">
+            ADVANCE RESERVATION PASS
+        </p>
+        <span class="booking-token-pill" style="margin-top:8px; font-size:13px;">
+            TOKEN: {{ booking.booking_id }}
+        </span>
+    </div>
+
+    <!-- Visual Indian Number Plate -->
+    {% with colors=booking.get_plate_colors %}
+    <div style="text-align:center; margin-bottom:20px;">
+        <div class="india-plate mx-auto"
+             data-bg="{{ colors.0 }}"
+             data-color="{{ colors.1 }}"
+             style="max-width:280px; border:2px solid #cbd5e1; margin:0 auto;">
+            <div class="plate-top-bar">
+                <span class="flag-stripe" style="background:#FF9933;"></span>
+                <span class="flag-stripe" style="background:#FFFFFF;"></span>
+                <span class="flag-stripe" style="background:#138808;"></span>
+                <span class="plate-ind-text">IND</span>
+            </div>
+            <div class="plate-number">{{ booking.vehicle_number }}</div>
+            <div class="plate-category-label">{{ colors.2|upper }}</div>
+        </div>
+    </div>
+    {% endwith %}
+
+    <!-- Pass Details -->
+    <div class="receipt-details">
+        <div class="receipt-row">
+            <span>CUSTOMER NAME</span><strong>{{ booking.owner_name|upper }}</strong>
+        </div>
+        <div class="receipt-row">
+            <span>MOBILE NUMBER</span><strong style="font-family:'JetBrains Mono',monospace;">+91 {{ booking.mobile }}</strong>
+        </div>
+        <div class="receipt-row">
+            <span>VEHICLE TYPE</span><strong>{{ booking.vehicle_type|upper }}</strong>
+        </div>
+
+        {% if booking.parking_slot %}
+        <div class="receipt-row">
+            <span>RESERVED SLOT</span>
+            <strong>
+                <span class="slot-badge">{{ booking.parking_slot.number }}</span>
+            </strong>
+        </div>
+        <div class="receipt-row">
+            <span>LOCATION</span>
+            <strong>{{ booking.parking_slot.parking_floor.parking_area.name }} • {{ booking.parking_slot.parking_floor.name }}</strong>
+        </div>
+        {% else %}
+        <div class="receipt-row">
+            <span>SLOT ASSIGNMENT</span><strong style="color:#0284c7;">ALLOCATED AT GATE ARRIVAL</strong>
+        </div>
+        {% endif %}
+
+        <hr class="my-3" style="border-color:#e2e8f0;">
+
+        <div class="receipt-row">
+            <span>RESERVED FROM</span><strong style="font-size:13px;">{{ booking.booking_from|date:"d M Y • h:i A" }}</strong>
+        </div>
+        <div class="receipt-row">
+            <span>VALID UNTIL</span><strong style="font-size:13px;">{{ booking.booking_to|date:"d M Y • h:i A" }}</strong>
+        </div>
+
+        <hr class="my-3" style="border-color:#e2e8f0;">
+
+        <div class="receipt-row total-fee" style="background:#eff6ff; border-radius:8px; padding:12px 16px; margin:0 -4px; border:1px solid #bfdbfe;">
+            <span style="font-size:13px; font-weight:700; color:#1d4ed8;">ADVANCE DEPOSIT PAID</span>
+            <strong class="fee-amount" style="color:#1d4ed8; font-size:20px;">₹{{ booking.advance_fee }}</strong>
+        </div>
+
+        <div class="receipt-row" style="margin-top:8px;">
+            <span>STATUS</span>
+            {% if booking.status == 'Confirmed' %}
+            <span class="badge-status confirmed"><i class="fa-solid fa-circle-check"></i> CONFIRMED</span>
+            {% elif booking.status == 'Checked-in' %}
+            <span class="badge-status checked-in"><i class="fa-solid fa-car"></i> CHECKED-IN</span>
+            {% elif booking.status == 'Cancelled' %}
+            <span class="badge-status cancelled"><i class="fa-solid fa-ban"></i> CANCELLED</span>
+            {% else %}
+            <span class="badge-status">{{ booking.status }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Verification QR -->
+    <div style="text-align:center; padding-top:16px; margin-top:16px; border-top:1px dashed #e2e8f0;">
+        <p style="font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px;">
+            SCAN QR AT BOOTH FOR FAST-TRACK ENTRY
+        </p>
+        <div style="display:inline-block; padding:10px; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ qr_data|urlencode }}"
+                 alt="Booking Pass QR"
+                 style="width:140px; height:140px; display:block;">
+        </div>
+        <p style="font-size:11px; color:#94a3b8; margin:10px 0 0;">
+            Please present this pass or token at the entry barrier gate.
+        </p>
+    </div>
+
+    <!-- Print & Return Buttons -->
+    <div style="display:flex; gap:12px; margin-top:24px;" class="no-print">
+        <a href="{% url 'advance_booking' %}" class="btn btn-secondary" style="flex:1; text-align:center; justify-content:center;">
+            ← BACK TO BOOKINGS
+        </a>
+        <button onclick="window.print()" class="btn btn-primary" style="flex:1; text-align:center; justify-content:center; gap:8px;">
+            <i class="fa-solid fa-print"></i> PRINT PASS
+        </button>
+    </div>
+</div>
+
+{% endblock %}

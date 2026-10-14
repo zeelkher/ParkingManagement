@@ -1,0 +1,347 @@
+{% extends 'parking/base.html' %}
+{% block page_title %}Reports & Analytics{% endblock %}
+
+{% block content %}
+
+<!-- ══ Print-Only Header ══ -->
+<div class="print-only-header" style="text-align:center; padding-bottom:16px; border-bottom:2px solid #0f172a; margin-bottom:24px;">
+    <h1 style="font-size:24px; font-weight:900; margin:0; letter-spacing:1px;">PARKSAFE — SMART PARKING MANAGEMENT</h1>
+    <h3 style="font-size:14px; font-weight:700; color:#475569; margin:4px 0;">OFFICIAL REVENUE & OPERATIONS REPORT</h3>
+    <p style="font-size:12px; color:#64748b; margin:4px 0 0;">
+        Filter Period: {{ period|upper }}{% if start_date and end_date %} ({{ start_date }} to {{ end_date }}){% endif %} • Generated on: {% now "d M Y, h:i A" %}
+    </p>
+</div>
+
+<!-- ══ Page Header & Global Actions ══ -->
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 24px; flex-wrap:wrap; gap:16px;">
+    <div>
+        <h1 style="font-size:24px; font-weight:800; color:#0f172a; margin:0 0 6px 0; letter-spacing:-0.5px; display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-chart-pie" style="color:var(--blue);"></i>
+            REVENUE & OPERATIONAL REPORTS
+        </h1>
+        <p style="font-size:14px; color:#64748b; margin:0;">
+            Comprehensive parking transactions, vehicle turnover analytics, peak occupancy, and financial audits.
+        </p>
+    </div>
+    <div class="reports-actions">
+        <!-- Export to CSV -->
+        <a href="{% url 'export_reports_csv' %}?period={{ period }}&vtype={{ vtype }}&status={{ status_filter }}&start_date={{ start_date }}&end_date={{ end_date }}"
+           class="btn-export-csv" title="Download Excel-compatible CSV Report">
+            <i class="fa-solid fa-file-csv"></i> EXPORT CSV
+        </a>
+        <!-- Print Button -->
+        <button type="button" onclick="window.print()" class="btn-print-report" title="Print or save as PDF">
+            <i class="fa-solid fa-print"></i> PRINT REPORT
+        </button>
+    </div>
+</div>
+
+<!-- ══ Filter & Date Range Bar ══ -->
+<div class="reports-filter-bar">
+    <!-- Preset Period Buttons -->
+    <div class="period-pills">
+        <a href="{% url 'reports' %}?period=today{% if vtype %}&vtype={{ vtype }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+           class="period-pill {% if period == 'today' %}active{% endif %}">TODAY</a>
+        <a href="{% url 'reports' %}?period=yesterday{% if vtype %}&vtype={{ vtype }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+           class="period-pill {% if period == 'yesterday' %}active{% endif %}">YESTERDAY</a>
+        <a href="{% url 'reports' %}?period=week{% if vtype %}&vtype={{ vtype }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+           class="period-pill {% if period == 'week' %}active{% endif %}">LAST 7 DAYS</a>
+        <a href="{% url 'reports' %}?period=month{% if vtype %}&vtype={{ vtype }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+           class="period-pill {% if period == 'month' %}active{% endif %}">THIS MONTH</a>
+        <a href="{% url 'reports' %}?period=all{% if vtype %}&vtype={{ vtype }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+           class="period-pill {% if period == 'all' %}active{% endif %}">ALL TIME</a>
+    </div>
+
+    <!-- Filter Form -->
+    <form method="get" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0;">
+        <input type="hidden" name="period" value="custom">
+
+        <div style="display:flex; align-items:center; gap:6px;">
+            <label style="font-size:12px; font-weight:700; color:#64748b; margin:0;">FROM:</label>
+            <input type="date" name="start_date" value="{{ start_date }}" class="form-control" style="padding:6px 10px; font-size:12px; width:135px;">
+        </div>
+
+        <div style="display:flex; align-items:center; gap:6px;">
+            <label style="font-size:12px; font-weight:700; color:#64748b; margin:0;">TO:</label>
+            <input type="date" name="end_date" value="{{ end_date }}" class="form-control" style="padding:6px 10px; font-size:12px; width:135px;">
+        </div>
+
+        <!-- Vehicle Type Filter -->
+        <select name="vtype" class="form-control" style="padding:6px 10px; font-size:12px; width:140px;">
+            <option value="">ALL VEHICLE TYPES</option>
+            {% for vt in VEHICLE_TYPES %}
+            <option value="{{ vt.0 }}" {% if vtype == vt.0 %}selected{% endif %}>{{ vt.1 }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- Status Filter -->
+        <select name="status" class="form-control" style="padding:6px 10px; font-size:12px; width:125px;">
+            <option value="">ALL STATUS</option>
+            <option value="Active" {% if status_filter == 'Active' %}selected{% endif %}>ACTIVE</option>
+            <option value="Exited" {% if status_filter == 'Exited' %}selected{% endif %}>EXITED</option>
+        </select>
+
+        <button type="submit" class="btn btn-primary" style="padding:6px 14px; font-size:12px; font-weight:700;">
+            APPLY FILTER
+        </button>
+
+        {% if period != 'today' or vtype or status_filter or start_date %}
+        <a href="{% url 'reports' %}" class="btn btn-secondary" style="padding:6px 12px; font-size:12px;">RESET</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- ══ Executive KPI Cards ══ -->
+<div class="stats-grid" style="margin-bottom: 24px;">
+    <!-- Revenue -->
+    <div class="stat-card purple">
+        <div class="stat-label">Total Parking Revenue</div>
+        <div class="stat-value" style="font-size:26px;">₹{{ total_revenue }}</div>
+        <div class="stat-sub">COLLECTED AT EXIT</div>
+        <div class="stat-icon-bg"><i class="bi bi-currency-rupee"></i></div>
+    </div>
+
+    <!-- Advance Revenue -->
+    <div class="stat-card blue">
+        <div class="stat-label">Advance Booking Revenue</div>
+        <div class="stat-value" style="font-size:26px;">₹{{ total_advance_revenue }}</div>
+        <div class="stat-sub">{{ total_advance_bookings }} RESERVATIONS</div>
+        <div class="stat-icon-bg"><i class="bi bi-bookmark-check-fill"></i></div>
+    </div>
+
+    <!-- Combined Gross -->
+    <div class="stat-card green">
+        <div class="stat-label">Grand Total Revenue</div>
+        <div class="stat-value" style="font-size:26px;">₹{{ grand_revenue }}</div>
+        <div class="stat-sub">COMBINED INTAKE</div>
+        <div class="stat-icon-bg"><i class="bi bi-wallet2"></i></div>
+    </div>
+
+    <!-- Total Vehicles -->
+    <div class="stat-card orange">
+        <div class="stat-label">Total Vehicles Handled</div>
+        <div class="stat-value">{{ total_entries }}</div>
+        <div class="stat-sub">{{ exited_count }} EXITED • {{ active_count }} ACTIVE</div>
+        <div class="stat-icon-bg"><i class="bi bi-car-front-fill"></i></div>
+    </div>
+
+    <!-- Average Duration -->
+    <div class="stat-card cyan">
+        <div class="stat-label">Average Duration</div>
+        <div class="stat-value">{{ avg_hours }} <span style="font-size:16px;">hrs</span></div>
+        <div class="stat-sub">PER COMPLETED SESSION</div>
+        <div class="stat-icon-bg"><i class="bi bi-hourglass-split"></i></div>
+    </div>
+
+    <!-- Peak Hour -->
+    <div class="stat-card amber">
+        <div class="stat-label">Busiest Rush Hour</div>
+        <div class="stat-value" style="font-size:20px; letter-spacing:-0.5px;">{{ peak_hour }}</div>
+        <div class="stat-sub">PEAK: {{ peak_hour_count }} ENTRIES</div>
+        <div class="stat-icon-bg"><i class="bi bi-graph-up-arrow"></i></div>
+    </div>
+</div>
+
+<!-- ══ Two Column Analytics Section ══ -->
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+    <!-- 1. Vehicle Type Breakdown -->
+    <div class="table-card" style="margin-bottom:0;">
+        <div class="table-card-header">
+            <h2>VEHICLE TYPE DISTRIBUTION</h2>
+            <span class="count-chip">{{ vehicle_types_stats|length }} CATEGORIES</span>
+        </div>
+        <div style="padding: 16px 20px;">
+            {% if vehicle_types_stats %}
+                {% for item in vehicle_types_stats %}
+                <div class="breakdown-row">
+                    <div style="width: 140px; font-weight:600; font-size:13px; color:#1e293b; display:flex; align-items:center; gap:8px;">
+                        {% if item.type == 'Car' or item.type == 'Jeep' or item.type == 'Van' %}
+                            <i class="fa-solid fa-car" style="color:var(--blue);"></i>
+                        {% elif item.type == 'Bike' or item.type == 'Motorcycle' %}
+                            <i class="fa-solid fa-motorcycle" style="color:#059669;"></i>
+                        {% elif item.type == 'Bus' %}
+                            <i class="fa-solid fa-bus" style="color:#d97706;"></i>
+                        {% elif item.type == 'Truck' or item.type == 'Lorry' %}
+                            <i class="fa-solid fa-truck" style="color:#dc2626;"></i>
+                        {% else %}
+                            <i class="fa-solid fa-car-side" style="color:#64748b;"></i>
+                        {% endif %}
+                        {{ item.type|upper }}
+                    </div>
+                    <div class="breakdown-bar-wrap">
+                        <div class="breakdown-bar-fill" style="width: {{ item.percentage }}%;"></div>
+                    </div>
+                    <div style="width: 130px; text-align:right;">
+                        <span style="font-weight:700; font-size:13px; color:#0f172a;">{{ item.count }}</span>
+                        <span style="font-size:11px; color:#64748b;">({{ item.percentage }}%)</span>
+                        <br>
+                        <small style="font-weight:700; color:#16a34a;">₹{{ item.fee }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align:center; color:#94a3b8; padding:20px 0; margin:0;">No vehicle records in this period.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 2. Operational Highlights & Period Summary -->
+    <div class="table-card" style="margin-bottom:0;">
+        <div class="table-card-header">
+            <h2>OPERATIONAL SUMMARY</h2>
+            <span class="count-chip">INSIGHTS</span>
+        </div>
+        <div style="padding: 20px;">
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:12px; border-bottom:1px solid var(--border);">
+                    <div>
+                        <strong style="display:block; font-size:14px; color:#0f172a;">Filter Period Active</strong>
+                        <small style="color:#64748b;">Dates applied to all calculations</small>
+                    </div>
+                    <span class="period-pill active" style="font-size:12px;">{{ period|upper }}</span>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:12px; border-bottom:1px solid var(--border);">
+                    <div>
+                        <strong style="display:block; font-size:14px; color:#0f172a;">Active Vehicles Occupying Slots</strong>
+                        <small style="color:#64748b;">Currently parked inside bays</small>
+                    </div>
+                    <span style="font-size:16px; font-weight:800; color:#2563eb;">{{ active_count }} Active</span>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:12px; border-bottom:1px solid var(--border);">
+                    <div>
+                        <strong style="display:block; font-size:14px; color:#0f172a;">Completed Parking Cycles</strong>
+                        <small style="color:#64748b;">Vehicles checked out and billed</small>
+                    </div>
+                    <span style="font-size:16px; font-weight:800; color:#16a34a;">{{ exited_count }} Exited</span>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:12px; border-bottom:1px solid var(--border);">
+                    <div>
+                        <strong style="display:block; font-size:14px; color:#0f172a;">Pre-Booked Reservations</strong>
+                        <small style="color:#64748b;">Advance bookings recorded</small>
+                    </div>
+                    <span style="font-size:16px; font-weight:800; color:#9333ea;">{{ total_advance_bookings }} Bookings</span>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <strong style="display:block; font-size:14px; color:#0f172a;">Rush Hour Traffic</strong>
+                        <small style="color:#64748b;">Highest check-in activity interval</small>
+                    </div>
+                    <span class="peak-hour-chip">
+                        <i class="fa-solid fa-bolt"></i> {{ peak_hour }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ Transaction History Table ══ -->
+<div class="table-card">
+    <div class="table-card-header">
+        <h2>TRANSACTION AUDIT LOG</h2>
+        <span class="count-chip">{{ total_entries }} TRANSACTIONS</span>
+    </div>
+
+    {% if records %}
+    <div style="overflow-x:auto;">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>TICKET #</th>
+                    <th>NUMBER PLATE</th>
+                    <th>TYPE</th>
+                    <th>OWNER</th>
+                    <th>MOBILE</th>
+                    <th>SLOT</th>
+                    <th>ENTRY TIME</th>
+                    <th>EXIT TIME</th>
+                    <th>DURATION</th>
+                    <th>FEE</th>
+                    <th>STATUS</th>
+                    <th style="text-align:right;">RECEIPT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in records %}
+                {% with colors=r.vehicle.get_plate_colors %}
+                <tr>
+                    <td style="font-family:'JetBrains Mono',monospace; font-weight:700; color:#64748b;">
+                        #{{ r.id }}
+                    </td>
+                    <td>
+                        <span class="india-plate-sm"
+                              data-bg="{{ colors.0 }}"
+                              data-color="{{ colors.1 }}">
+                            {{ r.vehicle.vehicle_number }}
+                        </span>
+                    </td>
+                    <td style="font-weight:600; font-size:12px;">{{ r.vehicle.vehicle_type|upper }}</td>
+                    <td style="font-weight:600; color:#0f172a;">{{ r.vehicle.owner_name|upper }}</td>
+                    <td style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#64748b;">
+                        +91 {{ r.vehicle.mobile }}
+                    </td>
+                    <td>
+                        <span class="slot-badge">{{ r.parking_number }}</span><br>
+                        <small class="table-muted">{{ r.parking_area_name }} • {{ r.floor_name }}</small>
+                    </td>
+                    <td style="font-size:12px; color:#475569;">
+                        {{ r.entry_time|date:"d M Y • h:i A" }}
+                    </td>
+                    <td style="font-size:12px; color:#475569;">
+                        {% if r.exit_time %}
+                            {{ r.exit_time|date:"d M Y • h:i A" }}
+                        {% else %}
+                            <span style="color:#94a3b8; font-style:italic;">Active (Inside)</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:12px; font-family:'JetBrains Mono',monospace; font-weight:600;">
+                        {{ r.formatted_duration }}
+                    </td>
+                    <td>
+                        {% if r.parking_fee is not None %}
+                            <span class="fee-badge">₹{{ r.parking_fee }}</span>
+                        {% else %}
+                            <span style="color:#94a3b8;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.status == 'Active' %}
+                            <span class="badge-status checked-in"><i class="fa-solid fa-car"></i> Active</span>
+                        {% else %}
+                            <span class="badge-status"><i class="fa-solid fa-check"></i> Exited</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right;">
+                        {% if r.status == 'Exited' %}
+                        <a href="{% url 'receipt' r.id %}" target="_blank" class="btn-action-pass" title="View receipt">
+                            <i class="fa-solid fa-receipt"></i>
+                        </a>
+                        {% else %}
+                        <span style="color:#cbd5e1; font-size:12px;">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endwith %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if total_record_count > 150 %}
+    <div style="padding:12px 20px; background:#f8fafc; border-top:1px solid var(--border); text-align:center; font-size:12px; color:#64748b;">
+        Showing top 150 of {{ total_record_count }} records. Use "Export CSV" to download the complete dataset.
+    </div>
+    {% endif %}
+    {% else %}
+    <div style="text-align:center; padding: 48px 20px; color:#64748b;">
+        <i class="fa-solid fa-chart-line" style="font-size:36px; color:#cbd5e1; margin-bottom:12px; display:block;"></i>
+        <h4 style="margin:0 0 4px 0; color:#334155;">No Parking Transactions In This Period</h4>
+        <p style="font-size:13px; margin:0;">Try adjusting your period presets or date range filter above.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

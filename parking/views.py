@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.db import IntegrityError, transaction
-from django.db.models import Sum
+from django.db.models import Sum, Count, Q
+from django.http import HttpResponse
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
@@ -10,10 +11,12 @@ from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.views.decorators.cache import never_cache
 from django.urls import reverse
-from .models import ParkingArea, ParkingFloor, ParkingRecord, ParkingSlot, Vehicle
-from .forms import ParkingAreaForm, ParkingFloorForm, ParkingSlotForm, VehicleEntryForm, VehicleExitForm
+from .models import ParkingArea, ParkingFloor, ParkingRecord, ParkingSlot, Vehicle, AdvanceBooking, VEHICLE_TYPES
+from .forms import ParkingAreaForm, ParkingFloorForm, ParkingSlotForm, VehicleEntryForm, VehicleExitForm, AdvanceBookingForm
 import math
 import secrets
+import csv
+from datetime import datetime
 
 def build_parking_layout(occupied_slots_map):
     """Return the configured places/floors/slots for dashboard and check-in."""
@@ -501,3 +504,402 @@ def clear_history(request):
     # Redirect back to the caller URL (usually history page)
     next_url = request.POST.get('next', 'history')
     return redirect(next_url)
+
+
+# ══════════════════════════════════════════════════════════
+# ADVANCE BOOKING SYSTEM
+# ══════════════════════════════════════════════════════════
+
+@login_required(login_url='login')
+def advance_booking(request):
+    """Manage slot pre-reservations and advance bookings."""
+    active_slot_ids = set(ParkingRecord.objects.filter(status='Active').values_list('parking_slot_id', flat=True))
+    available_slots = ParkingSlot.objects.filter(
+        is_under_maintenance=False,
+        parking_floor__is_under_maintenance=False,
+        parking_floor__parking_area__is_under_maintenance=False,
+    ).exclude(id__in=active_slot_ids)
+
+    status_filter = request.GET.get('status', '').strip()
+    query = request.GET.get('q', '').strip().upper()
+
+    bookings = AdvanceBooking.objects.select_related(
+        'parking_slot__parking_floor__parking_area', 'vehicle'
+    ).all()
+
+    if status_filter:
+        bookings = bookings.filter(status=status_filter)
+    if query:
+        bookings = bookings.filter(
+            Q(vehicle_number__icontains=query) |
+            Q(owner_name__icontains=query) |
+            Q(booking_id__icontains=query) |
+            Q(mobile__icontains=query)
+        )
+
+    # Metrics
+    total_bookings = AdvanceBooking.objects.count()
+    now_local = timezone.localtime()
+    today_start = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_bookings = AdvanceBooking.objects.filter(created_at__gte=today_start).count()
+    confirmed_bookings = AdvanceBooking.objects.filter(status='Confirmed').count()
+    checkedin_bookings = AdvanceBooking.objects.filter(status='Checked-in').count()
+
+    form = AdvanceBookingForm()
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+        if action == 'create_booking':
+            form = AdvanceBookingForm(request.POST)
+            if form.is_valid():
+                vehicle_number = form.cleaned_data['vehicle_number']
+                owner_name = form.cleaned_data['owner_name']
+                mobile = form.cleaned_data['mobile']
+                vehicle_type = form.cleaned_data['vehicle_type']
+                plate_type = form.cleaned_data['plate_type']
+                state_code = form.cleaned_data['state_code']
+                parking_slot = form.cleaned_data.get('parking_slot')
+                booking_from = form.cleaned_data['booking_from']
+                booking_to = form.cleaned_data['booking_to']
+                advance_fee = form.cleaned_data.get('advance_fee') or 0.00
+                notes = form.cleaned_data.get('notes', '')
+
+                vehicle, _ = Vehicle.objects.get_or_create(
+                    vehicle_number=vehicle_number,
+                    defaults={
+                        'owner_name': owner_name,
+                        'mobile': mobile,
+                        'vehicle_type': vehicle_type,
+                        'plate_type': plate_type,
+                        'state_code': state_code,
+                    }
+                )
+                if vehicle.owner_name != owner_name or vehicle.mobile != mobile:
+                    vehicle.owner_name = owner_name
+                    vehicle.mobile = mobile
+                    vehicle.vehicle_type = vehicle_type
+                    vehicle.plate_type = plate_type
+                    vehicle.state_code = state_code
+                    vehicle.save()
+
+                booking = AdvanceBooking.objects.create(
+                    vehicle=vehicle,
+                    vehicle_number=vehicle_number,
+                    owner_name=owner_name,
+                    mobile=mobile,
+                    vehicle_type=vehicle_type,
+                    plate_type=plate_type,
+                    state_code=state_code,
+                    parking_slot=parking_slot,
+                    booking_from=booking_from,
+                    booking_to=booking_to,
+                    advance_fee=advance_fee,
+                    notes=notes,
+                    status='Confirmed',
+                )
+                messages.success(request, f'Advance booking #{booking.booking_id} created successfully for {vehicle_number}!')
+                return redirect('advance_booking')
+            else:
+                messages.error(request, 'Please correct the errors in the reservation form.')
+
+    # Layout for modal or slot selector
+    active_slots_map = {r.parking_slot_id: r.vehicle.vehicle_type for r in ParkingRecord.objects.filter(status='Active').select_related('vehicle') if r.parking_slot_id}
+    parking_floors = build_parking_layout(active_slots_map)
+
+    context = {
+        'bookings': bookings,
+        'form': form,
+        'status_filter': status_filter,
+        'query': query,
+        'total_bookings': total_bookings,
+        'today_bookings': today_bookings,
+        'confirmed_bookings': confirmed_bookings,
+        'checkedin_bookings': checkedin_bookings,
+        'available_slots': available_slots,
+        'parking_floors': parking_floors,
+    }
+    return render(request, 'parking/advance_booking.html', context)
+
+
+@login_required(login_url='login')
+@require_POST
+def checkin_advance_booking(request, booking_id):
+    """Instantly check in an advance booking into an active parking session."""
+    booking = get_object_or_404(AdvanceBooking, id=booking_id)
+    if booking.status != 'Confirmed':
+        messages.error(request, f'Booking is currently {booking.status} and cannot be checked in.')
+        return redirect('advance_booking')
+
+    # Check if vehicle is already parked actively
+    active_record = ParkingRecord.objects.filter(
+        vehicle__vehicle_number=booking.vehicle_number, status='Active'
+    ).first()
+    if active_record:
+        messages.error(
+            request,
+            f'Vehicle {booking.vehicle_number} is already active in slot {active_record.parking_number}. Please check it out first.'
+        )
+        return redirect('advance_booking')
+
+    # Check slot availability
+    slot = booking.parking_slot
+    if not slot or slot.records.filter(status='Active').exists() or slot.is_under_maintenance:
+        # Auto-pick the first available free slot
+        active_slot_ids = set(ParkingRecord.objects.filter(status='Active').values_list('parking_slot_id', flat=True))
+        slot = ParkingSlot.objects.filter(
+            is_under_maintenance=False,
+            parking_floor__is_under_maintenance=False,
+            parking_floor__parking_area__is_under_maintenance=False,
+        ).exclude(id__in=active_slot_ids).first()
+
+        if not slot:
+            messages.error(request, 'No free parking slots available right now! Cannot check-in vehicle.')
+            return redirect('advance_booking')
+        booking.parking_slot = slot
+
+    vehicle, _ = Vehicle.objects.get_or_create(
+        vehicle_number=booking.vehicle_number,
+        defaults={
+            'owner_name': booking.owner_name,
+            'mobile': booking.mobile,
+            'vehicle_type': booking.vehicle_type,
+            'plate_type': booking.plate_type,
+            'state_code': booking.state_code,
+        }
+    )
+
+    record = ParkingRecord.objects.create(
+        vehicle=vehicle,
+        parking_slot=slot,
+        slot_number=slot.id,
+        entry_time=timezone.now(),
+        status='Active'
+    )
+
+    booking.status = 'Checked-in'
+    booking.parking_record = record
+    booking.save()
+
+    messages.success(
+        request,
+        f'Vehicle {booking.vehicle_number} checked in successfully into slot {slot.number} ({slot.parking_floor.name})!'
+    )
+    return redirect('advance_booking')
+
+
+@login_required(login_url='login')
+@require_POST
+def cancel_advance_booking(request, booking_id):
+    """Cancel a reserved advance booking."""
+    booking = get_object_or_404(AdvanceBooking, id=booking_id)
+    if booking.status == 'Checked-in':
+        messages.error(request, 'Cannot cancel a booking that is already checked in.')
+    else:
+        booking.status = 'Cancelled'
+        booking.save()
+        messages.success(request, f'Advance booking #{booking.booking_id} has been cancelled.')
+    return redirect('advance_booking')
+
+
+@login_required(login_url='login')
+def booking_pass(request, booking_id):
+    """View and print booking confirmation pass."""
+    booking = get_object_or_404(
+        AdvanceBooking.objects.select_related('vehicle', 'parking_slot__parking_floor__parking_area'),
+        id=booking_id
+    )
+    qr_data = f'PARKSAFE-ADVANCE-{booking.booking_id}-{booking.vehicle_number}'
+    return render(request, 'parking/booking_pass.html', {
+        'booking': booking,
+        'qr_data': qr_data,
+    })
+
+
+# ══════════════════════════════════════════════════════════
+# PARKING & FINANCIAL REPORTS
+# ══════════════════════════════════════════════════════════
+
+def _filter_records_by_period(queryset, period, start_date_str, end_date_str):
+    """Helper to apply period filters to parking records."""
+    now = timezone.localtime()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+    date_from = None
+    date_to = None
+
+    if period == 'today':
+        date_from = today_start
+        date_to = today_end
+    elif period == 'yesterday':
+        yest = now - timezone.timedelta(days=1)
+        date_from = yest.replace(hour=0, minute=0, second=0, microsecond=0)
+        date_to = yest.replace(hour=23, minute=59, second=59, microsecond=999999)
+    elif period == 'week':
+        date_from = (now - timezone.timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
+        date_to = today_end
+    elif period == 'month':
+        date_from = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        date_to = today_end
+    elif period == 'custom' and start_date_str and end_date_str:
+        try:
+            s_dt = datetime.strptime(start_date_str, '%Y-%m-%d')
+            e_dt = datetime.strptime(end_date_str, '%Y-%m-%d')
+            date_from = timezone.make_aware(s_dt.replace(hour=0, minute=0, second=0))
+            date_to = timezone.make_aware(e_dt.replace(hour=23, minute=59, second=59))
+        except (ValueError, TypeError):
+            date_from = today_start
+            date_to = today_end
+
+    if date_from and date_to:
+        queryset = queryset.filter(entry_time__gte=date_from, entry_time__lte=date_to)
+
+    return queryset, date_from, date_to
+
+
+@login_required(login_url='login')
+def reports(request):
+    """Analytics, revenue and operational report dashboard."""
+    period = request.GET.get('period', 'today')
+    vtype = request.GET.get('vtype', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    start_date_str = request.GET.get('start_date', '').strip()
+    end_date_str = request.GET.get('end_date', '').strip()
+
+    records = ParkingRecord.objects.select_related('vehicle', 'parking_slot__parking_floor__parking_area').all()
+    records, date_from, date_to = _filter_records_by_period(records, period, start_date_str, end_date_str)
+
+    if vtype:
+        records = records.filter(vehicle__vehicle_type=vtype)
+    if status_filter:
+        records = records.filter(status=status_filter)
+
+    records = records.order_by('-entry_time')
+
+    total_entries = records.count()
+    active_count = records.filter(status='Active').count()
+    exited_records = records.filter(status='Exited')
+    exited_count = exited_records.count()
+    total_revenue = exited_records.aggregate(Sum('parking_fee'))['parking_fee__sum'] or 0
+
+    # Advance bookings in corresponding period
+    adv_qs = AdvanceBooking.objects.all()
+    if date_from and date_to:
+        adv_qs = adv_qs.filter(created_at__gte=date_from, created_at__lte=date_to)
+    total_advance_bookings = adv_qs.count()
+    total_advance_revenue = adv_qs.aggregate(Sum('advance_fee'))['advance_fee__sum'] or 0
+    grand_revenue = total_revenue + total_advance_revenue
+
+    # Average duration
+    avg_hours = 0
+    if exited_count > 0:
+        total_dur_hours = sum((r.total_hours or 0) for r in exited_records)
+        avg_hours = round(total_dur_hours / exited_count, 1)
+
+    # Vehicle type breakdown
+    vehicle_types_stats = []
+    vtype_counts = records.values('vehicle__vehicle_type').annotate(
+        count=Count('id'),
+        fee_sum=Sum('parking_fee')
+    ).order_by('-count')
+
+    for item in vtype_counts:
+        vt = item['vehicle__vehicle_type'] or 'Unknown'
+        cnt = item['count']
+        fee = item['fee_sum'] or 0
+        pct = round((cnt / total_entries * 100), 1) if total_entries > 0 else 0
+        vehicle_types_stats.append({
+            'type': vt,
+            'count': cnt,
+            'fee': fee,
+            'percentage': pct,
+        })
+
+    # Hourly distribution
+    hourly_counts = [0] * 24
+    for r in records:
+        entry_local = timezone.localtime(r.entry_time)
+        hourly_counts[entry_local.hour] += 1
+
+    peak_hour = None
+    peak_hour_count = 0
+    for hour, count in enumerate(hourly_counts):
+        if count > peak_hour_count:
+            peak_hour_count = count
+            peak_hour = f"{hour:02d}:00 - {(hour + 1) % 24:02d}:00"
+
+    context = {
+        'records': records[:150],  # Limit to 150 for speedy rendering
+        'total_record_count': total_entries,
+        'period': period,
+        'vtype': vtype,
+        'status_filter': status_filter,
+        'start_date': start_date_str,
+        'end_date': end_date_str,
+        'total_entries': total_entries,
+        'active_count': active_count,
+        'exited_count': exited_count,
+        'total_revenue': total_revenue,
+        'total_advance_bookings': total_advance_bookings,
+        'total_advance_revenue': total_advance_revenue,
+        'grand_revenue': grand_revenue,
+        'avg_hours': avg_hours,
+        'peak_hour': peak_hour or '—',
+        'peak_hour_count': peak_hour_count,
+        'vehicle_types_stats': vehicle_types_stats,
+        'hourly_counts': hourly_counts,
+        'VEHICLE_TYPES': VEHICLE_TYPES,
+        'date_from': date_from,
+        'date_to': date_to,
+    }
+    return render(request, 'parking/reports.html', context)
+
+
+@login_required(login_url='login')
+def export_reports_csv(request):
+    """Download CSV spreadsheet of filtered parking records."""
+    period = request.GET.get('period', 'today')
+    vtype = request.GET.get('vtype', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    start_date_str = request.GET.get('start_date', '').strip()
+    end_date_str = request.GET.get('end_date', '').strip()
+
+    records = ParkingRecord.objects.select_related('vehicle', 'parking_slot__parking_floor__parking_area').all()
+    records, _, _ = _filter_records_by_period(records, period, start_date_str, end_date_str)
+
+    if vtype:
+        records = records.filter(vehicle__vehicle_type=vtype)
+    if status_filter:
+        records = records.filter(status=status_filter)
+
+    records = records.order_by('-entry_time')
+
+    response = HttpResponse(content_type='text/csv')
+    timestamp = timezone.now().strftime('%Y%m%d_%H%M')
+    response['Content-Disposition'] = f'attachment; filename="parksafe_report_{period}_{timestamp}.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'Ticket ID', 'Vehicle Number', 'Owner Name', 'Mobile Number',
+        'Vehicle Type', 'Category', 'Parking Slot', 'Floor', 'Parking Area',
+        'Entry Time', 'Exit Time', 'Duration (Hours)', 'Parking Fee (INR)', 'Status'
+    ])
+
+    for r in records:
+        writer.writerow([
+            r.id,
+            r.vehicle.vehicle_number,
+            r.vehicle.owner_name,
+            f'+91 {r.vehicle.mobile}',
+            r.vehicle.vehicle_type,
+            r.vehicle.get_plate_colors()[2],
+            r.parking_number,
+            r.floor_name,
+            r.parking_area_name,
+            timezone.localtime(r.entry_time).strftime('%Y-%m-%d %H:%M:%S') if r.entry_time else '',
+            timezone.localtime(r.exit_time).strftime('%Y-%m-%d %H:%M:%S') if r.exit_time else 'Active',
+            round(r.total_hours, 2) if r.total_hours else '',
+            r.parking_fee if r.parking_fee is not None else '',
+            r.status,
+        ])
+
+    return response
+

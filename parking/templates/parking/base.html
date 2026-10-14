@@ -24,11 +24,15 @@
         <!-- ══ TOP NAVBAR ══ -->
         <header class="hud-topbar">
             <div class="brand-zone">
-                <div class="brand-text">
-                    <span class="brand-name" style="font-size:18px;font-weight:800;letter-spacing:1px;">PARKSAFE</span>
-                </div>
+                <a href="{% url 'dashboard' %}" class="brand-zone-link" style="text-decoration:none; display:flex; align-items:center; gap:10px;">
+                    <div class="brand-badge">P</div>
+                    <div class="brand-text">
+                        <span class="brand-name" style="font-size:18px;font-weight:800;letter-spacing:1px;">PARKSAFE</span>
+                    </div>
+                </a>
             </div>
 
+            <!-- Core Operational Pills Only -->
             <nav class="hud-nav-pills">
                 <a href="{% url 'dashboard' %}"
                     class="hud-pill {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
@@ -65,26 +69,98 @@
                     </svg>
                     HISTORY
                 </a>
-                <a href="{% url 'parking_management' %}" class="hud-pill {% if request.resolver_match.url_name == 'parking_management' %}active{% endif %}">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1 1.55V20.3h-3v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7.08 15a1.7 1.7 0 0 0-1.55-1H5.4v-3h.13a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06L8.8 5.94l.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1-1.55V4.7h3v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.55 1h.13v3h-.13a1.7 1.7 0 0 0-1.55 1Z" />
-                    </svg>
-                    PARKING MANAGEMENT
-                </a>
             </nav>
 
             <div class="user-action-zone">
-                <a href="{% url 'logout' %}" class="btn-hud-logout">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                        <polyline points="16 17 21 12 16 7"></polyline>
-                        <line x1="21" y1="12" x2="9" y2="12"></line>
-                    </svg>
-                    LOGOUT
-                </a>
+                <!-- Right-side 3-Line Menu Trigger -->
+                <div class="hud-3line-toggle" id="hud3LineToggleRight" role="button" tabindex="0" title="Open System Menu" aria-label="Open System Menu">
+                    <span class="bar bar-1"></span>
+                    <span class="bar bar-2"></span>
+                    <span class="bar bar-3"></span>
+                </div>
             </div>
         </header>
+
+        <!-- ══ Full-Screen Backdrop Overlay (fades out other section) ══ -->
+        <div class="hud-drawer-backdrop" id="hudDrawerBackdrop" aria-hidden="true"></div>
+
+        <!-- ══ Vertical Side Drawer Menu (slides open left-to-right) ══ -->
+        <aside class="hud-drawer-sidebar" id="hudDrawerSidebar" aria-label="System Menu">
+            <div class="hud-drawer-header">
+                <div class="drawer-brand">
+                    <div class="brand-badge" style="width:38px; height:38px; font-size:16px; background:linear-gradient(135deg,#2563eb,#38bdf8);">P</div>
+                    <div>
+                        <span class="brand-name" style="font-size:17px; font-weight:800; letter-spacing:0.8px; color:#ffffff; display:block;">PARKSAFE</span>
+                        <span class="drawer-tag">SYSTEM MENU &nbsp;&#9654;&nbsp; OPERATOR</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-drawer-close" id="hudDrawerCloseBtn" aria-label="Close menu" title="Close Menu (Esc)">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="hud-drawer-body">
+                <div class="drawer-menu-label"><i class="fa-solid fa-grip-lines" style="font-size:9px;"></i> QUICK NAVIGATE</div>
+                <nav class="drawer-nav-list">
+                    <!-- Option 1: REPORT -->
+                    <a href="{% url 'reports' %}" class="drawer-nav-item {% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
+                        <span class="drawer-item-icon icon-report">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </span>
+                        <div class="drawer-item-text">
+                            <span class="item-main-title">REPORT</span>
+                            <span class="item-subtitle">Analytics, revenue & transaction audit</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right drawer-arrow"></i>
+                    </a>
+
+                    <!-- Option 2: ADVANCE BOOKING -->
+                    <a href="{% url 'advance_booking' %}" class="drawer-nav-item {% if request.resolver_match.url_name == 'advance_booking' %}active{% endif %}">
+                        <span class="drawer-item-icon icon-booking">
+                            <i class="fa-solid fa-calendar-check"></i>
+                        </span>
+                        <div class="drawer-item-text">
+                            <span class="item-main-title">ADVANCE BOOKING</span>
+                            <span class="item-subtitle">Slot pre-reservations & gate pass</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right drawer-arrow"></i>
+                    </a>
+
+                    <!-- Option 3: PARKING MANAGEMENT -->
+                    <a href="{% url 'parking_management' %}" class="drawer-nav-item {% if request.resolver_match.url_name == 'parking_management' %}active{% endif %}">
+                        <span class="drawer-item-icon icon-mgmt">
+                            <i class="fa-solid fa-sliders"></i>
+                        </span>
+                        <div class="drawer-item-text">
+                            <span class="item-main-title">PARKING MANAGEMENT</span>
+                            <span class="item-subtitle">Area, floor & bay slot configuration</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right drawer-arrow"></i>
+                    </a>
+
+                    <div class="drawer-divider"></div>
+
+                    <!-- Option 4: LOGOUT -->
+                    <a href="{% url 'logout' %}" class="drawer-nav-item item-logout">
+                        <span class="drawer-item-icon icon-logout">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        </span>
+                        <div class="drawer-item-text">
+                            <span class="item-main-title">LOGOUT</span>
+                            <span class="item-subtitle">Sign out of operator session</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right drawer-arrow"></i>
+                    </a>
+                </nav>
+            </div>
+
+            <div class="hud-drawer-footer">
+                <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                    <span class="footer-badge">PARKSAFE PRO</span>
+                    <span class="footer-info">Smart Indian Vehicle Management</span>
+                </div>
+            </div>
+        </aside>
 
         <!-- ══ MAIN CANVAS ══ -->
         <main class="hud-canvas">

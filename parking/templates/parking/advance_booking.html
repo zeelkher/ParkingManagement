@@ -1,0 +1,390 @@
+{% extends 'parking/base.html' %}
+{% block page_title %}Advance Booking{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %}" style="margin-bottom: 20px;">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<!-- ══ Header Zone ══ -->
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 24px; flex-wrap:wrap; gap:16px;">
+    <div>
+        <h1 style="font-size:24px; font-weight:800; color:#0f172a; margin:0 0 6px 0; letter-spacing:-0.5px; display:flex; align-items:center; gap:10px;">
+            <i class="fa-solid fa-calendar-check" style="color:var(--blue);"></i>
+            ADVANCE BOOKING & RESERVATIONS
+        </h1>
+        <p style="font-size:14px; color:#64748b; margin:0;">
+            Pre-book parking slots for upcoming arrivals, generate booking passes, and one-click check-in.
+        </p>
+    </div>
+    <button type="button" class="btn btn-primary" id="toggleBookingFormBtn" style="display:inline-flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-plus"></i> NEW ADVANCE BOOKING
+    </button>
+</div>
+
+<!-- ══ Stats KPI Grid ══ -->
+<div class="stats-grid" style="margin-bottom: 24px;">
+    <div class="stat-card blue">
+        <div class="stat-label">Total Reservations</div>
+        <div class="stat-value">{{ total_bookings }}</div>
+        <div class="stat-sub">ALL-TIME BOOKINGS</div>
+        <div class="stat-icon-bg"><i class="bi bi-calendar2-range-fill"></i></div>
+    </div>
+    <div class="stat-card cyan">
+        <div class="stat-label">Confirmed / Upcoming</div>
+        <div class="stat-value">{{ confirmed_bookings }}</div>
+        <div class="stat-sub">READY FOR ARRIVAL</div>
+        <div class="stat-icon-bg"><i class="bi bi-clock-history"></i></div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-label">Checked-In</div>
+        <div class="stat-value">{{ checkedin_bookings }}</div>
+        <div class="stat-sub">VEHICLES IN BAY</div>
+        <div class="stat-icon-bg"><i class="bi bi-check2-circle"></i></div>
+    </div>
+    <div class="stat-card purple">
+        <div class="stat-label">Today's Bookings</div>
+        <div class="stat-value">{{ today_bookings }}</div>
+        <div class="stat-sub">RESERVED TODAY</div>
+        <div class="stat-icon-bg"><i class="bi bi-calendar-event"></i></div>
+    </div>
+</div>
+
+<!-- ══ Create Advance Booking Form (Collapsible/Toggle) ══ -->
+<div class="form-container" id="advanceBookingFormCard" style="display: {% if form.errors %}block{% else %}none{% endif %}; margin-bottom: 28px; border: 2px solid var(--blue-border); background:#ffffff;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border);">
+        <h3 style="font-size:17px; font-weight:800; color:#0f172a; margin:0; display:flex; align-items:center; gap:8px;">
+            <i class="fa-solid fa-file-pen" style="color:var(--blue);"></i> CREATE NEW ADVANCE RESERVATION
+        </h3>
+        <button type="button" class="btn btn-secondary" id="closeBookingFormBtn" style="padding:4px 10px; font-size:12px;">
+            <i class="fa-solid fa-xmark"></i> CLOSE
+        </button>
+    </div>
+
+    {% if form.errors %}
+    <div class="alert alert-danger" style="margin-bottom: 20px;">
+        <strong>PLEASE FIX THE FOLLOWING ERRORS:</strong>
+        {% for field in form %}
+            {% for error in field.errors %}
+                <div>• {{ field.label }}: {{ error }}</div>
+            {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+            <div>• {{ error }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" autocomplete="off" id="adv-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_booking">
+
+        <!-- Vehicle Number & State Code -->
+        <div class="form-group" style="margin-bottom: 16px;">
+            <div style="display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 8px; align-items: flex-end;">
+                <div>
+                    <label for="id_adv_vehicle_number">Vehicle Number *</label>
+                    <input type="text" name="vehicle_number" id="id_adv_vehicle_number" class="form-control"
+                           placeholder="GJ 05 AA 1234" value="{{ form.vehicle_number.value|default:'' }}"
+                           maxlength="16" style="font-family:'JetBrains Mono',monospace;letter-spacing:2px;font-size:15px;font-weight:700;" required>
+                </div>
+                <div>
+                    <label for="id_adv_state_code">State Code *</label>
+                    <input type="text" name="state_code" id="id_adv_state_code" class="form-control"
+                           placeholder="GJ" value="{{ form.state_code.value|default:'' }}"
+                           maxlength="5" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:3px;font-size:18px;font-weight:800;" required>
+                </div>
+                <div class="bh-series-control">
+                    <input type="checkbox" name="bh_series" id="id_adv_bh_series" {% if form.bh_series.value %}checked{% endif %}>
+                    <label for="id_adv_bh_series" class="bh-series-label" title="Bharat (BH) Series vehicle" aria-label="Bharat (BH) Series vehicle">
+                        <i class="bi bi-patch-check-fill" aria-hidden="true"></i><span>BH</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3 Column Form Grid -->
+        <div class="form-grid-3col">
+            <div class="form-group">
+                <label>Vehicle Type *</label>
+                {{ form.vehicle_type }}
+            </div>
+            <div class="form-group">
+                <label>Plate Category *</label>
+                {{ form.plate_type }}
+            </div>
+            <div class="form-group">
+                <label>Parking Area *</label>
+                {{ form.parking_area }}
+            </div>
+
+            <div class="form-group">
+                <label>Parking Floor *</label>
+                {{ form.parking_floor }}
+            </div>
+            <div class="form-group">
+                <label>Reserved Slot (Optional)</label>
+                {{ form.parking_slot }}
+                <small class="field-help">Pick slot to reserve or leave unassigned.</small>
+            </div>
+            <div class="form-group">
+                <label>Advance Deposit (₹)</label>
+                {{ form.advance_fee }}
+                <small class="field-help">Token advance fee collected.</small>
+            </div>
+
+            <div class="form-group">
+                <label>Reservation From *</label>
+                {{ form.booking_from }}
+                <small class="field-help">Expected arrival time.</small>
+            </div>
+            <div class="form-group">
+                <label>Reservation Until *</label>
+                {{ form.booking_to }}
+                <small class="field-help">Expected departure time.</small>
+            </div>
+            <div class="form-group">
+                <label>Owner Name *</label>
+                <input type="text" name="owner_name" id="id_adv_owner_name" class="form-control"
+                       placeholder="FULL NAME" value="{{ form.owner_name.value|default:'' }}"
+                       style="text-transform:uppercase;" required>
+            </div>
+
+            <div class="form-group">
+                <label>Mobile Number *</label>
+                <div class="mobile-input-wrap">
+                    <span class="mobile-prefix">+91</span>
+                    <input type="text" name="mobile" id="id_adv_mobile" class="form-control"
+                           placeholder="9876543210" value="{{ form.mobile.value|default:'' }}"
+                           maxlength="10" inputmode="numeric" required>
+                </div>
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+                <label>Special Instructions / Notes</label>
+                {{ form.notes }}
+            </div>
+        </div>
+
+        <div style="margin-top:20px; display:flex; gap:12px; justify-content:flex-end;">
+            <button type="button" class="btn btn-secondary" id="cancelFormBtn">CANCEL</button>
+            <button type="submit" class="btn btn-primary" style="padding:11px 28px; font-weight:700;">
+                <i class="fa-solid fa-check"></i> CONFIRM ADVANCE BOOKING
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- ══ Search & Status Filter Panel ══ -->
+<div class="glass-panel mb-4" style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+    <!-- Search Form -->
+    <form method="get" class="search-form" style="flex:1; min-width:280px; margin-bottom:0;">
+        {% if status_filter %}
+        <input type="hidden" name="status" value="{{ status_filter }}">
+        {% endif %}
+        <input type="text" name="q" value="{{ query }}"
+               placeholder="SEARCH BY VEHICLE NUMBER, TOKEN, OR OWNER..."
+               class="form-control"
+               style="text-transform:uppercase; font-family:'JetBrains Mono',monospace; letter-spacing:1px;">
+        <button type="submit" class="btn btn-primary">SEARCH</button>
+        {% if query %}
+        <a href="{% url 'advance_booking' %}{% if status_filter %}?status={{ status_filter }}{% endif %}" class="btn btn-secondary">CLEAR</a>
+        {% endif %}
+    </form>
+
+    <!-- Status Filter Pills -->
+    <div class="period-pills">
+        <a href="{% url 'advance_booking' %}{% if query %}?q={{ query }}{% endif %}"
+           class="period-pill {% if not status_filter %}active{% endif %}">ALL</a>
+        <a href="{% url 'advance_booking' %}?status=Confirmed{% if query %}&q={{ query }}{% endif %}"
+           class="period-pill {% if status_filter == 'Confirmed' %}active{% endif %}">CONFIRMED</a>
+        <a href="{% url 'advance_booking' %}?status=Checked-in{% if query %}&q={{ query }}{% endif %}"
+           class="period-pill {% if status_filter == 'Checked-in' %}active{% endif %}">CHECKED-IN</a>
+        <a href="{% url 'advance_booking' %}?status=Cancelled{% if query %}&q={{ query }}{% endif %}"
+           class="period-pill {% if status_filter == 'Cancelled' %}active{% endif %}">CANCELLED</a>
+    </div>
+</div>
+
+<!-- ══ Bookings Table ══ -->
+<div class="table-card">
+    <div class="table-card-header">
+        <h2>ADVANCE RESERVATIONS LIST</h2>
+        <span class="count-chip">{{ bookings|length }} BOOKINGS</span>
+    </div>
+
+    {% if bookings %}
+    <div style="overflow-x:auto;">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>BOOKING TOKEN</th>
+                    <th>VEHICLE PLATE</th>
+                    <th>TYPE</th>
+                    <th>CUSTOMER</th>
+                    <th>RESERVED BAY</th>
+                    <th>RESERVATION WINDOW</th>
+                    <th>ADVANCE FEE</th>
+                    <th>STATUS</th>
+                    <th style="text-align:right;">ACTIONS</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bookings %}
+                {% with colors=b.get_plate_colors %}
+                <tr>
+                    <!-- Token -->
+                    <td>
+                        <span class="booking-token-pill">
+                            <i class="fa-solid fa-ticket" style="font-size:10px;"></i>
+                            {{ b.booking_id }}
+                        </span>
+                    </td>
+                    <!-- License Plate -->
+                    <td>
+                        <span class="india-plate-sm"
+                              data-bg="{{ colors.0 }}"
+                              data-color="{{ colors.1 }}">
+                            {{ b.vehicle_number }}
+                        </span>
+                    </td>
+                    <!-- Type -->
+                    <td style="font-weight:600; font-size:12px;">{{ b.vehicle_type|upper }}</td>
+                    <!-- Customer -->
+                    <td>
+                        <strong style="color:#0f172a;">{{ b.owner_name|upper }}</strong><br>
+                        <small style="font-family:'JetBrains Mono',monospace; color:#64748b;">+91 {{ b.mobile }}</small>
+                    </td>
+                    <!-- Bay -->
+                    <td>
+                        {% if b.parking_slot %}
+                        <span class="slot-badge">{{ b.parking_slot.number }}</span><br>
+                        <small class="table-muted">{{ b.parking_slot.parking_floor.parking_area.name }} • {{ b.parking_slot.parking_floor.name }}</small>
+                        {% else %}
+                        <span style="color:#94a3b8; font-style:italic;">Auto-assign upon arrival</span>
+                        {% endif %}
+                    </td>
+                    <!-- Window -->
+                    <td style="font-size:12px; color:#475569;">
+                        <div><i class="fa-solid fa-arrow-right-to-bracket" style="font-size:10px; color:#16a34a;"></i> {{ b.booking_from|date:"d M • h:i A" }}</div>
+                        <div><i class="fa-solid fa-arrow-right-from-bracket" style="font-size:10px; color:#dc2626;"></i> {{ b.booking_to|date:"d M • h:i A" }}</div>
+                    </td>
+                    <!-- Fee -->
+                    <td>
+                        <span class="fee-badge">₹{{ b.advance_fee }}</span>
+                    </td>
+                    <!-- Status -->
+                    <td>
+                        {% if b.status == 'Confirmed' %}
+                        <span class="badge-status confirmed"><i class="fa-solid fa-circle-check"></i> Confirmed</span>
+                        {% elif b.status == 'Checked-in' %}
+                        <span class="badge-status checked-in"><i class="fa-solid fa-car"></i> Checked-In</span>
+                        {% elif b.status == 'Cancelled' %}
+                        <span class="badge-status cancelled"><i class="fa-solid fa-ban"></i> Cancelled</span>
+                        {% else %}
+                        <span class="badge-status">{{ b.status }}</span>
+                        {% endif %}
+                    </td>
+                    <!-- Actions -->
+                    <td style="text-align:right; white-space:nowrap;">
+                        <div style="display:inline-flex; align-items:center; gap:6px;">
+                            {% if b.status == 'Confirmed' %}
+                            <!-- Check-in Action -->
+                            <form action="{% url 'checkin_advance_booking' b.id %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-action-checkin" title="Check-in vehicle to slot now">
+                                    <i class="fa-solid fa-car-side"></i> Check-in
+                                </button>
+                            </form>
+                            <!-- Cancel Action -->
+                            <form action="{% url 'cancel_advance_booking' b.id %}" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to cancel booking {{ b.booking_id }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-action-cancel" title="Cancel this reservation">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+
+                            <!-- Print Pass -->
+                            <a href="{% url 'booking_pass' b.id %}" target="_blank" class="btn-action-pass" title="View & Print Booking Pass">
+                                <i class="fa-solid fa-print"></i> Pass
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endwith %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align:center; padding: 48px 20px; color:#64748b;">
+        <i class="fa-solid fa-calendar-xmark" style="font-size:36px; color:#cbd5e1; margin-bottom:12px; display:block;"></i>
+        <h4 style="margin:0 0 4px 0; color:#334155;">No Advance Bookings Found</h4>
+        <p style="font-size:13px; margin:0;">There are no reservations matching your current search or filter criteria.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById('toggleBookingFormBtn');
+    const closeBtn = document.getElementById('closeBookingFormBtn');
+    const cancelBtn = document.getElementById('cancelFormBtn');
+    const formCard = document.getElementById('advanceBookingFormCard');
+    const vnumInput = document.getElementById('id_adv_vehicle_number');
+    const stateInput = document.getElementById('id_adv_state_code');
+    const bhCheckbox = document.getElementById('id_adv_bh_series');
+
+    function openForm() {
+        if(formCard) {
+            formCard.style.display = 'block';
+            formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if(vnumInput) vnumInput.focus();
+        }
+    }
+    function closeForm() {
+        if(formCard) formCard.style.display = 'none';
+    }
+
+    if(toggleBtn) toggleBtn.addEventListener('click', openForm);
+    if(closeBtn) closeBtn.addEventListener('click', closeForm);
+    if(cancelBtn) cancelBtn.addEventListener('click', closeForm);
+
+    // Auto sync state code from vehicle number
+    if (vnumInput && stateInput) {
+        vnumInput.addEventListener('input', () => {
+            let val = vnumInput.value.trim().toUpperCase();
+            vnumInput.value = val;
+            if (bhCheckbox && bhCheckbox.checked) return;
+            if (val.length >= 2) {
+                const prefix = val.substring(0, 2);
+                if (/^[A-Z]{2}$/.test(prefix)) {
+                    stateInput.value = prefix;
+                }
+            }
+        });
+    }
+
+    // BH Series Toggle
+    if (bhCheckbox && stateInput && vnumInput) {
+        bhCheckbox.addEventListener('change', () => {
+            if (bhCheckbox.checked) {
+                stateInput.value = 'BH';
+                stateInput.readOnly = true;
+                vnumInput.placeholder = '24 BH 1234 AA';
+            } else {
+                stateInput.readOnly = false;
+                vnumInput.placeholder = 'GJ 05 AA 1234';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
