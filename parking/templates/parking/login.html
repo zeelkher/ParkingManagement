@@ -2,14 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PARK NEST — Admin Login</title>
-    <meta name="description" content="Park Nest Admin Authentication Portal">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Admin Login — PARK NEST</title>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="PARK NEST Secure Operator & Admin Authentication Portal.">
+    <meta name="keywords" content="park nest login, parking management authentication, operator login">
+    <meta name="author" content="PARK NEST">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#0b1120">
+
+    <!-- Open Graph Meta -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="PARK NEST">
+    <meta property="og:title" content="Admin Login — PARK NEST">
+    <meta property="og:description" content="PARK NEST Secure Operator & Admin Authentication Portal.">
+    {% load static %}
+    <meta property="og:image" content="{% static 'images/logo_white_transparent.png' %}">
+
+    <!-- Favicon & Touch Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicon.png' %}">
+    <link rel="shortcut icon" type="image/png" href="{% static 'images/favicon.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/favicon.png' %}">
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    {% load static %}
-    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+    
+    <!-- Stylesheet -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}?v=24.0">
     <style>
         body {

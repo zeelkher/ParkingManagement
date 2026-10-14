@@ -5,16 +5,37 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PARK NEST — Smart Parking Management</title>
-    <meta name="description" content="Park Nest — Smart Indian Vehicle Parking Management System">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>{% block page_title %}{% block title %}Smart Parking Management{% endblock %}{% endblock %} — PARK NEST</title>
+    
+    <!-- Core Meta Tags -->
+    <meta name="description" content="{% block meta_description %}PARK NEST — Smart Indian Vehicle Parking Management System with real-time slot tracking, automated billing, and live analytics.{% endblock %}">
+    <meta name="keywords" content="smart parking, parking management, park nest, vehicle slot allocation, parking revenue analytics">
+    <meta name="author" content="PARK NEST">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#0b1120">
+    <meta name="color-scheme" content="dark light">
+
+    <!-- Social & Open Graph Meta -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="PARK NEST">
+    <meta property="og:title" content="{% block og_title %}PARK NEST — Smart Parking Management{% endblock %}">
+    <meta property="og:description" content="Advanced Indian Vehicle Parking Management, Slot Tracking & Revenue Intelligence.">
+    {% load static %}
+    <meta property="og:image" content="{% static 'images/logo_white_transparent.png' %}">
+
+    <!-- Favicon & Touch Icons -->
+    <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}?v=3.0">
+    <link rel="icon" type="image/png" sizes="64x64" href="{% static 'images/favicon.png' %}?v=3.0">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}?v=3.0">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/favicon.png' %}?v=3.0">
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
-        rel="stylesheet">
-    {% load static %}
-    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS & Icon Libraries -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}?v=25.0">
     <!-- Font Awesome Icons (Clean CDN without mismatched SRI) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
