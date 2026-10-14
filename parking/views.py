@@ -28,7 +28,6 @@ import secrets
 import os
 import re
 import pathlib
-from .sms_utils import send_booking_confirmation_sms, send_booking_approved_sms, send_booking_rejected_sms
 from .email_utils import send_booking_confirmation_email, send_booking_rejection_email
 
 # ── Load .env on startup (if it exists) ────────────────────────────────────
@@ -785,10 +784,7 @@ def booking_request_action(request, booking_id):
         booking.operator_notes = request.POST.get('operator_notes', '').strip()
         booking.save()
         messages.warning(request, f'Booking {booking.booking_reference} has been rejected.')
-        # Send rejection SMS
-        if booking.mobile:
-            send_booking_rejected_sms(booking.mobile, booking.booking_reference, reason, booking.owner_name)
-        # Send rejection email
+        # Send rejection email (no SMS)
         if booking.email:
             email_sent, email_msg = send_booking_rejection_email(booking, reason)
             if not email_sent:
@@ -950,9 +946,6 @@ def public_advance_booking(request):
                 expected_duration_hours=expected_duration_hours,
                 custom_answers=custom_answers,
             )
-            # Send confirmation SMS with reference number (non-blocking)
-            if mobile:
-                send_booking_confirmation_sms(mobile, ref, owner_name)
             return redirect('booking_confirmation', reference=ref)
     else:
         # Default arrival time: rounded forward by lead hours

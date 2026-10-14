@@ -6,361 +6,214 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <title>Booking Confirmed — PARK NEST</title>
   <style type="text/css">
-    /* Reset */
     * { margin:0; padding:0; box-sizing:border-box; }
-    body, html { margin:0; padding:0; width:100%; }
+    body, html { margin:0; padding:0; width:100%; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
     body {
-      background:#f1f5f9;
-      font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
-      -webkit-text-size-adjust:100%;
+      background-color:#f1f5f9;
+      font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height:1.5;
+      color:#334155;
     }
     table { border-collapse:collapse; mso-table-lspace:0pt; mso-table-rspace:0pt; }
-    img   { border:0; display:block; outline:none; text-decoration:none; }
-    a     { color:#2563eb; text-decoration:none; }
+    img { border:0; display:block; outline:none; text-decoration:none; }
+    a { color:#2563eb; text-decoration:none; }
 
-    /* Outer background */
-    .email-outer { width:100%; background:#f1f5f9; padding:32px 0 48px; }
-
-    /* ── HEADER BAND ──────────────────────────── */
-    .header-band {
-      background:#1e3a5f;
-      /* Outlook ignores linear-gradient, falls back to solid color */
-      background:linear-gradient(135deg,#1e3a5f 0%,#1d4ed8 55%,#2563eb 100%);
-      padding:36px 40px 32px;
-      text-align:center;
-    }
-
-    /* Logo pill */
-    .logo-pill {
-      display:inline-block;
-      background:rgba(255,255,255,0.12);
-      border:1.5px solid rgba(255,255,255,0.28);
-      border-radius:12px;
-      padding:8px 16px 8px 12px;
-      margin-bottom:22px;
-    }
-    .logo-icon-cell {
-      width:30px; height:30px;
-      background:rgba(255,255,255,0.18);
-      border-radius:8px;
-      text-align:center;
-      vertical-align:middle;
-      font-size:18px;
-      line-height:30px;
-    }
-    .logo-text-cell { padding-left:10px; text-align:left; vertical-align:middle; }
-    .brand-name { font-size:20px; font-weight:800; color:#ffffff; letter-spacing:3px; line-height:1.1; }
-    .brand-sub  { font-size:10px; font-weight:600; color:rgba(255,255,255,0.65); letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
-
-    /* Confirm circle */
-    .confirm-circle {
-      width:62px; height:62px;
-      background:rgba(255,255,255,0.15);
-      border:2.5px solid rgba(255,255,255,0.35);
-      border-radius:50%;
-      margin:0 auto 18px;
-      text-align:center;
-      line-height:58px;
-      font-size:26px;
-      color:#ffffff;
-    }
-
-    .header-title { font-size:26px; font-weight:800; color:#ffffff; line-height:1.25; letter-spacing:-0.01em; }
-    .header-sub   { font-size:13px; color:rgba(255,255,255,0.72); margin-top:10px; line-height:1.5; }
-
-    /* Status pill */
-    .status-pill {
-      display:inline-block;
-      background:rgba(255,255,255,0.14);
-      border:1.5px solid rgba(255,255,255,0.32);
-      border-radius:999px;
-      padding:7px 22px;
-      color:#ffffff;
-      font-size:11px; font-weight:700;
-      letter-spacing:2px; text-transform:uppercase;
-      margin-top:20px;
-    }
-
-    /* ── BODY ─────────────────────────────────── */
-    .body-wrap { padding:32px 40px; background:#ffffff; }
-
-    .greeting { font-size:15px; color:#334155; line-height:1.65; margin-bottom:26px; }
-    .greeting strong { color:#0f172a; }
-
-    /* Reference box — dashed blue, matches app */
-    .ref-box {
-      background:#f8fafc;
-      border:2px dashed #93c5fd;
-      border-radius:12px;
-      padding:22px 16px;
-      text-align:center;
-      margin-bottom:28px;
-    }
-    .ref-tag {
-      font-size:10px; font-weight:700;
-      text-transform:uppercase; letter-spacing:2px;
-      color:#64748b; margin-bottom:10px;
-    }
-    .ref-code {
-      font-family:'Courier New','Lucida Console',Courier,monospace;
-      font-size:30px; font-weight:800;
-      color:#1d4ed8; letter-spacing:5px;
-      margin-bottom:12px;
-    }
-    .ref-hint-pill {
-      display:inline-block;
-      background:#eff6ff;
-      border:1px solid #bfdbfe;
-      border-radius:6px;
-      padding:5px 16px;
-      font-size:12px; color:#1d4ed8; font-weight:600;
-    }
-
-    /* Section label */
-    .section-lbl {
-      font-size:10px; font-weight:700;
-      text-transform:uppercase; letter-spacing:2px;
-      color:#64748b; margin-bottom:10px;
-      padding-bottom:8px;
-      border-bottom:1.5px solid #f1f5f9;
-    }
-
-    /* Details table — zebra stripes matching app */
-    .detail-tbl { width:100%; border-collapse:collapse; margin-bottom:28px; }
-    .detail-tbl td { padding:11px 14px; font-size:13px; vertical-align:middle; }
-    .detail-tbl .row-odd  td { background:#f8fafc; }
-    .detail-tbl .row-even td { background:#ffffff; }
-    .detail-tbl .col-lbl { font-weight:600; color:#475569; width:38%; border-radius:8px 0 0 8px; }
-    .detail-tbl .col-val { font-weight:700; color:#0f172a; border-radius:0 8px 8px 0; }
-    .val-slot   { color:#15803d !important; font-size:15px !important; }
-    .val-status { color:#16a34a !important; }
-
-    /* Summary grid via table for email compat */
-    .summary-wrap {
-      border-top:1px solid #e2e8f0;
-      border-bottom:1px solid #e2e8f0;
-      padding:18px 0; margin-bottom:28px;
-    }
-    .s-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#64748b; margin-bottom:4px; }
-    .s-val   { font-size:14px; font-weight:700; color:#0f172a; }
-    .s-sub   { font-size:11px; color:#64748b; margin-top:3px; }
-
-    /* Gate instruction — green left-border box */
-    .gate-box {
-      background:#f0fdf4;
-      border:1px solid #bbf7d0;
-      border-left:4px solid #16a34a;
-      border-radius:0 10px 10px 0;
-      padding:16px 20px;
-      margin-bottom:28px;
-    }
-    .gate-title { font-size:13px; font-weight:700; color:#15803d; margin-bottom:7px; }
-    .gate-text  { font-size:13px; color:#166534; line-height:1.65; }
-
-    /* Divider */
-    .divider { height:1px; background:#e2e8f0; border:none; margin:0 0 22px; }
-
-    /* Footer note */
-    .footer-note {
-      background:#f8fafc; border-radius:8px; padding:12px 16px;
-      font-size:12px; color:#64748b; text-align:center; line-height:1.6;
-    }
-
-    /* ── FOOTER BAND ──────────────────────────── */
-    .footer-band {
-      background:#f1f5f9;
-      border-top:1px solid #e2e8f0;
-      padding:24px 40px;
-      text-align:center;
-    }
-    .footer-brand { font-size:15px; font-weight:800; color:#1e3a5f; letter-spacing:3px; }
-    .footer-sub   { font-size:11px; color:#94a3b8; margin-top:8px; line-height:1.7; }
-
-    /* Mobile */
-    @media only screen and (max-width:480px) {
-      .email-outer  { padding:0 0 24px; }
-      .header-band  { padding:28px 20px 24px; }
-      .body-wrap    { padding:22px 18px; }
-      .footer-band  { padding:20px 18px; }
-      .ref-code     { font-size:22px; letter-spacing:2px; }
-      .header-title { font-size:20px; }
+    @media only screen and (max-width:600px) {
+      .email-container { width:100% !important; border-radius:0 !important; }
+      .header-wrap { padding:30px 20px 26px !important; }
+      .body-wrap { padding:24px 20px !important; }
+      .footer-wrap { padding:22px 20px !important; }
+      .ref-code { font-size:24px !important; letter-spacing:3px !important; }
+      .col-stack { display:block !important; width:100% !important; padding:0 0 14px 0 !important; }
+      .col-divider { border-left:none !important; border-top:1px solid #f1f5f9 !important; padding-top:14px !important; }
     }
   </style>
 </head>
-<body>
-<div class="email-outer">
-<!-- Outer center wrapper -->
+<body style="background-color:#f1f5f9; margin:0; padding:0;">
+<div style="background-color:#f1f5f9; width:100%; padding:36px 0 48px;">
+
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-<tr><td align="center" style="padding:32px 12px 48px;">
-<table width="600" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 8px 24px -4px rgba(15,23,42,0.08);">
+<tr>
+  <td align="center" style="padding:0 12px;">
 
-  <!-- ═══════════════ HEADER BAND ═══════════════ -->
-  <tr>
-    <td class="header-band" style="background:#1e3a5f;background:linear-gradient(135deg,#1e3a5f 0%,#1d4ed8 55%,#2563eb 100%);padding:36px 40px 32px;text-align:center;">
+    <!-- Email Card Container -->
+    <table class="email-container" width="600" cellpadding="0" cellspacing="0" role="presentation"
+           style="max-width:600px; width:100%; background-color:#ffffff; border-radius:16px; overflow:hidden; border:1px solid #e2e8f0; box-shadow:0 10px 25px -5px rgba(15,23,42,0.08);">
 
-      <!-- Logo pill -->
-      <table cellpadding="0" cellspacing="0" role="presentation" align="center" style="margin-bottom:22px;">
-        <tr>
-          <td style="background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.28);border-radius:12px;padding:8px 16px 8px 12px;">
-            <table cellpadding="0" cellspacing="0" role="presentation">
-              <tr>
-                <!-- P icon using text — works in all clients -->
-                <td style="width:32px;height:32px;background:rgba(255,255,255,0.18);border-radius:8px;text-align:center;vertical-align:middle;font-size:20px;line-height:32px;color:#ffffff;font-weight:900;">
-                  &#127963;
-                </td>
-                <td style="padding-left:10px;vertical-align:middle;">
-                  <div style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:3px;line-height:1.1;">PARK NEST</div>
-                  <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.65);letter-spacing:2px;text-transform:uppercase;margin-top:3px;">Smart Parking</div>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
+      <!-- ─── HEADER BAND ────────────────────────────────────── -->
+      <tr>
+        <td class="header-wrap" style="background-color:#1e3a5f; background:linear-gradient(135deg, #0f172a 0%, #1e3a5f 45%, #2563eb 100%); padding:38px 40px 32px; text-align:center;">
 
-      <!-- Confirm circle with checkmark -->
-      <table cellpadding="0" cellspacing="0" role="presentation" align="center" style="margin-bottom:18px;">
-        <tr>
-          <td style="width:62px;height:62px;background:rgba(255,255,255,0.15);border:2.5px solid rgba(255,255,255,0.38);border-radius:50%;text-align:center;vertical-align:middle;font-size:28px;line-height:62px;color:#ffffff;">
-            &#10003;
-          </td>
-        </tr>
-      </table>
+          <!-- Brand Pill with Official Logo -->
+          <table cellpadding="0" cellspacing="0" role="presentation" align="center" style="margin:0 auto 22px auto;">
+            <tr>
+              <td style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.22); border-radius:12px; padding:8px 18px 8px 12px;">
+                <table cellpadding="0" cellspacing="0" role="presentation">
+                  <tr>
+                    <td style="vertical-align:middle; padding-right:12px;">
+                      <img src="{{ logo_url }}" alt="PARK NEST" width="30" height="30" style="display:block; width:30px; height:30px; object-fit:contain; border:0;" />
+                    </td>
+                    <td style="vertical-align:middle; text-align:left;">
+                      <div style="font-size:19px; font-weight:800; color:#ffffff; letter-spacing:2.5px; line-height:1.1;">PARK NEST</div>
+                      <div style="font-size:10px; font-weight:600; color:rgba(255,255,255,0.7); letter-spacing:1.8px; text-transform:uppercase; margin-top:2px;">Smart Parking</div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
 
-      <div style="font-size:26px;font-weight:800;color:#ffffff;line-height:1.25;letter-spacing:-0.01em;">Your parking booking<br>is confirmed!</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.72);margin-top:10px;line-height:1.5;">Your slot has been allocated by our facility team.</div>
+          <!-- Status Badge Circle -->
+          <table cellpadding="0" cellspacing="0" role="presentation" align="center" style="margin:0 auto 16px auto;">
+            <tr>
+              <td align="center" style="width:58px; height:58px; background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.38); border-radius:50%; text-align:center; vertical-align:middle; font-size:30px; line-height:58px; color:#ffffff; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-weight:700;">
+                &#10003;
+              </td>
+            </tr>
+          </table>
 
-      <!-- Status pill -->
-      <div style="margin-top:20px;">
-        <span style="display:inline-block;background:rgba(255,255,255,0.14);border:1.5px solid rgba(255,255,255,0.32);border-radius:999px;padding:7px 22px;color:#ffffff;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">
-          &#10003;&nbsp;&nbsp;CONFIRMED
-        </span>
-      </div>
+          <div style="font-size:25px; font-weight:800; color:#ffffff; line-height:1.25; letter-spacing:-0.02em;">
+            Your parking booking is confirmed
+          </div>
+          <div style="font-size:13px; color:rgba(255,255,255,0.78); margin-top:8px; line-height:1.5;">
+            Your parking slot has been assigned by the facility team.
+          </div>
 
-    </td>
-  </tr>
-
-  <!-- ═══════════════ BODY ═══════════════════════ -->
-  <tr>
-    <td class="body-wrap" style="padding:32px 40px;background:#ffffff;">
-
-      <!-- Greeting -->
-      <p style="font-size:15px;color:#334155;line-height:1.65;margin:0 0 26px;">
-        Hi <strong style="color:#0f172a;">{{ owner_first_name }}</strong>,<br>
-        Great news &#127881; — your advance parking request at <strong style="color:#0f172a;">PARK NEST</strong> has been reviewed and your slot is now confirmed. Please save the reference below and show it at the gate when you arrive.
-      </p>
-
-      <!-- ─── Reference Box ─────────────────────── -->
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:28px;">
-        <tr>
-          <td style="background:#f8fafc;border:2px dashed #93c5fd;border-radius:12px;padding:22px 16px;text-align:center;">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#64748b;margin-bottom:10px;">
-              &#128203;&nbsp; Booking Reference
-            </div>
-            <div style="font-family:'Courier New','Lucida Console',Courier,monospace;font-size:30px;font-weight:800;color:#1d4ed8;letter-spacing:5px;margin-bottom:12px;">
-              {{ booking.booking_reference }}
-            </div>
-            <span style="display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:5px 16px;font-size:12px;color:#1d4ed8;font-weight:600;">
-              &#128204;&nbsp; Show this code at the gate on arrival
+          <!-- Status Indicator Pill -->
+          <div style="margin-top:18px;">
+            <span style="display:inline-block; background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.3); border-radius:999px; padding:6px 20px; color:#ffffff; font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase;">
+              CONFIRMED
             </span>
-          </td>
-        </tr>
-      </table>
+          </div>
 
-      <!-- ─── Booking Details ───────────────────── -->
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#64748b;margin-bottom:10px;padding-bottom:8px;border-bottom:1.5px solid #f1f5f9;">
-        &#128663;&nbsp; Booking Details
-      </div>
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:28px;border-collapse:collapse;">
-        <tr class="row-odd">
-          <td style="padding:11px 14px;font-size:13px;font-weight:600;color:#475569;width:38%;background:#f8fafc;border-radius:8px 0 0 8px;">Vehicle Number</td>
-          <td style="padding:11px 14px;font-size:13px;font-weight:700;color:#0f172a;background:#f8fafc;border-radius:0 8px 8px 0;font-family:'Courier New',monospace;letter-spacing:1px;">{{ booking.vehicle_number }}</td>
-        </tr>
-        <tr>
-          <td style="padding:11px 14px;font-size:13px;font-weight:600;color:#475569;background:#ffffff;border-radius:8px 0 0 8px;">Vehicle Type</td>
-          <td style="padding:11px 14px;font-size:13px;font-weight:700;color:#0f172a;background:#ffffff;border-radius:0 8px 8px 0;">{{ booking.vehicle_type }}</td>
-        </tr>
-        <tr>
-          <td style="padding:11px 14px;font-size:13px;font-weight:600;color:#475569;background:#f8fafc;border-radius:8px 0 0 8px;">Assigned Slot</td>
-          <td style="padding:11px 14px;font-size:15px;font-weight:800;color:#15803d;background:#f8fafc;border-radius:0 8px 8px 0;">{{ slot_number }}</td>
-        </tr>
-        {% if area_name %}
-        <tr>
-          <td style="padding:11px 14px;font-size:13px;font-weight:600;color:#475569;background:#ffffff;border-radius:8px 0 0 8px;">Parking Area</td>
-          <td style="padding:11px 14px;font-size:13px;font-weight:700;color:#0f172a;background:#ffffff;border-radius:0 8px 8px 0;">{{ area_name }}</td>
-        </tr>
-        {% endif %}
-        {% if floor_name %}
-        <tr>
-          <td style="padding:11px 14px;font-size:13px;font-weight:600;color:#475569;background:#f8fafc;border-radius:8px 0 0 8px;">Floor</td>
-          <td style="padding:11px 14px;font-size:13px;font-weight:700;color:#0f172a;background:#f8fafc;border-radius:0 8px 8px 0;">{{ floor_name }}</td>
-        </tr>
-        {% endif %}
-        <tr>
-          <td style="padding:11px 14px;font-size:13px;font-weight:600;color:#475569;background:#ffffff;border-radius:8px 0 0 8px;">Status</td>
-          <td style="padding:11px 14px;font-size:13px;font-weight:700;color:#16a34a;background:#ffffff;border-radius:0 8px 8px 0;">&#10004;&nbsp; Confirmed</td>
-        </tr>
-      </table>
+        </td>
+      </tr>
 
-      <!-- ─── Summary Strip ─────────────────────── -->
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:18px 0;margin-bottom:28px;">
-        <tr>
-          <td width="50%" style="vertical-align:top;padding-right:12px;">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;margin-bottom:4px;">Scheduled Arrival</div>
-            <div style="font-size:14px;font-weight:700;color:#0f172a;">{{ booking.expected_arrival_time|date:"d M Y" }}</div>
-            <div style="font-size:11px;color:#64748b;margin-top:3px;">{{ booking.expected_arrival_time|date:"h:i A" }}</div>
-          </td>
-          <td width="50%" style="vertical-align:top;padding-left:12px;border-left:1px solid #f1f5f9;">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;margin-bottom:4px;">Stay Duration</div>
-            <div style="font-size:14px;font-weight:700;color:#0f172a;">{{ booking.expected_duration_hours|default:"2" }} Hours</div>
-            <div style="font-size:11px;color:#64748b;margin-top:3px;">{{ area_name|default:"Any Area" }}</div>
-          </td>
-        </tr>
-      </table>
+      <!-- ─── BODY ───────────────────────────────────────────── -->
+      <tr>
+        <td class="body-wrap" style="padding:32px 40px; background-color:#ffffff;">
 
-      <!-- ─── Gate Instruction ──────────────────── -->
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:28px;">
-        <tr>
-          <td style="background:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid #16a34a;border-radius:0 10px 10px 0;padding:16px 20px;">
-            <div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:7px;">
-              &#128203;&nbsp; At the Gate
-            </div>
-            <div style="font-size:13px;color:#166534;line-height:1.65;">
-              Present your booking reference <strong>{{ booking.booking_reference }}</strong> to the parking attendant on arrival. A <strong>30-minute grace period</strong> applies from your scheduled arrival time. Proceed directly to slot <strong>{{ slot_number }}</strong>{% if floor_name %} on <strong>{{ floor_name }}</strong>{% endif %}{% if area_name %} at <strong>{{ area_name }}</strong>{% endif %}.
-            </div>
-          </td>
-        </tr>
-      </table>
+          <!-- Greeting -->
+          <p style="font-size:15px; color:#334155; line-height:1.65; margin:0 0 26px 0;">
+            Hi <strong style="color:#0f172a;">{{ owner_first_name }}</strong>,<br>
+            Your advance parking request at <strong style="color:#0f172a;">PARK NEST</strong> has been approved. Your vehicle bay is reserved and ready for your scheduled arrival window.
+          </p>
 
-      <hr style="height:1px;background:#e2e8f0;border:none;margin:0 0 22px;">
+          <!-- Booking Reference Box -->
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:28px;">
+            <tr>
+              <td style="background-color:#f8fafc; border:2px dashed #93c5fd; border-radius:12px; padding:22px 18px; text-align:center;">
+                <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:#64748b; margin-bottom:8px;">
+                  Booking Reference
+                </div>
+                <div class="ref-code" style="font-family:'Courier New', Courier, monospace; font-size:30px; font-weight:800; color:#1d4ed8; letter-spacing:5px; margin-bottom:10px;">
+                  {{ booking.booking_reference }}
+                </div>
+                <span style="display:inline-block; background-color:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:5px 14px; font-size:12px; color:#1d4ed8; font-weight:600;">
+                  Show this reference at the gate on arrival
+                </span>
+              </td>
+            </tr>
+          </table>
 
-      <!-- Footer note -->
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-        <tr>
-          <td style="background:#f8fafc;border-radius:8px;padding:14px 16px;text-align:center;font-size:12px;color:#64748b;line-height:1.6;">
-            Need to cancel or check your booking status?<br>
-            Visit the <strong>PARK NEST</strong> portal &rarr; <em>Track Booking</em> and enter your reference &amp; mobile number.
-          </td>
-        </tr>
-      </table>
+          <!-- Section Header: Allocation Details -->
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.8px; color:#475569; margin-bottom:12px; padding-bottom:8px; border-bottom:1.5px solid #f1f5f9;">
+            Allocation &amp; Vehicle Details
+          </div>
 
-    </td>
-  </tr>
+          <!-- Details Table -->
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:28px; border-collapse:collapse;">
+            <tr>
+              <td style="padding:11px 14px; font-size:13px; font-weight:600; color:#475569; width:38%; background-color:#f8fafc; border-radius:8px 0 0 8px;">Vehicle Number</td>
+              <td style="padding:11px 14px; font-size:13px; font-weight:700; color:#0f172a; background-color:#f8fafc; border-radius:0 8px 8px 0; font-family:'Courier New', monospace; letter-spacing:1px;">{{ booking.vehicle_number }}</td>
+            </tr>
+            <tr>
+              <td style="padding:11px 14px; font-size:13px; font-weight:600; color:#475569; background-color:#ffffff;">Vehicle Type</td>
+              <td style="padding:11px 14px; font-size:13px; font-weight:700; color:#0f172a; background-color:#ffffff;">{{ booking.vehicle_type }}</td>
+            </tr>
+            <tr>
+              <td style="padding:11px 14px; font-size:13px; font-weight:600; color:#475569; background-color:#f8fafc; border-radius:8px 0 0 8px;">Assigned Slot</td>
+              <td style="padding:11px 14px; font-size:15px; font-weight:800; color:#15803d; background-color:#f8fafc; border-radius:0 8px 8px 0;">{{ slot_number }}</td>
+            </tr>
+            {% if area_name %}
+            <tr>
+              <td style="padding:11px 14px; font-size:13px; font-weight:600; color:#475569; background-color:#ffffff;">Parking Area</td>
+              <td style="padding:11px 14px; font-size:13px; font-weight:700; color:#0f172a; background-color:#ffffff;">{{ area_name }}</td>
+            </tr>
+            {% endif %}
+            {% if floor_name %}
+            <tr>
+              <td style="padding:11px 14px; font-size:13px; font-weight:600; color:#475569; background-color:#f8fafc; border-radius:8px 0 0 8px;">Floor</td>
+              <td style="padding:11px 14px; font-size:13px; font-weight:700; color:#0f172a; background-color:#f8fafc; border-radius:0 8px 8px 0;">{{ floor_name }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+              <td style="padding:11px 14px; font-size:13px; font-weight:600; color:#475569; background-color:#ffffff; border-radius:8px 0 0 8px;">Booking Status</td>
+              <td style="padding:11px 14px; background-color:#ffffff; border-radius:0 8px 8px 0;">
+                <span style="display:inline-block; padding:3px 10px; background-color:#dcfce7; color:#15803d; border-radius:4px; font-size:12px; font-weight:700;">Confirmed</span>
+              </td>
+            </tr>
+          </table>
 
-  <!-- ═══════════════ FOOTER ══════════════════════ -->
-  <tr>
-    <td style="background:#f1f5f9;border-top:1px solid #e2e8f0;padding:24px 40px;text-align:center;">
-      <div style="font-size:15px;font-weight:800;color:#1e3a5f;letter-spacing:3px;">PARK NEST</div>
-      <div style="font-size:11px;color:#94a3b8;margin-top:8px;line-height:1.7;">
-        This is an automated message &mdash; please do not reply directly to this email.<br>
-        &copy; PARK NEST Smart Parking &nbsp;&bull;&nbsp; All rights reserved.
-      </div>
-    </td>
-  </tr>
+          <!-- Arrival Summary Strip -->
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-top:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0; margin-bottom:28px;">
+            <tr>
+              <td class="col-stack" width="50%" style="vertical-align:top; padding:18px 16px 18px 0;">
+                <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#64748b; margin-bottom:4px;">Expected Arrival</div>
+                <div style="font-size:14px; font-weight:700; color:#0f172a;">{{ booking.expected_arrival_time|date:"d M Y" }}</div>
+                <div style="font-size:12px; color:#64748b; margin-top:2px;">{{ booking.expected_arrival_time|date:"h:i A" }}</div>
+              </td>
+              <td class="col-stack col-divider" width="50%" style="vertical-align:top; padding:18px 0 18px 16px; border-left:1px solid #f1f5f9;">
+                <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#64748b; margin-bottom:4px;">Estimated Duration</div>
+                <div style="font-size:14px; font-weight:700; color:#0f172a;">{{ booking.expected_duration_hours|default:"2" }} Hours</div>
+                <div style="font-size:12px; color:#64748b; margin-top:2px;">{{ area_name|default:"Allocated Bay" }}</div>
+              </td>
+            </tr>
+          </table>
 
+          <!-- Gate Instructions Card -->
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:28px;">
+            <tr>
+              <td style="background-color:#f0fdf4; border:1px solid #bbf7d0; border-left:4px solid #16a34a; border-radius:0 10px 10px 0; padding:16px 20px;">
+                <div style="font-size:13px; font-weight:700; color:#15803d; margin-bottom:6px; letter-spacing:0.5px;">
+                  GATE &amp; ARRIVAL INSTRUCTIONS
+                </div>
+                <div style="font-size:13px; color:#166534; line-height:1.65;">
+                  Present your booking reference <strong style="color:#0f172a;">{{ booking.booking_reference }}</strong> to the attendant at the entrance gate. A <strong>30-minute grace period</strong> applies from your scheduled arrival time. Proceed directly to slot <strong style="color:#0f172a;">{{ slot_number }}</strong>{% if floor_name %} on <strong>{{ floor_name }}</strong>{% endif %}{% if area_name %} in <strong>{{ area_name }}</strong>{% endif %}.
+                </div>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Assistance Note -->
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+            <tr>
+              <td style="background-color:#f8fafc; border-radius:8px; padding:14px 18px; text-align:center; font-size:12px; color:#64748b; line-height:1.6;">
+                Need to view or track your reservation live? Visit the <strong>PARK NEST</strong> portal and navigate to <em>Track Booking</em> using your booking reference.
+              </td>
+            </tr>
+          </table>
+
+        </td>
+      </tr>
+
+      <!-- ─── FOOTER ─────────────────────────────────────────── -->
+      <tr>
+        <td class="footer-wrap" style="background-color:#f8fafc; border-top:1px solid #e2e8f0; padding:24px 40px; text-align:center;">
+          <div style="font-size:14px; font-weight:800; color:#1e3a5f; letter-spacing:2.5px;">PARK NEST</div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:6px; line-height:1.7;">
+            This is an automated system message. Please do not reply directly to this email.<br>
+            &copy; PARK NEST Smart Parking System. All rights reserved.
+          </div>
+        </td>
+      </tr>
+
+    </table>
+
+  </td>
+</tr>
 </table>
-</td></tr>
-</table>
+
 </div>
 </body>
 </html>

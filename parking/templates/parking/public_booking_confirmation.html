@@ -230,7 +230,7 @@
         </div>
         <ol class="steps-list">
             <li>Our facility desk will assign a parking bay for your vehicle and arrival window.</li>
-            <li>If you provided a mobile number, your bay assignment details will be delivered via SMS.</li>
+            <li>Your bay assignment details and booking reference will be sent directly to your registered email address.</li>
             <li>Present this reference code or your vehicle plate at Gate 1 or Gate 2 for check-in.</li>
         </ol>
     </div>
@@ -244,9 +244,9 @@
         </div>
 
         <div>
-            <div class="summary-label">Contact Driver</div>
+            <div class="summary-label">Contact Details</div>
             <div class="summary-val">{{ booking.owner_name|default:"Driver" }}</div>
-            <div style="font-size:11px;color:#64748b;">+91 {{ booking.mobile }}</div>
+            <div style="font-size:11px;color:#64748b;">{{ booking.mobile }}{% if booking.email %} &bull; {{ booking.email }}{% endif %}</div>
         </div>
 
         <div>
