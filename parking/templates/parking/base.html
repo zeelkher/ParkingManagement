@@ -493,6 +493,16 @@
                     </svg>
                     HISTORY
                 </a>
+                <a href="{% url 'analytics' %}"
+                    class="hud-pill {% if request.resolver_match.url_name == 'analytics' %}active{% endif %}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                    ANALYTICS
+                </a>
                 <a href="{% url 'booking_requests' %}"
                     class="hud-pill {% if request.resolver_match.url_name == 'booking_requests' %}active{% endif %}">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -590,6 +600,18 @@
                         <span class="drawer-item-title">History</span>
                     </div>
                 </a>
+                <a href="{% url 'analytics' %}" class="drawer-nav-item {% if request.resolver_match.url_name == 'analytics' %}active{% endif %}">
+                    <div class="drawer-item-icon-box accent-purple">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                    </div>
+                    <div class="drawer-item-text">
+                        <span class="drawer-item-title">Analytics & Reports</span>
+                    </div>
+                </a>
             </div>
 
             <!-- Facility & Management Section -->
@@ -628,6 +650,20 @@
                             {% endif %}
                         </span>
                         <span class="drawer-item-caption">Incoming customer advance reservations</span>
+                    </div>
+                </a>
+
+                <a href="{% url 'analytics' %}" class="drawer-nav-item {% if request.resolver_match.url_name == 'analytics' %}active{% endif %}">
+                    <div class="drawer-item-icon-box accent-emerald">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                    </div>
+                    <div class="drawer-item-text">
+                        <span class="drawer-item-title">Analytics & Reports</span>
+                        <span class="drawer-item-caption">Visual trends, peak hours & Excel sheets</span>
                     </div>
                 </a>
             </div>

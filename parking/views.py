@@ -10,7 +10,10 @@ from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.views.decorators.cache import never_cache
 from django.urls import reverse
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from .analytics import filter_parking_records, compute_analytics, VEHICLE_TYPE_LIST, PLATE_LABELS
+from .reports import build_excel_report, AVAILABLE_COLUMNS
+from .seed_utils import seed_realistic_analytics_data, clear_demo_analytics_data
 from .models import (
     ParkingArea, ParkingFloor, ParkingRecord, ParkingSlot, Vehicle,
     BookingFormConfig, BookingCustomQuestion, AdvanceBooking
@@ -19,6 +22,7 @@ from .forms import (
     ParkingAreaForm, ParkingFloorForm, ParkingSlotForm, VehicleEntryForm, VehicleExitForm,
     BookingFormSettingsForm, BookingCustomQuestionForm, PublicAdvanceBookingForm, BookingStatusCheckForm
 )
+import json
 import math
 import secrets
 import os
@@ -1009,4 +1013,132 @@ def public_booking_cancel(request, reference):
         booking.save()
         messages.info(request, f'Your booking {booking.booking_reference} has been cancelled successfully.')
     return redirect(f"{reverse('booking_status')}?ref={reference}&mobile={mobile}")
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# ANALYTICS, CHARTS & CUSTOM EXCEL REPORTING
+# ════════════════════════════════════════════════════════════════════════════
+
+@login_required(login_url='login')
+def analytics_dashboard(request):
+    """
+    Executive Analytics and Visual Data Dashboard.
+    Renders interactive charts for monthly, yearly, daily, hourly peak times,
+    revenue breakdown, vehicle types, and average durations.
+    """
+    range_type = request.GET.get('range', 'all')
+    start_date = request.GET.get('start_date', '')
+    end_date = request.GET.get('end_date', '')
+    vehicle_type = request.GET.get('vehicle_type', 'all')
+    parking_area_id = request.GET.get('parking_area', 'all')
+    status = request.GET.get('status', 'all')
+    plate_type = request.GET.get('plate_type', 'all')
+
+    qs, filter_info = filter_parking_records(
+        range_type=range_type,
+        start_date_str=start_date,
+        end_date_str=end_date,
+        vehicle_type=vehicle_type,
+        parking_area_id=parking_area_id,
+        status=status,
+        plate_type=plate_type,
+    )
+
+    analytics_data = compute_analytics(qs)
+
+    all_areas = ParkingArea.objects.all().order_by('name')
+    from .models import PLATE_TYPES
+
+    context = {
+        'filter_info': filter_info,
+        'kpis': analytics_data['kpis'],
+        'duration_tiers': analytics_data['duration_tiers'],
+        'vehicle_types_data': analytics_data['vehicle_types_data'],
+        'plate_types_data': analytics_data['plate_types_data'],
+        'areas_data': analytics_data['areas_data'],
+        'floors_data': analytics_data['floors_data'],
+        # Chart JSON datasets for client-side Chart.js
+        'daily_chart_json': json.dumps(analytics_data['daily_chart_data']),
+        'monthly_chart_json': json.dumps(analytics_data['monthly_chart_data']),
+        'yearly_chart_json': json.dumps(analytics_data['yearly_chart_data']),
+        'hourly_chart_json': json.dumps(analytics_data['hourly_chart_data']),
+        'weekday_chart_json': json.dumps(analytics_data['weekday_chart_data']),
+        'vehicle_chart_json': json.dumps(analytics_data['vehicle_types_data']),
+        'plate_chart_json': json.dumps(analytics_data['plate_types_data']),
+        'duration_tiers_json': json.dumps(analytics_data['duration_tiers']),
+        # Filter choices
+        'all_areas': all_areas,
+        'all_vehicle_types': VEHICLE_TYPE_LIST,
+        'all_plate_types': PLATE_TYPES,
+        'available_columns': AVAILABLE_COLUMNS,
+    }
+    return render(request, 'parking/analytics.html', context)
+
+
+@login_required(login_url='login')
+def export_analytics_excel(request):
+    """
+    Generates and downloads a custom Excel (.xlsx) report based on user-selected
+    filters, factors, and columns.
+    """
+    range_type = request.GET.get('range', 'all')
+    start_date = request.GET.get('start_date', '')
+    end_date = request.GET.get('end_date', '')
+    vehicle_type = request.GET.get('vehicle_type', 'all')
+    parking_area_id = request.GET.get('parking_area', 'all')
+    status = request.GET.get('status', 'all')
+    plate_type = request.GET.get('plate_type', 'all')
+
+    # Selected columns/factors to include in Excel
+    col_param = request.GET.getlist('columns')
+    if not col_param and request.GET.get('columns_str'):
+        col_param = [c.strip() for c in request.GET.get('columns_str').split(',') if c.strip()]
+    if not col_param:
+        col_param = [k for k, v in AVAILABLE_COLUMNS.items() if v['default']]
+
+    include_summary = request.GET.get('include_summary', '1') in ['1', 'true', 'True', 'yes']
+
+    qs, filter_info = filter_parking_records(
+        range_type=range_type,
+        start_date_str=start_date,
+        end_date_str=end_date,
+        vehicle_type=vehicle_type,
+        parking_area_id=parking_area_id,
+        status=status,
+        plate_type=plate_type,
+    )
+
+    excel_stream = build_excel_report(
+        queryset=qs,
+        filter_info=filter_info,
+        selected_columns=col_param,
+        include_summary_sheet=include_summary
+    )
+
+    timestamp = timezone.now().strftime('%Y%m%d_%H%M')
+    filename = f"ParkNest_Analytics_Report_{timestamp}.xlsx"
+
+    response = HttpResponse(
+        excel_stream.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required(login_url='login')
+def seed_demo_analytics(request):
+    """Staff action to populate realistic parking history for showcasing charts."""
+    count = seed_realistic_analytics_data(record_count=80)
+    messages.success(request, f"Successfully seeded {count} realistic parking records across the past 6 months!")
+    return redirect('analytics')
+
+
+@login_required(login_url='login')
+def clear_demo_analytics(request):
+    """Staff action to clear exited demo records."""
+    deleted_count = clear_demo_analytics_data()
+    messages.info(request, f"Cleared {deleted_count} completed parking records.")
+    return redirect('analytics')
+
 

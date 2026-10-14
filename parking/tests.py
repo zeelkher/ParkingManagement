@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import ParkingArea, ParkingFloor, ParkingRecord, ParkingSlot
+from .models import ParkingArea, ParkingFloor, ParkingRecord, ParkingSlot, Vehicle
 
 
 class ParkingDateAndFloorTests(TestCase):
@@ -171,4 +171,90 @@ class ParkingDateAndFloorTests(TestCase):
         self.floor_two_slot.delete()
         response_deleted = self.client.get(reverse('dashboard'))
         self.assertEqual(response_deleted.context['total_slots'], initial_total - 1)
+
+
+class AnalyticsDashboardAndReportTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='operator', password='pass12345')
+        self.client.login(username='operator', password='pass12345')
+        self.ground_slot = ParkingSlot.objects.get(number='G-01')
+
+        # Create sample vehicle and parking records
+        v1 = Vehicle.objects.create(
+            vehicle_number='MH 02 CZ 9999',
+            owner_name='Aditya Roy',
+            mobile='9876543210',
+            vehicle_type='Car',
+            plate_type='white_black',
+            state_code='MH'
+        )
+        now = timezone.now()
+        ParkingRecord.objects.create(
+            vehicle=v1,
+            parking_slot=self.ground_slot,
+            slot_number=1,
+            entry_time=now - timedelta(hours=3),
+            exit_time=now,
+            total_hours=3.0,
+            parking_fee=90.00,
+            status='Exited'
+        )
+
+    def test_analytics_dashboard_renders(self):
+        response = self.client.get(reverse('analytics'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Analytics & Intelligence Hub')
+        self.assertContains(response, 'Total Revenue')
+        self.assertContains(response, 'Peak Parking Times')
+        self.assertIn('kpis', response.context)
+        self.assertEqual(response.context['kpis']['total_records'], 1)
+        self.assertEqual(response.context['kpis']['total_revenue'], 90.0)
+
+    def test_analytics_filter_by_vehicle_type(self):
+        response = self.client.get(reverse('analytics') + '?vehicle_type=Car')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['kpis']['total_records'], 1)
+
+        response_empty = self.client.get(reverse('analytics') + '?vehicle_type=Bus')
+        self.assertEqual(response_empty.status_code, 200)
+        self.assertEqual(response_empty.context['kpis']['total_records'], 0)
+
+    def test_export_analytics_excel(self):
+        response = self.client.get(reverse('export_analytics_excel'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response['Content-Type'],
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        self.assertIn('attachment; filename="ParkNest_Analytics_Report_', response['Content-Disposition'])
+
+        # Verify openpyxl can load the generated Excel workbook
+        import io
+        import openpyxl
+        wb = openpyxl.load_workbook(io.BytesIO(response.content))
+        self.assertIn('Parking Records', wb.sheetnames)
+        self.assertIn('Executive Summary', wb.sheetnames)
+        ws = wb['Parking Records']
+        self.assertIn('PARK NEST — COMPREHENSIVE PARKING AUDIT REPORT', ws['A1'].value)
+
+    def test_export_analytics_excel_custom_columns(self):
+        response = self.client.get(reverse('export_analytics_excel'), {
+            'columns': ['vehicle_number', 'fee', 'status'],
+            'include_summary': '0'
+        })
+        self.assertEqual(response.status_code, 200)
+        import io
+        import openpyxl
+        wb = openpyxl.load_workbook(io.BytesIO(response.content))
+        self.assertIn('Parking Records', wb.sheetnames)
+        self.assertNotIn('Executive Summary', wb.sheetnames)
+
+    def test_seed_and_clear_demo_analytics(self):
+        seed_resp = self.client.get(reverse('seed_demo_analytics'))
+        self.assertRedirects(seed_resp, reverse('analytics'))
+        self.assertGreater(ParkingRecord.objects.count(), 10)
+
+        clear_resp = self.client.get(reverse('clear_demo_analytics'))
+        self.assertRedirects(clear_resp, reverse('analytics'))
+
 

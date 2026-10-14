@@ -1,0 +1,1165 @@
+{% extends 'parking/base.html' %}
+{% load static %}
+{% block page_title %}Analytics & Intelligence{% endblock %}
+
+{% block content %}
+<div class="analytics-container" style="max-width: 1400px; margin: 0 auto; padding-bottom: 40px;">
+
+    <!-- ══ TOP HEADER & ACTIONS ══ -->
+    <div class="analytics-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <h1 style="font-size: 24px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; margin: 0;">
+                    Analytics & Intelligence Hub
+                </h1>
+                <span class="badge" style="background: rgba(37, 99, 235, 0.15); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.3); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;">
+                    LIVE INSIGHTS
+                </span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-2); margin-top: 4px;">
+                Multi-factor audit, volume trends, rush-hour peak times, fleet breakdown & revenue analysis
+            </p>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+
+
+            <!-- Quick Export Button -->
+            <a href="{% url 'export_analytics_excel' %}?range={{ filter_info.range_type }}&start_date={{ filter_info.start_date_str }}&end_date={{ filter_info.end_date_str }}&vehicle_type={{ filter_info.vehicle_type }}&parking_area={{ filter_info.parking_area_id }}&status={{ filter_info.status }}&plate_type={{ filter_info.plate_type }}"
+               class="btn" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399; font-size: 12.5px; font-weight: 700; padding: 8px 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; transition: all 0.2s ease;">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>Quick Excel Export</span>
+            </a>
+
+            <!-- Customize Excel Report Modal Button -->
+            <button type="button" id="openExportModalBtn" class="btn btn-primary"
+                    style="background: linear-gradient(135deg, #2563eb, #1d4ed8); border: none; color: #fff; font-size: 12.5px; font-weight: 700; padding: 8px 16px; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Customize & Download Report</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ══ NOTIFICATIONS / MESSAGES ══ -->
+    {% if messages %}
+    <div style="margin-bottom: 20px;">
+        {% for message in messages %}
+        <div class="analytics-msg {% if message.tags == 'success' %}is-success{% else %}is-info{% endif %}">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- ══ DYNAMIC FILTER BAR ══ -->
+    <div class="glass-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
+        <form method="GET" action="{% url 'analytics' %}" id="analyticsFilterForm">
+            <!-- Top row: Presets -->
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    <span style="font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; margin-right: 4px;">Timeframe:</span>
+                    <button type="submit" name="range" value="today" class="filter-preset-pill {% if filter_info.range_type == 'today' %}active{% endif %}">Today</button>
+                    <button type="submit" name="range" value="last7" class="filter-preset-pill {% if filter_info.range_type == 'last7' %}active{% endif %}">Last 7 Days</button>
+                    <button type="submit" name="range" value="last30" class="filter-preset-pill {% if filter_info.range_type == 'last30' %}active{% endif %}">Last 30 Days</button>
+                    <button type="submit" name="range" value="this_month" class="filter-preset-pill {% if filter_info.range_type == 'this_month' %}active{% endif %}">This Month</button>
+                    <button type="submit" name="range" value="last_month" class="filter-preset-pill {% if filter_info.range_type == 'last_month' %}active{% endif %}">Last Month</button>
+                    <button type="submit" name="range" value="this_year" class="filter-preset-pill {% if filter_info.range_type == 'this_year' %}active{% endif %}">This Year</button>
+                    <button type="submit" name="range" value="all" class="filter-preset-pill {% if filter_info.range_type == 'all' %}active{% endif %}">All Time</button>
+                    <button type="button" id="toggleCustomDatesBtn" class="filter-preset-pill {% if filter_info.range_type == 'custom' %}active{% endif %}">Custom Range...</button>
+                </div>
+
+                <div style="font-size: 12px; font-weight: 600; color: #60a5fa; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-regular fa-calendar-check"></i>
+                    <span>Scope: {{ filter_info.range_label }}</span>
+                </div>
+            </div>
+
+            <!-- Custom date pickers (collapsible) -->
+            <div id="customDateRow" class="custom-date-row {% if filter_info.range_type == 'custom' %}is-open{% endif %}">
+                <input type="hidden" name="range" id="rangeInput" value="{{ filter_info.range_type }}">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label style="font-size: 12px; color: var(--text-2); font-weight: 600;">From:</label>
+                    <input type="date" name="start_date" value="{{ filter_info.start_date_str }}" style="background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 6px; font-size: 12px;">
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label style="font-size: 12px; color: var(--text-2); font-weight: 600;">To:</label>
+                    <input type="date" name="end_date" value="{{ filter_info.end_date_str }}" style="background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 6px; font-size: 12px;">
+                </div>
+                <button type="submit" class="btn" style="background: #2563eb; color: #fff; font-size: 11.5px; font-weight: 700; padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer;">Apply Dates</button>
+            </div>
+
+            <!-- Bottom row: Factors / Categorical Dropdowns -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) 120px; gap: 12px; align-items: flex-end;">
+                <div>
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; margin-bottom: 4px;">Vehicle Class</label>
+                    <select name="vehicle_type" onchange="this.form.submit()" style="width: 100%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 6px; font-size: 12px;">
+                        <option value="all" {% if filter_info.vehicle_type == 'all' %}selected{% endif %}>All Vehicle Types</option>
+                        {% for vt in all_vehicle_types %}
+                        <option value="{{ vt }}" {% if filter_info.vehicle_type == vt %}selected{% endif %}>{{ vt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; margin-bottom: 4px;">Parking Area</label>
+                    <select name="parking_area" onchange="this.form.submit()" style="width: 100%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 6px; font-size: 12px;">
+                        <option value="all" {% if filter_info.parking_area_id == 'all' %}selected{% endif %}>All Parking Areas</option>
+                        {% for area in all_areas %}
+                        <option value="{{ area.id }}" {% if filter_info.parking_area_id == area.id|stringformat:'s' %}selected{% endif %}>{{ area.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; margin-bottom: 4px;">Plate Category</label>
+                    <select name="plate_type" onchange="this.form.submit()" style="width: 100%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 6px; font-size: 12px;">
+                        <option value="all" {% if filter_info.plate_type == 'all' %}selected{% endif %}>All Number Plates</option>
+                        {% for p_code, p_label in all_plate_types %}
+                        <option value="{{ p_code }}" {% if filter_info.plate_type == p_code %}selected{% endif %}>{{ p_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; margin-bottom: 4px;">Parking Status</label>
+                    <select name="status" onchange="this.form.submit()" style="width: 100%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 6px; font-size: 12px;">
+                        <option value="all" {% if filter_info.status == 'all' %}selected{% endif %}>All Statuses</option>
+                        <option value="Exited" {% if filter_info.status == 'Exited' %}selected{% endif %}>Exited (Completed)</option>
+                        <option value="Active" {% if filter_info.status == 'Active' %}selected{% endif %}>Active (Parked Now)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <a href="{% url 'analytics' %}" class="btn" style="width: 100%; text-align: center; display: block; background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-2); padding: 7px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; text-decoration: none;">
+                        <i class="fa-solid fa-rotate-left"></i> Reset
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ══ EXECUTIVE KPI STATS ══ -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <!-- Card 1: Gross Revenue -->
+        <div class="kpi-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; position: relative; overflow: hidden; box-shadow: var(--shadow-sm);">
+            <div style="position: absolute; right: 14px; top: 14px; width: 36px; height: 36px; border-radius: 8px; background: rgba(16, 185, 129, 0.12); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                <i class="fa-solid fa-indian-rupee-sign"></i>
+            </div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em;">Total Revenue</div>
+            <div style="font-size: 26px; font-weight: 800; color: #10b981; margin: 6px 0 2px;">₹{{ kpis.total_revenue|floatformat:2 }}</div>
+            <div style="font-size: 11.5px; color: var(--text-2);">Avg ₹{{ kpis.avg_revenue }} per vehicle</div>
+        </div>
+
+        <!-- Card 2: Total Parking Sessions -->
+        <div class="kpi-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; position: relative; overflow: hidden; box-shadow: var(--shadow-sm);">
+            <div style="position: absolute; right: 14px; top: 14px; width: 36px; height: 36px; border-radius: 8px; background: rgba(59, 130, 246, 0.12); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                <i class="fa-solid fa-car-side"></i>
+            </div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em;">Total Vehicles</div>
+            <div style="font-size: 26px; font-weight: 800; color: #3b82f6; margin: 6px 0 2px;">{{ kpis.total_records }}</div>
+            <div style="font-size: 11.5px; color: var(--text-2);">{{ kpis.exited_records }} completed • {{ kpis.active_records }} active</div>
+        </div>
+
+        <!-- Card 3: Average Duration -->
+        <div class="kpi-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; position: relative; overflow: hidden; box-shadow: var(--shadow-sm);">
+            <div style="position: absolute; right: 14px; top: 14px; width: 36px; height: 36px; border-radius: 8px; background: rgba(245, 158, 11, 0.12); color: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em;">Average Duration</div>
+            <div style="font-size: 26px; font-weight: 800; color: #f59e0b; margin: 6px 0 2px;">{{ kpis.avg_duration_formatted }}</div>
+            <div style="font-size: 11.5px; color: var(--text-2);">{{ kpis.avg_duration_hours }} hours per session</div>
+        </div>
+
+        <!-- Card 4: Peak Rush Hour -->
+        <div class="kpi-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; position: relative; overflow: hidden; box-shadow: var(--shadow-sm);">
+            <div style="position: absolute; right: 14px; top: 14px; width: 36px; height: 36px; border-radius: 8px; background: rgba(239, 68, 68, 0.12); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                <i class="fa-solid fa-fire"></i>
+            </div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em;">Peak Rush Hour</div>
+            <div style="font-size: 19px; font-weight: 800; color: #ef4444; margin: 8px 0 4px; line-height: 1.2;">{{ kpis.peak_hour_str }}</div>
+            <div style="font-size: 11.5px; color: var(--text-2);">{{ kpis.peak_hour_count }} check-ins recorded</div>
+        </div>
+
+        <!-- Card 5: Busiest Day -->
+        <div class="kpi-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; position: relative; overflow: hidden; box-shadow: var(--shadow-sm);">
+            <div style="position: absolute; right: 14px; top: 14px; width: 36px; height: 36px; border-radius: 8px; background: rgba(168, 85, 247, 0.12); color: #a855f7; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                <i class="fa-solid fa-calendar-week"></i>
+            </div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em;">Busiest Day</div>
+            <div style="font-size: 24px; font-weight: 800; color: #a855f7; margin: 6px 0 2px;">{{ kpis.busiest_day_str }}</div>
+            <div style="font-size: 11.5px; color: var(--text-2);">{{ kpis.busiest_day_count }} arrivals on this day</div>
+        </div>
+
+        <!-- Card 6: EV & Eco Share -->
+        <div class="kpi-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; position: relative; overflow: hidden; box-shadow: var(--shadow-sm);">
+            <div style="position: absolute; right: 14px; top: 14px; width: 36px; height: 36px; border-radius: 8px; background: rgba(6, 182, 212, 0.12); color: #06b6d4; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                <i class="fa-solid fa-bolt"></i>
+            </div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em;">EV Green Plates</div>
+            <div style="font-size: 26px; font-weight: 800; color: #06b6d4; margin: 6px 0 2px;">{{ kpis.ev_percentage }}%</div>
+            <div style="font-size: 11.5px; color: var(--text-2);">{{ kpis.ev_count }} Electric Vehicles</div>
+        </div>
+    </div>
+
+    <!-- ══ MAIN TREND GRAPH: FINANCIAL & TRAFFIC TRAJECTORY (SWITCHABLE) ══ -->
+    <div class="glass-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 18px;">
+            <div>
+                <h2 style="font-size: 17px; font-weight: 800; color: var(--text); margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-chart-line" style="color: #3b82f6;"></i>
+                    <span id="trendChartTitle">Traffic & Revenue Trajectory</span>
+                </h2>
+                <p style="font-size: 12px; color: var(--text-2); margin-top: 3px;">
+                    Dual-axis visualization of vehicle volume and revenue collections over time
+                </p>
+            </div>
+
+            <!-- Granularity Switcher: Daily / Monthly / Yearly -->
+            <div style="display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 3px;">
+                <button type="button" class="trend-switch-btn active" id="btnTrendDaily" onclick="switchTrendGranularity('daily')">Daily Trend</button>
+                <button type="button" class="trend-switch-btn" id="btnTrendMonthly" onclick="switchTrendGranularity('monthly')">Monthly Trend</button>
+                <button type="button" class="trend-switch-btn" id="btnTrendYearly" onclick="switchTrendGranularity('yearly')">Yearly Trend</button>
+            </div>
+        </div>
+
+        <div style="height: 340px; position: relative;">
+            <canvas id="trendChartCanvas"></canvas>
+        </div>
+    </div>
+
+    <!-- ══ ROW 2: PEAK HOURS & WEEKDAY TRAFFIC ══ -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; margin-bottom: 24px;">
+
+        <!-- 24-Hour Peak Entry Distribution ("WHICH TIME") -->
+        <div class="glass-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; box-shadow: var(--shadow-sm);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 800; color: var(--text); margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-clock-rotate-left" style="color: #ef4444;"></i>
+                        <span>Peak Parking Times & Rush Hours</span>
+                    </h3>
+                    <p style="font-size: 12px; color: var(--text-2); margin-top: 3px;">
+                        Which time has highest parking demand across the 24 hours of the day
+                    </p>
+                </div>
+                <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;">
+                    PEAK: {{ kpis.peak_hour_str }}
+                </span>
+            </div>
+
+            <div style="height: 280px; position: relative;">
+                <canvas id="hourlyChartCanvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Weekly Day-of-Week Traffic Distribution -->
+        <div class="glass-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; box-shadow: var(--shadow-sm);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 800; color: var(--text); margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-calendar-days" style="color: #a855f7;"></i>
+                        <span>Weekly Pattern (Day of Week Analysis)</span>
+                    </h3>
+                    <p style="font-size: 12px; color: var(--text-2); margin-top: 3px;">
+                        Arrival traffic & revenue distribution across Monday to Sunday
+                    </p>
+                </div>
+                <span style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;">
+                    TOP: {{ kpis.busiest_day_str }}
+                </span>
+            </div>
+
+            <div style="height: 280px; position: relative;">
+                <canvas id="weekdayChartCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ ROW 3: FLEET CATEGORIES & DURATION DYNAMICS ══ -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; margin-bottom: 24px;">
+
+        <!-- Vehicle Type Breakdown (Volume & Revenue) -->
+        <div class="glass-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; box-shadow: var(--shadow-sm);">
+            <div style="margin-bottom: 16px;">
+                <h3 style="font-size: 15px; font-weight: 800; color: var(--text); margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-truck-moving" style="color: #10b981;"></i>
+                    <span>Vehicle Class Distribution & Revenue</span>
+                </h3>
+                <p style="font-size: 12px; color: var(--text-2); margin-top: 3px;">
+                    Volume share and total income generated per vehicle category
+                </p>
+            </div>
+
+            <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                <div style="width: 220px; height: 220px; position: relative; margin: 0 auto;">
+                    <canvas id="vehicleDoughnutCanvas"></canvas>
+                </div>
+                <div style="flex: 1; min-width: 180px; max-height: 220px; overflow-y: auto;">
+                    <table style="width: 100%; font-size: 11.5px; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border); color: var(--text-3); text-align: left;">
+                                <th style="padding: 4px 6px;">TYPE</th>
+                                <th style="padding: 4px 6px; text-align: center;">COUNT</th>
+                                <th style="padding: 4px 6px; text-align: right;">REVENUE</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vt in vehicle_types_data %}
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+                                <td style="padding: 6px; font-weight: 600; color: var(--text);">{{ vt.type }}</td>
+                                <td style="padding: 6px; text-align: center; color: var(--text-2);">{{ vt.count }} <small>({{ vt.percentage }}%)</small></td>
+                                <td style="padding: 6px; text-align: right; font-weight: 700; color: #10b981;">₹{{ vt.revenue|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" style="text-align: center; padding: 20px; color: var(--text-3);">No data found</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Average Parking Duration by Vehicle Type (Horizontal Bar) -->
+        <div class="glass-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; box-shadow: var(--shadow-sm);">
+            <div style="margin-bottom: 16px;">
+                <h3 style="font-size: 15px; font-weight: 800; color: var(--text); margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-hourglass-half" style="color: #f59e0b;"></i>
+                    <span>Average Parking Stay Duration by Vehicle Class</span>
+                </h3>
+                <p style="font-size: 12px; color: var(--text-2); margin-top: 3px;">
+                    Mean occupancy time per vehicle type in decimal hours
+                </p>
+            </div>
+
+            <div style="height: 240px; position: relative;">
+                <canvas id="durationByVehicleCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ ROW 4: REGISTRATION PLATES & DURATION TIERS ══ -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; margin-bottom: 24px;">
+
+        <!-- Number Plate Categories -->
+        <div class="glass-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; box-shadow: var(--shadow-sm);">
+            <h3 style="font-size: 15px; font-weight: 800; color: var(--text); margin: 0 0 4px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-id-card" style="color: #06b6d4;"></i>
+                <span>Vehicle Registration Plate Types</span>
+            </h3>
+            <p style="font-size: 12px; color: var(--text-2); margin-bottom: 16px;">
+                Private, Commercial, EV green plates, BH-series & Rental shares
+            </p>
+
+            <div style="height: 220px; position: relative;">
+                <canvas id="plateTypeChartCanvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Duration Tiers Breakdown -->
+        <div class="glass-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; box-shadow: var(--shadow-sm);">
+            <h3 style="font-size: 15px; font-weight: 800; color: var(--text); margin: 0 0 4px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-stopwatch" style="color: #ec4899;"></i>
+                <span>Stay Duration Brackets (Turnover Tiers)</span>
+            </h3>
+            <p style="font-size: 12px; color: var(--text-2); margin-bottom: 16px;">
+                Quick stop vs short stay vs long-term overnight dwell time
+            </p>
+
+            <div style="height: 220px; position: relative;">
+                <canvas id="durationTiersCanvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Facility & Area Performance -->
+        <div class="glass-panel" style="background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; box-shadow: var(--shadow-sm);">
+            <h3 style="font-size: 15px; font-weight: 800; color: var(--text); margin: 0 0 4px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-building" style="color: #3b82f6;"></i>
+                <span>Parking Areas & Floors Utilization</span>
+            </h3>
+            <p style="font-size: 12px; color: var(--text-2); margin-bottom: 16px;">
+                Total capacity, entry traffic and revenue generated per location
+            </p>
+
+            <div style="max-height: 220px; overflow-y: auto;">
+                <table style="width: 100%; font-size: 11.5px; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border); color: var(--text-3); text-align: left;">
+                            <th style="padding: 4px 6px;">AREA / FLOOR</th>
+                            <th style="padding: 4px 6px; text-align: center;">CAPACITY</th>
+                            <th style="padding: 4px 6px; text-align: center;">ENTRIES</th>
+                            <th style="padding: 4px 6px; text-align: right;">REVENUE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for area in areas_data %}
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+                            <td style="padding: 7px 6px; font-weight: 700; color: #60a5fa;">{{ area.name }}</td>
+                            <td style="padding: 7px 6px; text-align: center; color: var(--text-2);">{{ area.total_slots }} slots</td>
+                            <td style="padding: 7px 6px; text-align: center; font-weight: 600; color: var(--text);">{{ area.entries }}</td>
+                            <td style="padding: 7px 6px; text-align: right; font-weight: 700; color: #10b981;">₹{{ area.revenue|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-3);">No area data available</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL: CUSTOM EXCEL REPORT GENERATOR
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="exportModalBackdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 20px;">
+    <div class="modal-dialog" style="background: var(--surface); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 680px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+
+        <!-- Modal Header -->
+        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(16,185,129,0.15); color: #34d399; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    <i class="fa-solid fa-file-excel"></i>
+                </div>
+                <div>
+                    <h3 style="font-size: 17px; font-weight: 800; color: var(--text); margin: 0;">Custom Excel Report Generator</h3>
+                    <p style="font-size: 12px; color: var(--text-2); margin: 2px 0 0;">Download formatted spreadsheet (.xlsx) with all selected factors</p>
+                </div>
+            </div>
+            <button type="button" id="closeExportModalBtn" style="background: transparent; border: none; color: var(--text-2); font-size: 18px; cursor: pointer; padding: 4px;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Modal Form -->
+        <form method="GET" action="{% url 'export_analytics_excel' %}" id="customExcelForm" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+            <div style="padding: 24px; overflow-y: auto; flex: 1;">
+
+                <!-- 1. Scope / Timeframe -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-size: 12px; font-weight: 700; color: var(--text); display: block; margin-bottom: 8px;">
+                        1. Timeframe & Date Range
+                    </label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <select name="range" id="modalRangeSelect" style="width: 100%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 12.5px;">
+                                <option value="all" {% if filter_info.range_type == 'all' %}selected{% endif %}>All Time</option>
+                                <option value="today" {% if filter_info.range_type == 'today' %}selected{% endif %}>Today</option>
+                                <option value="last7" {% if filter_info.range_type == 'last7' %}selected{% endif %}>Last 7 Days</option>
+                                <option value="last30" {% if filter_info.range_type == 'last30' %}selected{% endif %}>Last 30 Days</option>
+                                <option value="this_month" {% if filter_info.range_type == 'this_month' %}selected{% endif %}>This Month</option>
+                                <option value="last_month" {% if filter_info.range_type == 'last_month' %}selected{% endif %}>Last Month</option>
+                                <option value="this_year" {% if filter_info.range_type == 'this_year' %}selected{% endif %}>This Year</option>
+                                <option value="custom" {% if filter_info.range_type == 'custom' %}selected{% endif %}>Custom Date Range...</option>
+                            </select>
+                        </div>
+                        <div id="modalCustomDates" style="display: flex; gap: 8px;">
+                            <input type="date" name="start_date" value="{{ filter_info.start_date_str }}" placeholder="Start Date" style="flex: 1; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 8px; font-size: 12px;">
+                            <input type="date" name="end_date" value="{{ filter_info.end_date_str }}" placeholder="End Date" style="flex: 1; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 8px; font-size: 12px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Filters -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-size: 12px; font-weight: 700; color: var(--text); display: block; margin-bottom: 8px;">
+                        2. Multi-Factor Filters
+                    </label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+                        <div>
+                            <span style="font-size: 11px; color: var(--text-3); font-weight: 600;">Vehicle Type</span>
+                            <select name="vehicle_type" style="width: 100%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 12px; margin-top: 3px;">
+                                <option value="all">All Types</option>
+                                {% for vt in all_vehicle_types %}
+                                <option value="{{ vt }}" {% if filter_info.vehicle_type == vt %}selected{% endif %}>{{ vt }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <span style="font-size: 11px; color: var(--text-3); font-weight: 600;">Area</span>
+                            <select name="parking_area" style="width: 100%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 12px; margin-top: 3px;">
+                                <option value="all">All Areas</option>
+                                {% for area in all_areas %}
+                                <option value="{{ area.id }}" {% if filter_info.parking_area_id == area.id|stringformat:'s' %}selected{% endif %}>{{ area.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <span style="font-size: 11px; color: var(--text-3); font-weight: 600;">Status</span>
+                            <select name="status" style="width: 100%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 12px; margin-top: 3px;">
+                                <option value="all">All Statuses</option>
+                                <option value="Exited" {% if filter_info.status == 'Exited' %}selected{% endif %}>Exited</option>
+                                <option value="Active" {% if filter_info.status == 'Active' %}selected{% endif %}>Active</option>
+                            </select>
+                        </div>
+                        <div>
+                            <span style="font-size: 11px; color: var(--text-3); font-weight: 600;">Plate Category</span>
+                            <select name="plate_type" style="width: 100%; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 12px; margin-top: 3px;">
+                                <option value="all">All Plates</option>
+                                {% for p_code, p_label in all_plate_types %}
+                                <option value="{{ p_code }}" {% if filter_info.plate_type == p_code %}selected{% endif %}>{{ p_label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Choose Custom Columns / Factors -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label style="font-size: 12px; font-weight: 700; color: var(--text); margin: 0;">
+                            3. Select Excel Factors & Columns
+                        </label>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" onclick="toggleAllColumns(true)" style="background: none; border: none; color: #60a5fa; font-size: 11.5px; font-weight: 600; cursor: pointer;">Select All</button>
+                            <span style="color: var(--border);">|</span>
+                            <button type="button" onclick="toggleAllColumns(false)" style="background: none; border: none; color: var(--text-2); font-size: 11.5px; font-weight: 600; cursor: pointer;">Deselect All</button>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px;">
+                        {% for col_key, col_meta in available_columns.items %}
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text); cursor: pointer;">
+                            <input type="checkbox" name="columns" value="{{ col_key }}" class="col-checkbox" {% if col_meta.default %}checked{% endif %} style="accent-color: #2563eb;">
+                            <span>{{ col_meta.title }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- 4. Include KPI Executive Summary Sheet -->
+                <div style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 10px; padding: 12px 16px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--text);">
+                        <input type="checkbox" name="include_summary" value="1" checked style="accent-color: #2563eb; width: 16px; height: 16px;">
+                        <div>
+                            <span>Include Executive Analytics & KPI Summary Sheet</span>
+                            <div style="font-size: 11px; font-weight: 400; color: var(--text-2); margin-top: 2px;">
+                                Adds a secondary worksheet with Executive KPIs, hourly rush hour breakdown, and vehicle type aggregations.
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div style="padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; background: rgba(0,0,0,0.1);">
+                <button type="button" id="cancelExportModalBtn" class="btn" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text); font-size: 12.5px; font-weight: 600; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
+                    Cancel
+                </button>
+                <button type="submit" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); border: none; color: #fff; font-size: 12.5px; font-weight: 700; padding: 8px 20px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Download Excel Report (.xlsx)</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══ STYLES SPECIFIC TO ANALYTICS ══ -->
+<style>
+    .filter-preset-pill {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-2);
+        font-size: 11.5px;
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.16s ease;
+    }
+    .filter-preset-pill:hover {
+        background: rgba(255,255,255,0.06);
+        color: var(--text);
+        border-color: rgba(255,255,255,0.2);
+    }
+    .filter-preset-pill.active {
+        background: #2563eb !important;
+        border-color: #2563eb !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+    }
+
+    .trend-switch-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-2);
+        font-size: 11.5px;
+        font-weight: 600;
+        padding: 6px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.18s ease;
+    }
+    .trend-switch-btn:hover {
+        color: var(--text);
+    }
+    .trend-switch-btn.active {
+        background: #2563eb;
+        color: #ffffff;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+    }
+
+    .analytics-msg {
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .analytics-msg.is-success {
+        background: rgba(16,185,129,0.15);
+        border: 1px solid rgba(16,185,129,0.3);
+        color: #34d399;
+    }
+    .analytics-msg.is-info {
+        background: rgba(59,130,246,0.15);
+        border: 1px solid rgba(59,130,246,0.3);
+        color: #60a5fa;
+    }
+
+    .custom-date-row {
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+        background: rgba(0,0,0,0.15);
+        padding: 10px 14px;
+        border-radius: 8px;
+        display: none;
+    }
+    .custom-date-row.is-open {
+        display: flex !important;
+    }
+</style>
+
+<!-- ══ CHART.JS & CLIENT-SIDE DYNAMICS ══ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<!-- Embedded JSON Datasets for safe client-side parsing without linter warnings -->
+<script id="data-daily" type="application/json">{{ daily_chart_json|safe }}</script>
+<script id="data-monthly" type="application/json">{{ monthly_chart_json|safe }}</script>
+<script id="data-yearly" type="application/json">{{ yearly_chart_json|safe }}</script>
+<script id="data-hourly" type="application/json">{{ hourly_chart_json|safe }}</script>
+<script id="data-weekday" type="application/json">{{ weekday_chart_json|safe }}</script>
+<script id="data-vehicle" type="application/json">{{ vehicle_chart_json|safe }}</script>
+<script id="data-plate" type="application/json">{{ plate_chart_json|safe }}</script>
+<script id="data-duration" type="application/json">{{ duration_tiers_json|safe }}</script>
+
+<script>
+    // Raw Data JSON passed safely from Django
+    const dailyChartData = JSON.parse(document.getElementById('data-daily').textContent);
+    const monthlyChartData = JSON.parse(document.getElementById('data-monthly').textContent);
+    const yearlyChartData = JSON.parse(document.getElementById('data-yearly').textContent);
+    const hourlyChartData = JSON.parse(document.getElementById('data-hourly').textContent);
+    const weekdayChartData = JSON.parse(document.getElementById('data-weekday').textContent);
+    const vehicleData = JSON.parse(document.getElementById('data-vehicle').textContent);
+    const plateData = JSON.parse(document.getElementById('data-plate').textContent);
+    const durationTiersData = JSON.parse(document.getElementById('data-duration').textContent);
+
+    // Color Palette Tokens
+    const COLOR_BLUE = '#3b82f6';
+    const COLOR_BLUE_BG = 'rgba(59, 130, 246, 0.18)';
+    const COLOR_GREEN = '#10b981';
+    const COLOR_AMBER = '#f59e0b';
+    const COLOR_RED = '#ef4444';
+    const COLOR_PURPLE = '#a855f7';
+    const COLOR_CYAN = '#06b6d4';
+    const COLOR_PINK = '#ec4899';
+
+    // Grid color based on current theme
+    const isDark = document.getElementById('html-root').getAttribute('data-theme') !== 'light';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+
+    // Chart.js global config
+    Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    Chart.defaults.color = textColor;
+
+    // ─────────────────────────────────────────────────────────────
+    // 1. MAIN TRAJECTORY (DAILY / MONTHLY / YEARLY) SWITCHABLE CHART
+    // ─────────────────────────────────────────────────────────────
+    let trendChart = null;
+
+    function renderTrendChart(type) {
+        const ctx = document.getElementById('trendChartCanvas').getContext('2d');
+        if (trendChart) {
+            trendChart.destroy();
+        }
+
+        let datasetSource = dailyChartData;
+        let titleLabel = "Daily Traffic & Revenue";
+        let dateLabels = datasetSource.labels;
+
+        if (type === 'monthly') {
+            datasetSource = monthlyChartData;
+            titleLabel = "Monthly Traffic & Revenue";
+            dateLabels = datasetSource.labels;
+        } else if (type === 'yearly') {
+            datasetSource = yearlyChartData;
+            titleLabel = "Yearly Traffic & Revenue";
+            dateLabels = datasetSource.labels;
+        }
+
+        document.getElementById('trendChartTitle').innerText = titleLabel;
+
+        // Gradient for revenue fill
+        const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.00)');
+
+        trendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dateLabels,
+                datasets: [
+                    {
+                        label: 'Revenue (₹)',
+                        data: datasetSource.revenue,
+                        borderColor: '#10b981',
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 2.5,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#10b981',
+                        yAxisID: 'yRevenue',
+                    },
+                    {
+                        label: 'Vehicle Entries',
+                        data: datasetSource.entries,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: false,
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        pointBackgroundColor: '#3b82f6',
+                        yAxisID: 'yTraffic',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    x: {
+                        grid: { color: gridColor },
+                        ticks: { color: textColor, maxRotation: 45 }
+                    },
+                    yRevenue: {
+                        type: 'linear',
+                        position: 'left',
+                        grid: { color: gridColor },
+                        ticks: {
+                            color: '#10b981',
+                            callback: function(val) { return '₹' + val.toLocaleString(); }
+                        }
+                    },
+                    yTraffic: {
+                        type: 'linear',
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        ticks: {
+                            color: '#3b82f6',
+                            precision: 0
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { usePointStyle: true, boxWidth: 8 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                if (context.dataset.label.includes('Revenue')) {
+                                    return 'Revenue: ₹' + Number(context.raw).toLocaleString(undefined, {minimumFractionDigits: 2});
+                                }
+                                return 'Vehicles: ' + context.raw;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function switchTrendGranularity(type) {
+        document.querySelectorAll('.trend-switch-btn').forEach(btn => btn.classList.remove('active'));
+        if (type === 'daily') document.getElementById('btnTrendDaily').classList.add('active');
+        if (type === 'monthly') document.getElementById('btnTrendMonthly').classList.add('active');
+        if (type === 'yearly') document.getElementById('btnTrendYearly').classList.add('active');
+        renderTrendChart(type);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 2. 24-HOUR PEAK PARKING TIMES CHART ("WHICH TIME")
+    // ─────────────────────────────────────────────────────────────
+    function renderHourlyChart() {
+        const ctx = document.getElementById('hourlyChartCanvas').getContext('2d');
+        
+        // Highlight peak hour with glowing red bar
+        const maxEntries = Math.max(...hourlyChartData.entries, 1);
+        const barColors = hourlyChartData.entries.map(val => {
+            if (val === maxEntries && val > 0) return '#ef4444'; // Peak hour
+            return 'rgba(59, 130, 246, 0.75)';
+        });
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: hourlyChartData.labels,
+                datasets: [
+                    {
+                        label: 'Check-Ins (Entries)',
+                        data: hourlyChartData.entries,
+                        backgroundColor: barColors,
+                        borderRadius: 4,
+                        barPercentage: 0.7,
+                    },
+                    {
+                        label: 'Check-Outs (Exits)',
+                        data: hourlyChartData.exits,
+                        backgroundColor: 'rgba(16, 185, 129, 0.45)',
+                        borderRadius: 4,
+                        barPercentage: 0.7,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 10 } }
+                    },
+                    y: {
+                        grid: { color: gridColor },
+                        ticks: { precision: 0 }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(ctx) {
+                                const hIdx = ctx.dataIndex;
+                                const rev = hourlyChartData.revenue[hIdx];
+                                return 'Revenue in hour: ₹' + rev.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 3. WEEKDAY DAY-OF-WEEK DISTRIBUTION CHART
+    // ─────────────────────────────────────────────────────────────
+    function renderWeekdayChart() {
+        const ctx = document.getElementById('weekdayChartCanvas').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: weekdayChartData.labels,
+                datasets: [
+                    {
+                        label: 'Vehicle Entries',
+                        data: weekdayChartData.entries,
+                        backgroundColor: 'rgba(168, 85, 247, 0.75)',
+                        borderRadius: 6,
+                        yAxisID: 'yCount',
+                    },
+                    {
+                        label: 'Revenue (₹)',
+                        data: weekdayChartData.revenue,
+                        type: 'line',
+                        borderColor: '#10b981',
+                        backgroundColor: '#10b981',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        yAxisID: 'yRev',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { display: false } },
+                    yCount: {
+                        position: 'left',
+                        grid: { color: gridColor },
+                        ticks: { precision: 0 }
+                    },
+                    yRev: {
+                        position: 'right',
+                        grid: { display: false },
+                        ticks: {
+                            callback: function(v) { return '₹' + v; }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 4. VEHICLE CATEGORIES DOUGHNUT CHART
+    // ─────────────────────────────────────────────────────────────
+    function renderVehicleDoughnut() {
+        const ctx = document.getElementById('vehicleDoughnutCanvas').getContext('2d');
+        const labels = vehicleData.map(v => v.type);
+        const counts = vehicleData.map(v => v.count);
+
+        const colors = [
+            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#a855f7',
+            '#06b6d4', '#ec4899', '#8b5cf6', '#64748b', '#f97316'
+        ];
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: counts,
+                    backgroundColor: colors.slice(0, labels.length),
+                    borderWidth: 2,
+                    borderColor: isDark ? '#161b22' : '#ffffff',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const idx = ctx.dataIndex;
+                                const item = vehicleData[idx];
+                                return ` ${item.type}: ${item.count} (${item.percentage}%) • ₹${item.revenue.toLocaleString()}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 5. AVERAGE DURATION BY VEHICLE TYPE (HORIZONTAL BAR)
+    // ─────────────────────────────────────────────────────────────
+    function renderDurationByVehicle() {
+        const ctx = document.getElementById('durationByVehicleCanvas').getContext('2d');
+        const labels = vehicleData.map(v => v.type);
+        const durations = vehicleData.map(v => v.avg_duration);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Avg Stay Duration (Hours)',
+                    data: durations,
+                    backgroundColor: 'rgba(245, 158, 11, 0.75)',
+                    borderRadius: 6,
+                    barPercentage: 0.6,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        grid: { color: gridColor },
+                        ticks: { callback: function(val) { return val + 'h'; } }
+                    },
+                    y: { grid: { display: false } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const idx = ctx.dataIndex;
+                                return ` Avg Duration: ${vehicleData[idx].avg_duration_str} (${ctx.raw} hrs)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 6. PLATE CATEGORIES CHART
+    // ─────────────────────────────────────────────────────────────
+    function renderPlateChart() {
+        const ctx = document.getElementById('plateTypeChartCanvas').getContext('2d');
+        const labels = plateData.map(p => p.label);
+        const counts = plateData.map(p => p.count);
+
+        new Chart(ctx, {
+            type: 'polarArea',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: counts,
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.6)',
+                        'rgba(245, 158, 11, 0.6)',
+                        'rgba(16, 185, 129, 0.6)',
+                        'rgba(6, 182, 212, 0.6)',
+                        'rgba(239, 68, 68, 0.6)',
+                        'rgba(168, 85, 247, 0.6)',
+                    ],
+                    borderWidth: 1,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        grid: { color: gridColor },
+                        ticks: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } }
+                }
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 7. DURATION TIERS CHART
+    // ─────────────────────────────────────────────────────────────
+    function renderDurationTiers() {
+        const ctx = document.getElementById('durationTiersCanvas').getContext('2d');
+        const labels = Object.keys(durationTiersData);
+        const counts = Object.values(durationTiersData);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Visits in Tier',
+                    data: counts,
+                    backgroundColor: [
+                        '#34d399', '#38bdf8', '#818cf8', '#f472b6', '#fb7185'
+                    ],
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { grid: { color: gridColor }, ticks: { precision: 0 } }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // INITIALIZATION & MODAL INTERACTIONS
+    // ─────────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function() {
+        renderTrendChart('daily');
+        renderHourlyChart();
+        renderWeekdayChart();
+        renderVehicleDoughnut();
+        renderDurationByVehicle();
+        renderPlateChart();
+        renderDurationTiers();
+
+        // Custom Date Range toggle in filter bar
+        const toggleCustomBtn = document.getElementById('toggleCustomDatesBtn');
+        const customDateRow = document.getElementById('customDateRow');
+        const rangeInput = document.getElementById('rangeInput');
+
+        if (toggleCustomBtn && customDateRow) {
+            toggleCustomBtn.addEventListener('click', function() {
+                const isOpen = customDateRow.classList.toggle('is-open');
+                if (isOpen) {
+                    rangeInput.value = 'custom';
+                    toggleCustomBtn.classList.add('active');
+                } else {
+                    toggleCustomBtn.classList.remove('active');
+                }
+            });
+        }
+
+
+
+        // Export Modal handling
+        const openModalBtn = document.getElementById('openExportModalBtn');
+        const closeModalBtn = document.getElementById('closeExportModalBtn');
+        const cancelModalBtn = document.getElementById('cancelExportModalBtn');
+        const modalBackdrop = document.getElementById('exportModalBackdrop');
+
+        function openModal() {
+            modalBackdrop.style.display = 'flex';
+        }
+        function closeModal() {
+            modalBackdrop.style.display = 'none';
+        }
+
+        if (openModalBtn) openModalBtn.addEventListener('click', openModal);
+        if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+        if (cancelModalBtn) cancelModalBtn.addEventListener('click', closeModal);
+
+        // Click outside modal dialog to close
+        if (modalBackdrop) {
+            modalBackdrop.addEventListener('click', function(e) {
+                if (e.target === modalBackdrop) closeModal();
+            });
+        }
+
+        // Modal Range Select change
+        const modalRangeSelect = document.getElementById('modalRangeSelect');
+        const modalCustomDates = document.getElementById('modalCustomDates');
+        if (modalRangeSelect && modalCustomDates) {
+            modalRangeSelect.addEventListener('change', function() {
+                modalCustomDates.style.display = (this.value === 'custom') ? 'flex' : 'none';
+            });
+            modalCustomDates.style.display = (modalRangeSelect.value === 'custom') ? 'flex' : 'none';
+        }
+    });
+
+    // Checkbox toggles in export modal
+    function toggleAllColumns(checked) {
+        document.querySelectorAll('.col-checkbox').forEach(cb => {
+            cb.checked = checked;
+        });
+    }
+</script>
+{% endblock %}

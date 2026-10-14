@@ -2,3 +2,5 @@ graph
 advance booking
 bike
 ui
+dashboard
+SMS integration
