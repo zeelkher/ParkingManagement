@@ -1,0 +1,47 @@
+PARK NEST — Booking Update
+==========================
+
+Hi {{ owner_first_name }},
+
+We regret to inform you that your advance parking booking
+at PARK NEST could not be confirmed at this time.
+
+  ┌──────────────────────────────────────┐
+  │  BOOKING REFERENCE                   │
+  │                                      │
+  │  {{ booking.booking_reference }}
+  │                                      │
+  │  Status: NOT CONFIRMED               │
+  └──────────────────────────────────────┘
+
+{% if rejection_reason %}
+REASON FOR NON-CONFIRMATION
+────────────────────────────
+  {{ rejection_reason }}
+
+{% endif %}
+YOUR BOOKING DETAILS
+────────────────────────────────────────────
+  Vehicle Number   :  {{ booking.vehicle_number }}
+  Vehicle Type     :  {{ booking.vehicle_type }}
+  Requested Arrival:  {{ booking.expected_arrival_time|date:"d M Y, h:i A" }}
+  Status           :  ✗ Not Confirmed
+────────────────────────────────────────────
+
+
+WHAT YOU CAN DO NEXT
+──────────────────────
+  • Submit a new booking request for a different date or time.
+  • Try selecting a different preferred parking area.
+  • Contact the parking facility directly for assistance.
+
+
+We apologise for the inconvenience and hope to serve
+you better with a future booking.
+
+Thank you for choosing PARK NEST.
+— The PARK NEST Team
+
+──────────────────────────────────────────────
+This is an automated message. Please do not reply to this email.
+© PARK NEST Smart Parking System

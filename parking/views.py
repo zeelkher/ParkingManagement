@@ -29,6 +29,7 @@ import os
 import re
 import pathlib
 from .sms_utils import send_booking_confirmation_sms, send_booking_approved_sms, send_booking_rejected_sms
+from .email_utils import send_booking_confirmation_email, send_booking_rejection_email
 
 # ── Load .env on startup (if it exists) ────────────────────────────────────
 _ENV_PATH = pathlib.Path(__file__).resolve().parent.parent / '.env'
@@ -756,10 +757,26 @@ def booking_request_action(request, booking_id):
         booking.confirmed_at = timezone.now()
         booking.operator_notes = operator_notes
         booking.save()
-        messages.success(request, f'Booking {booking.booking_reference} confirmed for Slot {slot.label}.')
-        # Send slot-confirmed SMS
-        if booking.mobile:
-            send_booking_approved_sms(booking.mobile, booking.booking_reference, slot.label, booking.owner_name)
+
+        # Send booking-confirmed email (no SMS)
+        email_sent, email_msg = send_booking_confirmation_email(booking)
+        if email_sent:
+            messages.success(
+                request,
+                f'Booking {booking.booking_reference} confirmed for Slot {slot.label}. '
+                f'A confirmation email has been sent to the customer.'
+            )
+        else:
+            messages.success(
+                request,
+                f'Booking {booking.booking_reference} confirmed for Slot {slot.label}. '
+                f'(Note: confirmation email could not be sent — {email_msg})'
+            )
+            import logging
+            logging.getLogger(__name__).warning(
+                'Booking confirmed but email failed for %s: %s',
+                booking.booking_reference, email_msg
+            )
 
     elif action == 'reject':
         reason = request.POST.get('rejection_reason', '').strip()
@@ -771,6 +788,14 @@ def booking_request_action(request, booking_id):
         # Send rejection SMS
         if booking.mobile:
             send_booking_rejected_sms(booking.mobile, booking.booking_reference, reason, booking.owner_name)
+        # Send rejection email
+        if booking.email:
+            email_sent, email_msg = send_booking_rejection_email(booking, reason)
+            if not email_sent:
+                import logging
+                logging.getLogger(__name__).warning(
+                    'Rejection email failed for %s: %s', booking.booking_reference, email_msg
+                )
 
     elif action == 'cancel':
         booking.status = 'Cancelled'
@@ -914,6 +939,7 @@ def public_advance_booking(request):
                 status='Pending',
                 owner_name=owner_name,
                 mobile=mobile,
+                email=form.cleaned_data.get('email', '').strip(),
                 vehicle_number=vehicle_number,
                 vehicle_type=vehicle_type,
                 plate_type=plate_type,

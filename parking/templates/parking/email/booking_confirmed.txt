@@ -1,0 +1,61 @@
+╔══════════════════════════════════════════╗
+║          P A R K   N E S T               ║
+║          Smart Parking System            ║
+╚══════════════════════════════════════════╝
+
+  ✅  YOUR PARKING BOOKING IS CONFIRMED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hi {{ owner_first_name }},
+
+Your advance parking slot has been reviewed and confirmed
+by our facility team. Please keep the reference below safe
+and present it at the gate when you arrive.
+
+
+  ┌─────────────────────────────────────┐
+  │  BOOKING REFERENCE                  │
+  │                                     │
+  │  {{ booking.booking_reference }}
+  │                                     │
+  │  Show this code at the gate         │
+  └─────────────────────────────────────┘
+
+
+BOOKING DETAILS
+───────────────────────────────────────────
+  Vehicle Number  :  {{ booking.vehicle_number }}
+  Vehicle Type    :  {{ booking.vehicle_type }}
+  Assigned Slot   :  {{ slot_number }}{% if area_name %}
+  Parking Area    :  {{ area_name }}{% endif %}{% if floor_name %}
+  Floor           :  {{ floor_name }}{% endif %}
+  Status          :  ✅ Confirmed
+───────────────────────────────────────────
+
+
+ARRIVAL SCHEDULE
+  Date & Time  :  {{ booking.expected_arrival_time|date:"d M Y, h:i A" }}
+  Duration     :  {{ booking.expected_duration_hours|default:"2" }} Hours
+  Area         :  {{ area_name|default:"Any Available Area" }}
+
+
+📋 AT THE GATE
+──────────────
+Present your booking reference {{ booking.booking_reference }} to the
+parking attendant on arrival. A 30-minute grace period applies
+from your scheduled arrival time.
+
+Proceed directly to slot {{ slot_number }}{% if floor_name %} on {{ floor_name }}{% endif %}{% if area_name %}
+at {{ area_name }}{% endif %}.
+
+
+──────────────────────────────────────────
+Need to cancel or check status? Visit the PARK NEST portal,
+go to "Track Booking", and enter your reference and mobile number.
+──────────────────────────────────────────
+
+Thank you for choosing PARK NEST.
+— The PARK NEST Team
+
+This is an automated message. Please do not reply to this email.
+© PARK NEST Smart Parking System

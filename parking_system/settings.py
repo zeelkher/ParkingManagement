@@ -129,3 +129,30 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Sign up at https://www.fast2sms.com/ → Dashboard → Dev API Key
 # Set this to your actual key (or keep blank to disable SMS)
 FAST2SMS_API_KEY = os.environ.get('FAST2SMS_API_KEY', '')
+
+# ── Email (SMTP) Configuration ─────────────────────────────────────────────
+# All credentials are read from environment variables — never hard-code them.
+# Recommended: Gmail App Password / SendGrid / Mailgun / any SMTP relay.
+#
+# Set these in your .env file (see .env.example):
+#   EMAIL_HOST          — SMTP server (e.g. smtp.gmail.com)
+#   EMAIL_PORT          — SMTP port   (587 for STARTTLS, 465 for SSL)
+#   EMAIL_HOST_USER     — SMTP login  (your sender email address)
+#   EMAIL_HOST_PASSWORD — SMTP password or App Password
+#   EMAIL_USE_TLS       — 'True' for STARTTLS (port 587); mutually exclusive with SSL
+#   EMAIL_USE_SSL       — 'True' for implicit SSL (port 465); mutually exclusive with TLS
+#   DEFAULT_FROM_EMAIL  — Displayed sender address, e.g. "PARK NEST <no-reply@example.com>"
+#
+# When EMAIL_HOST is not set the default Django dummy backend is used (no emails sent).
+EMAIL_BACKEND = (
+    'django.core.mail.backends.smtp.EmailBackend'
+    if os.environ.get('EMAIL_HOST')
+    else 'django.core.mail.backends.console.EmailBackend'
+)
+EMAIL_HOST          = os.environ.get('EMAIL_HOST', 'localhost')
+EMAIL_PORT          = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_HOST_USER     = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS       = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_USE_SSL       = os.environ.get('EMAIL_USE_SSL', 'False').lower() == 'true'
+DEFAULT_FROM_EMAIL  = os.environ.get('DEFAULT_FROM_EMAIL', 'PARK NEST <no-reply@parknest.local>')

@@ -256,14 +256,28 @@
                 <div class="pub-group">
                     <label for="id_mobile">
                         Mobile Number
-                        {% if config.field_mobile_required %}<span class="req">*</span>{% endif %}
+                        <span class="req">*</span>
                     </label>
                     {{ form.mobile }}
-                    <span class="help-text">10-digit number. Booking reference delivered via SMS.</span>
+                    <span class="help-text">10-digit number. Used to look up your booking status.</span>
                 </div>
                 {% endif %}
             </div>
             {% endif %}
+
+            <!-- Email — always shown and required for booking confirmation -->
+            <div class="pub-row" style="margin-top:14px;">
+                <div class="pub-group">
+                    <label for="id_email">
+                        Email Address
+                        <span class="req">*</span>
+                    </label>
+                    {{ form.email }}
+                    <span class="help-text">Your confirmed slot details will be emailed here.</span>
+                </div>
+            </div>
+
+
 
             {% if config.field_preferred_area_visible %}
             <div class="pub-row" style="margin-top:14px;">

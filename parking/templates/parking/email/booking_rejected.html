@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Booking Update — PARK NEST</title>
+  <style type="text/css">
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body, html { margin:0; padding:0; width:100%; }
+    body {
+      background:#f1f5f9;
+      font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+      -webkit-text-size-adjust:100%;
+    }
+    table { border-collapse:collapse; mso-table-lspace:0pt; mso-table-rspace:0pt; }
+    img   { border:0; display:block; outline:none; }
+    a     { color:#dc2626; text-decoration:none; }
+
+    @media only screen and (max-width:480px) {
+      .header-band  { padding:28px 20px 24px !important; }
+      .body-wrap    { padding:22px 18px !important; }
+      .footer-band  { padding:20px 18px !important; }
+      .ref-code     { font-size:22px !important; letter-spacing:2px !important; }
+      .header-title { font-size:20px !important; }
+    }
+  </style>
+</head>
+<body>
+<div style="background:#f1f5f9;width:100%;padding:32px 0 48px;">
+
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+<tr><td align="center" style="padding:32px 12px 48px;">
+<table width="600" cellpadding="0" cellspacing="0" role="presentation"
+  style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 8px 24px -4px rgba(15,23,42,0.08);">
+
+  <!-- ═══ HEADER BAND ═══════════════════════════════════════ -->
+  <tr>
+    <td class="header-band"
+      style="background:#7f1d1d;background:linear-gradient(135deg,#7f1d1d 0%,#b91c1c 55%,#dc2626 100%);padding:36px 40px 32px;text-align:center;">
+
+      <!-- Logo pill -->
+      <table cellpadding="0" cellspacing="0" role="presentation" align="center" style="margin-bottom:22px;">
+        <tr>
+          <td style="background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.28);border-radius:12px;padding:8px 16px 8px 12px;">
+            <table cellpadding="0" cellspacing="0" role="presentation">
+              <tr>
+                <td style="width:32px;height:32px;background:rgba(255,255,255,0.18);border-radius:8px;text-align:center;vertical-align:middle;font-size:20px;line-height:32px;color:#ffffff;">
+                  &#127963;
+                </td>
+                <td style="padding-left:10px;vertical-align:middle;">
+                  <div style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:3px;line-height:1.1;">PARK NEST</div>
+                  <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.65);letter-spacing:2px;text-transform:uppercase;margin-top:3px;">Smart Parking</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Alert icon circle -->
+      <table cellpadding="0" cellspacing="0" role="presentation" align="center" style="margin-bottom:18px;">
+        <tr>
+          <td style="width:62px;height:62px;background:rgba(255,255,255,0.15);border:2.5px solid rgba(255,255,255,0.38);border-radius:50%;text-align:center;vertical-align:middle;font-size:28px;line-height:62px;color:#ffffff;">
+            &#10007;
+          </td>
+        </tr>
+      </table>
+
+      <div class="header-title" style="font-size:26px;font-weight:800;color:#ffffff;line-height:1.25;letter-spacing:-0.01em;">
+        Booking could not<br>be confirmed
+      </div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.72);margin-top:10px;line-height:1.5;">
+        We were unable to allocate a slot for your request.
+      </div>
+
+      <!-- Status pill -->
+      <div style="margin-top:20px;">
+        <span style="display:inline-block;background:rgba(255,255,255,0.14);border:1.5px solid rgba(255,255,255,0.32);border-radius:999px;padding:7px 22px;color:#ffffff;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">
+          &#10007;&nbsp;&nbsp;NOT CONFIRMED
+        </span>
+      </div>
+
+    </td>
+  </tr>
+
+  <!-- ═══ BODY ═══════════════════════════════════════════════ -->
+  <tr>
+    <td class="body-wrap" style="padding:32px 40px;background:#ffffff;">
+
+      <!-- Greeting -->
+      <p style="font-size:15px;color:#334155;line-height:1.65;margin:0 0 26px;">
+        Hi <strong style="color:#0f172a;">{{ owner_first_name }}</strong>,<br>
+        Thank you for choosing <strong style="color:#0f172a;">PARK NEST</strong>. Unfortunately, our facility team was unable to confirm your parking booking at this time. We apologise for the inconvenience.
+      </p>
+
+      <!-- Reference Box — orange/red tinted, dashed border -->
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:28px;">
+        <tr>
+          <td style="background:#fff7f7;border:2px dashed #fca5a5;border-radius:12px;padding:22px 16px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#64748b;margin-bottom:10px;">
+              &#128203;&nbsp; Booking Reference
+            </div>
+            <div style="font-family:'Courier New','Lucida Console',Courier,monospace;font-size:30px;font-weight:800;color:#b91c1c;letter-spacing:5px;margin-bottom:12px;">
+              {{ booking.booking_reference }}
+            </div>
+            <span style="display:inline-block;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:5px 16px;font-size:12px;color:#b91c1c;font-weight:600;">
+              &#8203; Status: Not Confirmed
+            </span>
+          </td>
+        </tr>
+      </table>
+
+      {% if rejection_reason %}
+      <!-- Reason Box -->
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:28px;">
+        <tr>
+          <td style="background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #dc2626;border-radius:0 10px 10px 0;padding:16px 20px;">
+            <div style="font-size:13px;font-weight:700;color:#b91c1c;margin-bottom:7px;">
+              &#9888;&nbsp; Reason for Non-Confirmation
+            </div>
+            <div style="font-size:13px;color:#991b1b;line-height:1.65;">
+              {{ rejection_reason }}
+            </div>
+          </td>
+        </tr>
+      </table>
+      {% endif %}
+
+      <!-- Booking Details -->
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#64748b;margin-bottom:10px;padding-bottom:8px;border-bottom:1.5px solid #f1f5f9;">
+        &#128663;&nbsp; Your Booking Details
+      </div>
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:28px;border-collapse:collapse;">
+        <tr>
+          <td style="padding:11px 14px;font-size:13px;font-weight:600;color:#475569;width:38%;background:#f8fafc;border-radius:8px 0 0 8px;">Vehicle Number</td>
+          <td style="padding:11px 14px;font-size:13px;font-weight:700;color:#0f172a;background:#f8fafc;border-radius:0 8px 8px 0;font-family:'Courier New',monospace;letter-spacing:1px;">{{ booking.vehicle_number }}</td>
+        </tr>
+        <tr>
+          <td style="padding:11px 14px;font-size:13px;font-weight:600;color:#475569;background:#ffffff;border-radius:8px 0 0 8px;">Vehicle Type</td>
+          <td style="padding:11px 14px;font-size:13px;font-weight:700;color:#0f172a;background:#ffffff;border-radius:0 8px 8px 0;">{{ booking.vehicle_type }}</td>
+        </tr>
+        <tr>
+          <td style="padding:11px 14px;font-size:13px;font-weight:600;color:#475569;background:#f8fafc;border-radius:8px 0 0 8px;">Requested Arrival</td>
+          <td style="padding:11px 14px;font-size:13px;font-weight:700;color:#0f172a;background:#f8fafc;border-radius:0 8px 8px 0;">{{ booking.expected_arrival_time|date:"d M Y, h:i A" }}</td>
+        </tr>
+        <tr>
+          <td style="padding:11px 14px;font-size:13px;font-weight:600;color:#475569;background:#ffffff;border-radius:8px 0 0 8px;">Status</td>
+          <td style="padding:11px 14px;font-size:13px;font-weight:700;color:#dc2626;background:#ffffff;border-radius:0 8px 8px 0;">&#10007;&nbsp; Not Confirmed</td>
+        </tr>
+      </table>
+
+      <!-- What you can do next -->
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:28px;">
+        <tr>
+          <td style="background:#fffbeb;border:1px solid #fde68a;border-left:4px solid #f59e0b;border-radius:0 10px 10px 0;padding:16px 20px;">
+            <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:10px;">
+              &#128161;&nbsp; What you can do next
+            </div>
+            <table cellpadding="0" cellspacing="4" role="presentation">
+              <tr>
+                <td style="font-size:13px;color:#78350f;line-height:1.7;vertical-align:top;">&#8226;</td>
+                <td style="font-size:13px;color:#78350f;line-height:1.7;padding-left:8px;">Submit a new booking request for a different date or time.</td>
+              </tr>
+              <tr>
+                <td style="font-size:13px;color:#78350f;line-height:1.7;vertical-align:top;">&#8226;</td>
+                <td style="font-size:13px;color:#78350f;line-height:1.7;padding-left:8px;">Try selecting a different preferred parking area.</td>
+              </tr>
+              <tr>
+                <td style="font-size:13px;color:#78350f;line-height:1.7;vertical-align:top;">&#8226;</td>
+                <td style="font-size:13px;color:#78350f;line-height:1.7;padding-left:8px;">Contact the parking facility directly for assistance.</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <hr style="height:1px;background:#e2e8f0;border:none;margin:0 0 22px;">
+
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+        <tr>
+          <td style="background:#f8fafc;border-radius:8px;padding:14px 16px;text-align:center;font-size:12px;color:#64748b;line-height:1.6;">
+            Want to try again? Visit <strong>PARK NEST</strong> and submit a new advance booking request.<br>
+            We look forward to serving you soon.
+          </td>
+        </tr>
+      </table>
+
+    </td>
+  </tr>
+
+  <!-- ═══ FOOTER ═══════════════════════════════════════════════ -->
+  <tr>
+    <td style="background:#f1f5f9;border-top:1px solid #e2e8f0;padding:24px 40px;text-align:center;">
+      <div style="font-size:15px;font-weight:800;color:#1e3a5f;letter-spacing:3px;">PARK NEST</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:8px;line-height:1.7;">
+        This is an automated message &mdash; please do not reply directly to this email.<br>
+        &copy; PARK NEST Smart Parking &nbsp;&bull;&nbsp; All rights reserved.
+      </div>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</div>
+</body>
+</html>

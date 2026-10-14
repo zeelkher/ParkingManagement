@@ -427,7 +427,7 @@ class PublicAdvanceBookingForm(forms.Form):
             self.fields['mobile'] = forms.CharField(
                 label='Mobile Number',
                 max_length=10,
-                required=self.config.field_mobile_required,
+                required=True,  # Always required — needed for booking status lookup & confirmation
                 widget=forms.TextInput(attrs={
                     'class': 'form-control',
                     'placeholder': '9876543210',
@@ -436,6 +436,19 @@ class PublicAdvanceBookingForm(forms.Form):
                     'id': 'id_mobile',
                 })
             )
+
+        # Email is always shown and always required for booking confirmation
+        self.fields['email'] = forms.EmailField(
+            label='Email Address',
+            required=True,
+            widget=forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'you@example.com',
+                'id': 'id_email',
+                'autocomplete': 'email',
+            }),
+            help_text='A confirmation email will be sent here when your slot is assigned.'
+        )
 
         if self.config.field_vehicle_type_visible:
             self.fields['vehicle_type'] = forms.ChoiceField(
@@ -548,6 +561,12 @@ class PublicAdvanceBookingForm(forms.Form):
                 raise forms.ValidationError('Mobile number must start with 6, 7, 8, or 9.')
             return clean
         return mobile
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email', '').strip().lower()
+        if not email:
+            raise forms.ValidationError('Email address is required.')
+        return email
 
     def clean_vehicle_number(self):
         vnum = self.cleaned_data.get('vehicle_number', '').strip().upper()

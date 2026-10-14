@@ -322,6 +322,7 @@ class AdvanceBooking(models.Model):
     # Customer & Vehicle Details
     owner_name = models.CharField(max_length=100, blank=True)
     mobile = models.CharField(max_length=15)
+    email = models.EmailField(max_length=254, blank=True, help_text='Customer email address for booking confirmation.')
     vehicle_number = models.CharField(max_length=20)
     vehicle_type = models.CharField(max_length=20, choices=VEHICLE_TYPES, default='Car')
     plate_type = models.CharField(max_length=20, choices=PLATE_TYPES, default='white_black')
