@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.db import IntegrityError, transaction
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Count, F
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
@@ -20,7 +20,8 @@ from .models import (
 )
 from .forms import (
     ParkingAreaForm, ParkingFloorForm, ParkingSlotForm, VehicleEntryForm, VehicleExitForm,
-    BookingFormSettingsForm, BookingCustomQuestionForm, PublicAdvanceBookingForm, BookingStatusCheckForm
+    BookingFormSettingsForm, BookingCustomQuestionForm, PublicAdvanceBookingForm,
+    BookingStatusCheckForm, MOTORCYCLE_VEHICLE_TYPES
 )
 import json
 import math
@@ -51,23 +52,90 @@ def _write_env_key(env_path: pathlib.Path, key: str, value: str):
         content = content.rstrip('\n') + '\n' + new_line + '\n'
     env_path.write_text(content)
 
+def get_fully_occupied_slot_ids():
+    """Return a set of slot IDs that have no remaining capacity for any vehicle."""
+    # 1. Car-only slots with an active record
+    car_only_occupied = set(
+        ParkingSlot.objects.filter(
+            slot_type=ParkingSlot.SLOT_TYPE_CAR_ONLY,
+            records__status='Active'
+        ).values_list('id', flat=True)
+    )
+
+    # 2. Mixed slots occupied by a car (whole bay occupied)
+    mixed_car_occupied = set(
+        ParkingSlot.objects.filter(
+            slot_type=ParkingSlot.SLOT_TYPE_MIXED,
+            records__status='Active',
+            records__motorcycle_subspace_label=''
+        ).values_list('id', flat=True)
+    )
+
+    # 3. Motorcycle-only or mixed slots where active motorcycle records >= motorcycle_capacity
+    moto_full_slots = set(
+        ParkingSlot.objects.filter(
+            slot_type__in=[ParkingSlot.SLOT_TYPE_MOTORCYCLE_ONLY, ParkingSlot.SLOT_TYPE_MIXED],
+            records__status='Active'
+        ).exclude(
+            records__motorcycle_subspace_label=''
+        ).annotate(
+            active_moto_count=Count('records')
+        ).filter(
+            active_moto_count__gte=F('motorcycle_capacity')
+        ).values_list('id', flat=True)
+    )
+
+    return car_only_occupied | mixed_car_occupied | moto_full_slots
+
 
 def build_parking_layout(occupied_slots_map):
-    """Return the configured places/floors/slots for dashboard and check-in."""
+    """Return the configured places/floors/slots for dashboard and check-in.
+
+    occupied_slots_map: {slot_id: vehicle_type} for every active ParkingRecord.
+    Mixed slots may be partially occupied by motorcycles and still have free sub-spaces.
+    """
     floors = ParkingFloor.objects.select_related('parking_area').prefetch_related('slots').all()
     layout = []
     for floor in floors:
         floor_is_maint = floor.is_under_maintenance or floor.parking_area.is_under_maintenance
-        spaces = [
-            {
-                'id': slot.id,
-                'number': slot.number,
-                'occupied': slot.id in occupied_slots_map,
-                'vehicle_type': occupied_slots_map.get(slot.id),
-                'under_maintenance': floor_is_maint or slot.is_under_maintenance,
-            }
-            for slot in floor.slots.all()
-        ]
+        spaces = []
+        for slot in floor.slots.all():
+            maint = floor_is_maint or slot.is_under_maintenance
+            is_motorcycle_slot = slot.slot_type in (slot.SLOT_TYPE_MOTORCYCLE_ONLY, slot.SLOT_TYPE_MIXED)
+
+            if is_motorcycle_slot:
+                # For motorcycle/mixed slots, consider active motorcycle subspace records
+                moto_occupied = slot.motorcycle_spaces_occupied()
+                moto_free = slot.motorcycle_spaces_free()
+                # Car occupancy: only possible in mixed slots when a car is active
+                car_occupied = slot.records.filter(status='Active', motorcycle_subspace_label='').exists() if slot.slot_type == slot.SLOT_TYPE_MIXED else False
+                fully_occupied = (moto_free == 0) or (slot.slot_type == slot.SLOT_TYPE_MIXED and car_occupied)
+                spaces.append({
+                    'id': slot.id,
+                    'number': slot.number,
+                    'slot_type': slot.slot_type,
+                    'motorcycle_capacity': slot.motorcycle_capacity,
+                    'moto_occupied': moto_occupied,
+                    'moto_free': moto_free,
+                    'occupied': fully_occupied,
+                    'vehicle_type': 'Motorcycle' if moto_occupied > 0 else occupied_slots_map.get(slot.id),
+                    'under_maintenance': maint,
+                    'subspaces': slot.all_subspace_info() if not maint else [],
+                })
+            else:
+                # Standard car-only slot
+                spaces.append({
+                    'id': slot.id,
+                    'number': slot.number,
+                    'slot_type': slot.slot_type,
+                    'motorcycle_capacity': slot.motorcycle_capacity,
+                    'moto_occupied': 0,
+                    'moto_free': 0,
+                    'occupied': slot.id in occupied_slots_map,
+                    'vehicle_type': occupied_slots_map.get(slot.id),
+                    'under_maintenance': maint,
+                    'subspaces': [],
+                })
         layout.append({
             'id': floor.id,
             'area_id': floor.parking_area_id,
@@ -152,12 +220,13 @@ def dashboard(request):
     # Total slots represents total capacity - only affected when a slot is added or deleted
     total_slots = ParkingSlot.objects.count()
 
-    # Available slots: slots that are not under maintenance and not occupied
+    fully_occupied_ids = get_fully_occupied_slot_ids()
+    # Available slots: slots that are not under maintenance and not fully occupied
     available_slots = ParkingSlot.objects.filter(
         is_under_maintenance=False,
         parking_floor__is_under_maintenance=False,
         parking_floor__parking_area__is_under_maintenance=False,
-    ).exclude(id__in=active_slot_ids).count()
+    ).exclude(id__in=fully_occupied_ids).count()
 
     percent_occupied = int((occupied_slots / total_slots) * 100) if total_slots else 0
 
@@ -183,13 +252,13 @@ def dashboard(request):
 @login_required(login_url='login')
 def vehicle_entry(request):
     active_records = ParkingRecord.objects.filter(status='Active').select_related('vehicle')
-    active_slot_ids = set(r.parking_slot_id for r in active_records if r.parking_slot_id)
     active_slots_map = {r.parking_slot_id: r.vehicle.vehicle_type for r in active_records if r.parking_slot_id}
+    fully_occupied_ids = get_fully_occupied_slot_ids()
     available_slots = ParkingSlot.objects.filter(
         is_under_maintenance=False,
         parking_floor__is_under_maintenance=False,
         parking_floor__parking_area__is_under_maintenance=False,
-    ).exclude(id__in=active_slot_ids).select_related(
+    ).exclude(id__in=fully_occupied_ids).select_related(
         'parking_floor__parking_area'
     )
     parking_floors = build_parking_layout(active_slots_map)
@@ -202,6 +271,10 @@ def vehicle_entry(request):
                 'number': s['number'],
                 'occupied': bool(s['occupied']),
                 'under_maintenance': bool(s['under_maintenance']),
+                'slot_type': s.get('slot_type', 'car_only'),
+                'moto_free': s.get('moto_free', 0),
+                'moto_cap': s.get('motorcycle_capacity', 0),
+                'car_occupied': bool(s.get('car_occupied', False)),
             }
             for s in f['spaces']
         ]
@@ -217,10 +290,30 @@ def vehicle_entry(request):
             vehicle_type   = form.cleaned_data['vehicle_type']
             plate_type     = form.cleaned_data['plate_type']
             state_code     = form.cleaned_data['state_code']
-            parking_slot  = form.cleaned_data['parking_slot']
+            parking_slot   = form.cleaned_data['parking_slot']
             entry_time     = form.cleaned_data['entry_time']
 
-            # Check if vehicle is CURRENTLY parked (active session exists)
+            # ── Slot-type compatibility check ──────────────────────────────
+            if not parking_slot.accepts_vehicle_type(vehicle_type):
+                type_map = {
+                    ParkingSlot.SLOT_TYPE_CAR_ONLY: 'cars only',
+                    ParkingSlot.SLOT_TYPE_MOTORCYCLE_ONLY: 'motorcycles only',
+                    ParkingSlot.SLOT_TYPE_MIXED: 'cars or motorcycles',
+                }
+                return render(request, 'parking/vehicle_entry.html', {
+                    'form': form,
+                    'error': (
+                        f'Slot {parking_slot.number} is configured for '
+                        f'{type_map.get(parking_slot.slot_type, parking_slot.slot_type)}. '
+                        f'Cannot park a {vehicle_type} here.'
+                    ),
+                    'parking_floors': parking_floors,
+                    'floor_area_map': floor_area_map,
+                    'slot_floor_map': slot_floor_map,
+                    'floor_slots_map': floor_slots_map,
+                })
+
+            # ── Check if vehicle is CURRENTLY parked (active session exists) ──
             active_record = ParkingRecord.objects.filter(
                 vehicle__vehicle_number=vehicle_number, status='Active'
             ).first()
@@ -253,20 +346,54 @@ def vehicle_entry(request):
                 vehicle.state_code  = state_code
                 vehicle.save()
 
-            # Re-check just before saving in case another operator selected this slot.
-            if ParkingRecord.objects.filter(parking_slot=parking_slot, status='Active').exists():
-                return render(request, 'parking/vehicle_entry.html', {
-                    'form': form,
-                    'error': f'{parking_slot.label} was just occupied. Please select another free slot.',
-                    'parking_floors': parking_floors,
-                    'floor_area_map': floor_area_map,
-                    'slot_floor_map': slot_floor_map,
-                    'floor_slots_map': floor_slots_map,
-                })
+            # ── Motorcycle sub-space allocation ────────────────────────────
+            is_motorcycle = vehicle_type in MOTORCYCLE_VEHICLE_TYPES
+            motorcycle_subspace_label = ''
+
+            if is_motorcycle and parking_slot.accepts_motorcycles:
+                with transaction.atomic():
+                    # Lock the slot row to prevent concurrent double-booking
+                    parking_slot = ParkingSlot.objects.select_for_update().get(pk=parking_slot.pk)
+                    chosen_letter = request.POST.get('motorcycle_subspace_choice', '').strip().upper()
+                    active_occupied = parking_slot.get_active_motorcycle_subspace_labels()
+                    if chosen_letter and len(chosen_letter) == 1 and chosen_letter not in active_occupied:
+                        if ord(chosen_letter) - ord('A') < parking_slot.motorcycle_capacity:
+                            next_letter = chosen_letter
+                        else:
+                            next_letter = parking_slot.get_next_free_motorcycle_subspace()
+                    else:
+                        next_letter = parking_slot.get_next_free_motorcycle_subspace()
+                    if next_letter is None:
+                        return render(request, 'parking/vehicle_entry.html', {
+                            'form': form,
+                            'error': f'All {parking_slot.motorcycle_capacity} motorcycle space(s) in slot {parking_slot.number} are currently occupied.',
+                            'parking_floors': parking_floors,
+                            'floor_area_map': floor_area_map,
+                            'slot_floor_map': slot_floor_map,
+                            'floor_slots_map': floor_slots_map,
+                        })
+                    motorcycle_subspace_label = next_letter
+            else:
+                # For cars (or non-motorcycle vehicles) in a car/mixed slot:
+                # Re-check just before saving in case another vehicle occupied this slot.
+                if ParkingRecord.objects.filter(
+                    parking_slot=parking_slot, status='Active'
+                ).exists():
+                    return render(request, 'parking/vehicle_entry.html', {
+                        'form': form,
+                        'error': f'Slot {parking_slot.number} already has active parking records. Cars require the entire bay to be vacant.',
+                        'parking_floors': parking_floors,
+                        'floor_area_map': floor_area_map,
+                        'slot_floor_map': slot_floor_map,
+                        'floor_slots_map': floor_slots_map,
+                    })
 
             record = ParkingRecord.objects.create(
-                vehicle=vehicle, parking_slot=parking_slot, slot_number=parking_slot.id,
-                entry_time=entry_time
+                vehicle=vehicle,
+                parking_slot=parking_slot,
+                slot_number=parking_slot.id,
+                motorcycle_subspace_label=motorcycle_subspace_label,
+                entry_time=entry_time,
             )
 
             # Link advance booking if submitted with a reference
@@ -493,6 +620,12 @@ def _parking_management(request):
                             for slot in floor.slots.all():
                                 slot.number = request.POST[f'slot_number_{slot.id}'].strip().upper()
                                 slot.sort_order = int(request.POST[f'slot_sort_order_{slot.id}'])
+                                slot.slot_type = request.POST.get(f'slot_type_{slot.id}', slot.slot_type)
+                                try:
+                                    mc = int(request.POST.get(f'slot_motorcycle_capacity_{slot.id}', slot.motorcycle_capacity))
+                                    slot.motorcycle_capacity = max(1, min(26, mc))
+                                except (TypeError, ValueError):
+                                    pass
                                 slot.is_under_maintenance = f'slot_maintenance_{slot.id}' in request.POST
                                 slot.save()
             except (KeyError, ValueError, IntegrityError) as error:
@@ -705,12 +838,12 @@ def booking_requests(request):
     all_count = AdvanceBooking.objects.count()
 
     # Slot availability data
-    active_slot_ids = set(ParkingRecord.objects.filter(status='Active').values_list('parking_slot_id', flat=True))
+    fully_occupied_ids = get_fully_occupied_slot_ids()
     available_slots = ParkingSlot.objects.filter(
         is_under_maintenance=False,
         parking_floor__is_under_maintenance=False,
         parking_floor__parking_area__is_under_maintenance=False,
-    ).exclude(id__in=active_slot_ids).select_related('parking_floor__parking_area').order_by(
+    ).exclude(id__in=fully_occupied_ids).select_related('parking_floor__parking_area').order_by(
         'parking_floor__parking_area__name', 'parking_floor__sort_order', 'sort_order'
     )
 
@@ -746,7 +879,25 @@ def booking_request_action(request, booking_id):
         if slot.is_under_maintenance or slot.parking_floor.is_under_maintenance or slot.parking_floor.parking_area.is_under_maintenance:
             messages.error(request, f'Slot {slot.number} is under maintenance. Please choose an active bay.')
             return redirect('booking_requests')
-        if ParkingRecord.objects.filter(parking_slot=slot, status='Active').exists():
+        # Slot-type / vehicle-type compatibility
+        if not slot.accepts_vehicle_type(booking.vehicle_type):
+            type_map = {
+                ParkingSlot.SLOT_TYPE_CAR_ONLY: 'cars only',
+                ParkingSlot.SLOT_TYPE_MOTORCYCLE_ONLY: 'motorcycles only',
+                ParkingSlot.SLOT_TYPE_MIXED: 'cars or motorcycles',
+            }
+            messages.error(
+                request,
+                f'Slot {slot.number} is configured for {type_map.get(slot.slot_type, slot.slot_type)}, '
+                f'but this booking is for a {booking.vehicle_type}.'
+            )
+            return redirect('booking_requests')
+        # Occupancy check – for motorcycle slots check sub-space availability
+        if booking.vehicle_type in MOTORCYCLE_VEHICLE_TYPES and slot.accepts_motorcycles:
+            if slot.get_next_free_motorcycle_subspace() is None:
+                messages.error(request, f'All motorcycle sub-spaces in slot {slot.number} are occupied.')
+                return redirect('booking_requests')
+        elif ParkingRecord.objects.filter(parking_slot=slot, status='Active').exists():
             messages.error(request, f'Slot {slot.number} is currently occupied by an active vehicle.')
             return redirect('booking_requests')
 
@@ -804,9 +955,35 @@ def booking_request_action(request, booking_id):
             return redirect('booking_requests')
 
         slot = booking.assigned_slot
-        if ParkingRecord.objects.filter(parking_slot=slot, status='Active').exists():
-            messages.error(request, f'Slot {slot.number} is currently occupied! Please reassign slot before check in.')
+
+        # Slot-type / vehicle-type compatibility (revalidate at check-in)
+        if not slot.accepts_vehicle_type(booking.vehicle_type):
+            type_map = {
+                ParkingSlot.SLOT_TYPE_CAR_ONLY: 'cars only',
+                ParkingSlot.SLOT_TYPE_MOTORCYCLE_ONLY: 'motorcycles only',
+                ParkingSlot.SLOT_TYPE_MIXED: 'cars or motorcycles',
+            }
+            messages.error(
+                request,
+                f'Cannot check in: Slot {slot.number} is configured for '
+                f'{type_map.get(slot.slot_type, slot.slot_type)}, '
+                f'but this booking is for a {booking.vehicle_type}. Please reassign.'
+            )
             return redirect('booking_requests')
+
+        # Determine subspace label for motorcycles
+        motorcycle_subspace_label = ''
+        is_motorcycle = booking.vehicle_type in MOTORCYCLE_VEHICLE_TYPES
+        if is_motorcycle and slot.accepts_motorcycles:
+            next_letter = slot.get_next_free_motorcycle_subspace()
+            if next_letter is None:
+                messages.error(request, f'All motorcycle sub-spaces in slot {slot.number} are occupied.')
+                return redirect('booking_requests')
+            motorcycle_subspace_label = next_letter
+        else:
+            if ParkingRecord.objects.filter(parking_slot=slot, status='Active').exists():
+                messages.error(request, f'Slot {slot.number} is currently occupied! Please reassign slot before check in.')
+                return redirect('booking_requests')
 
         vehicle, _ = Vehicle.objects.get_or_create(
             vehicle_number=booking.vehicle_number,
@@ -830,6 +1007,7 @@ def booking_request_action(request, booking_id):
             vehicle=vehicle,
             parking_slot=slot,
             slot_number=slot.id,
+            motorcycle_subspace_label=motorcycle_subspace_label,
             entry_time=timezone.now(),
             status='Active'
         )
@@ -837,7 +1015,7 @@ def booking_request_action(request, booking_id):
         booking.checked_in_at = timezone.now()
         booking.parking_record = record
         booking.save()
-        messages.success(request, f'Vehicle {vehicle.vehicle_number} checked in! Parking record active at {slot.label}.')
+        messages.success(request, f'Vehicle {vehicle.vehicle_number} checked in at {slot.label}{("-" + motorcycle_subspace_label) if motorcycle_subspace_label else ""}!')
 
     return redirect('booking_requests')
 

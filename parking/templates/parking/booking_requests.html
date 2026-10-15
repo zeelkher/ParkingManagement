@@ -222,7 +222,18 @@
                         {% if b.assigned_slot %}
                         <div style="display: inline-flex; align-items: center; gap: 6px; background: #eff6ff; border: 1px solid var(--blue-border); padding: 4px 8px; border-radius: var(--r-sm);">
                             <i class="fa-solid fa-square-parking" style="color: var(--blue);"></i>
-                            <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--blue); font-size: 13px;">{{ b.assigned_slot.number }}</span>
+                            <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--blue); font-size: 13px;">
+                                {% if b.parking_record and b.parking_record.motorcycle_subspace_label %}
+                                    {{ b.parking_record.parking_number }}
+                                {% else %}
+                                    {{ b.assigned_slot.number }}
+                                {% endif %}
+                            </span>
+                            {% if b.assigned_slot.slot_type == 'motorcycle_only' %}
+                                <span style="font-size: 11px;" title="Motorcycle Only">🏍</span>
+                            {% elif b.assigned_slot.slot_type == 'mixed' %}
+                                <span style="font-size: 11px;" title="Mixed Bay">🚗+🏍</span>
+                            {% endif %}
                         </div>
                         <div style="font-size: 10px; color: var(--text-3); margin-top: 2px;">
                             {{ b.assigned_slot.parking_floor.parking_area.name }} • {{ b.assigned_slot.parking_floor.name }}
@@ -352,14 +363,21 @@
                     <select name="slot_id" id="modalSlotSelect" class="form-control" required style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">
                         <option value="">-- Choose an Available Slot --</option>
                         {% for slot in available_slots %}
-                        <option value="{{ slot.id }}" data-area="{{ slot.parking_floor.parking_area_id }}">
+                        <option value="{{ slot.id }}" data-area="{{ slot.parking_floor.parking_area_id }}" data-slot-type="{{ slot.slot_type }}">
                             {{ slot.parking_floor.parking_area.name }} • {{ slot.parking_floor.name }} • Slot {{ slot.number }}
+                            {% if slot.slot_type == 'motorcycle_only' %}
+                                [🏍 Moto Only — {{ slot.motorcycle_spaces_free }}/{{ slot.motorcycle_capacity }} free]
+                            {% elif slot.slot_type == 'mixed' %}
+                                [🚗+🏍 Mixed — {{ slot.motorcycle_spaces_free }}/{{ slot.motorcycle_capacity }} moto free]
+                            {% else %}
+                                [🚗 Car Only]
+                            {% endif %}
                         </option>
                         {% empty %}
                         <option value="" disabled>No slots available right now</option>
                         {% endfor %}
                     </select>
-                    <small class="field-help">Only slots that are not occupied or under maintenance are listed.</small>
+                    <small class="field-help">Only slots with available capacity compatible with this vehicle are selectable.</small>
                 </div>
 
                 <div class="form-group mb-2">
@@ -445,11 +463,25 @@ function openConfirmModal(id, ref, vnum, vtype, preferredAreaId) {
     document.getElementById('confirmModalVtype').innerText = vtype;
     document.getElementById('confirmForm').action = "/booking-requests/" + id + "/action/";
 
-    // Try pre-selecting preferred area slot if available
+    // Enable/disable options based on vehicle type compatibility
     const slotSelect = document.getElementById('modalSlotSelect');
+    const isMoto = ['Bike', 'Motorcycle'].includes(vtype);
+    for (let i = 0; i < slotSelect.options.length; i++) {
+        const opt = slotSelect.options[i];
+        if (!opt.value) continue;
+        const sType = opt.dataset.slotType;
+        if (isMoto) {
+            opt.disabled = (sType === 'car_only');
+        } else {
+            opt.disabled = (sType === 'motorcycle_only');
+        }
+    }
+
+    // Try pre-selecting preferred area slot if available and not disabled
+    slotSelect.selectedIndex = 0;
     if (preferredAreaId) {
         for (let i = 0; i < slotSelect.options.length; i++) {
-            if (slotSelect.options[i].dataset.area === preferredAreaId) {
+            if (slotSelect.options[i].dataset.area === preferredAreaId && !slotSelect.options[i].disabled) {
                 slotSelect.selectedIndex = i;
                 break;
             }

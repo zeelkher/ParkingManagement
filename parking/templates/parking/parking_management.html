@@ -261,53 +261,29 @@
           <div class="management-slots">
             {% for slot in floor.slots.all %}
             <div class="slot-row">
-              <span class="slot-display">{{ slot.number }}</span
-              ><input
-                class="form-control"
-                data-layout-field
-                name="slot_number_{{ slot.id }}"
-                value="{{ slot.number }}"
-                readonly
-              /><input
-                class="form-control sort-input"
-                data-layout-field
-                type="number"
-                name="slot_sort_order_{{ slot.id }}"
-                value="{{ slot.sort_order }}"
-                min="0"
-                readonly
-              />
+              <span class="slot-display">{{ slot.number }}
+                {% if slot.slot_type == 'motorcycle_only' %}<span style="font-size:9px;color:#f59e0b;" title="Motorcycle Only">🏍</span>
+                {% elif slot.slot_type == 'mixed' %}<span style="font-size:9px;color:#8b5cf6;" title="Mixed">🚗+🏍</span>
+                {% endif %}
+              </span>
+              <input class="form-control" data-layout-field name="slot_number_{{ slot.id }}" value="{{ slot.number }}" readonly />
+              <input class="form-control sort-input" data-layout-field type="number" name="slot_sort_order_{{ slot.id }}" value="{{ slot.sort_order }}" min="0" readonly />
+              <select class="form-control" data-layout-field name="slot_type_{{ slot.id }}" data-slot-type-select data-moto-cap-target="slot_moto_cap_{{ slot.id }}" disabled>
+                <option value="car_only" {% if slot.slot_type == 'car_only' %}selected{% endif %}>🚗 Car Only</option>
+                <option value="motorcycle_only" {% if slot.slot_type == 'motorcycle_only' %}selected{% endif %}>🏍 Motorcycle Only</option>
+                <option value="mixed" {% if slot.slot_type == 'mixed' %}selected{% endif %}>🚗+🏍 Mixed</option>
+              </select>
+              <input class="form-control sort-input" data-layout-field type="number" name="slot_motorcycle_capacity_{{ slot.id }}" id="slot_moto_cap_{{ slot.id }}" value="{{ slot.motorcycle_capacity }}" min="1" max="26" title="Motorcycle capacity (1-26)" placeholder="# bikes" readonly {% if slot.slot_type == 'car_only' %}style="display:none;"{% endif %} />
               <div class="icon-maintenance-group">
-                <input
-                  data-layout-field
-                  type="checkbox"
-                  id="slot_maint_{{ slot.id }}"
-                  name="slot_maintenance_{{ slot.id }}"
-                  {% if slot.is_under_maintenance %}checked{% endif %}
-                  disabled
-                  class="icon-checkbox"
-                /><label
-                  for="slot_maint_{{ slot.id }}"
-                  title="Maintenance"
-                  class="icon-label"
-                  ><i class="bi bi-wrench"></i
-                ></label>
+                <input data-layout-field type="checkbox" id="slot_maint_{{ slot.id }}" name="slot_maintenance_{{ slot.id }}" {% if slot.is_under_maintenance %}checked{% endif %} disabled class="icon-checkbox" /><label for="slot_maint_{{ slot.id }}" title="Maintenance" class="icon-label"><i class="bi bi-wrench"></i></label>
               </div>
-              <button
-                class="btn-icon-action layout-delete"
-                data-delete-action
-                form="delete-slot-{{ slot.id }}"
-                type="submit"
-                title="Delete slot"
-                disabled
-              >
-                <i class="bi bi-trash3"></i>
-              </button>
+              <button class="btn-icon-action layout-delete" data-delete-action form="delete-slot-{{ slot.id }}" type="submit" title="Delete slot" disabled><i class="bi bi-trash3"></i></button>
             </div>
             {% endfor %}
           </div>
         </details>
         {% endfor %}
+
       </div>
     </details>
     {% empty %}
@@ -348,6 +324,7 @@
     saveButton = document.getElementById("save-layout"),
     editableFields = document.querySelectorAll("[data-layout-field]"),
     deleteButtons = document.querySelectorAll("[data-delete-action]");
+
   function setEditMode(enabled) {
     editableFields.forEach((field) => {
       field.readOnly = !enabled;
@@ -357,8 +334,22 @@
     document
       .querySelector(".management-list")
       ?.classList.toggle("layout-is-editing", enabled);
+    // Motorcycle capacity visibility depends on slot type
+    updateAllMotoCapVisibility();
   }
+
+  function updateAllMotoCapVisibility() {
+    document.querySelectorAll("[data-slot-type-select]").forEach((sel) => {
+      const capId = sel.dataset.motoCapTarget;
+      const capEl = document.getElementById(capId);
+      if (capEl) {
+        capEl.style.display = sel.value === 'car_only' ? 'none' : '';
+      }
+    });
+  }
+
   setEditMode(false);
+
   editButton?.addEventListener("click", () => {
     setEditMode(true);
     editButton.hidden = true;
@@ -367,6 +358,19 @@
       .querySelectorAll(".layout-area")
       .forEach((area) => (area.open = true));
   });
+
+  document
+    .querySelectorAll("[data-slot-type-select]")
+    .forEach((sel) => {
+      sel.addEventListener("change", () => {
+        const capId = sel.dataset.motoCapTarget;
+        const capEl = document.getElementById(capId);
+        if (capEl) {
+          capEl.style.display = sel.value === 'car_only' ? 'none' : '';
+        }
+      });
+    });
+
   document
     .querySelectorAll(".layout-area > summary, .layout-floor > summary")
     .forEach((summary) =>

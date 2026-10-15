@@ -1045,6 +1045,8 @@ body::before, body::after { display: none !important; }
     border-radius: 6px !important;
     font-family: 'JetBrains Mono', monospace !important;
     font-size: 12px !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
 }
 
 .fee-badge, .fee-amount {

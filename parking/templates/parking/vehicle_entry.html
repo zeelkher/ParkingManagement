@@ -1,6 +1,9 @@
 {% extends 'parking/base.html' %}
 {% block page_title %}Vehicle Check-In{% endblock %}
 {% block content %}
+<style>
+.checkin-space { min-width: 68px; width: auto !important; padding: 0 6px !important; }
+</style>
 <div class="form-container">
     {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
     {% if form.errors %}<div class="alert alert-danger"><div><strong>PLEASE FIX THE FOLLOWING ERRORS:</strong>{% for field in form %}{% for error in field.errors %}<div>• {{ field.label|upper }}: {{ error }}</div>{% endfor %}{% endfor %}{% for error in form.non_field_errors %}<div>• {{ error }}</div>{% endfor %}</div></div>{% endif %}
@@ -39,6 +42,7 @@
     <form method="post" autocomplete="off" id="entry-form">
         {% csrf_token %}
         <input type="hidden" name="booking_reference" id="id_booking_reference" value="{{ imported_booking.booking_reference|default:'' }}">
+        <input type="hidden" name="motorcycle_subspace_choice" id="id_motorcycle_subspace_choice" value="">
 
         <div class="form-group" style="margin-bottom: 16px;">
             <div style="display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 8px; align-items: flex-end;">
@@ -76,28 +80,60 @@
                 <span class="checkin-floor-label">{{ floor.label }}</span>
                 <div class="checkin-spaces">
                     {% for space in floor.spaces %}
-                    {% if space.occupied %}
-                    <span class="checkin-space is-occupied" title="{{ space.number }} is occupied" style="display: inline-flex; align-items: center; gap: 4px;">
-                        {% if space.vehicle_type == 'Car' or space.vehicle_type == 'Jeep' or space.vehicle_type == 'Van' %}
-                            <i class="fa-solid fa-car"></i>
-                        {% elif space.vehicle_type == 'Bike' or space.vehicle_type == 'Motorcycle' %}
-                            <i class="fa-solid fa-motorcycle"></i>
-                        {% elif space.vehicle_type == 'Bus' %}
-                            <i class="fa-solid fa-bus"></i>
-                        {% elif space.vehicle_type == 'Truck' or space.vehicle_type == 'Lorry' or space.vehicle_type == 'Tractor' or space.vehicle_type == 'Tempo' %}
-                            <i class="fa-solid fa-truck"></i>
-                        {% else %}
-                            <i class="fa-solid fa-car-side"></i>
+                    {% if space.subspaces %}
+                        {# ── Motorcycle or mixed slot with sub-spaces ── #}
+                        {% for sub in space.subspaces %}
+                            {% if sub.occupied %}
+                            <span class="checkin-space is-occupied moto-subspace" data-slot-id="{{ space.id }}" data-subspace-letter="{{ sub.letter }}" title="{{ sub.label }} is occupied" style="display: inline-flex; align-items: center; gap: 3px;">
+                                <i class="fa-solid fa-motorcycle"></i>
+                                {{ sub.label }}
+                            </span>
+                            {% elif space.under_maintenance %}
+                            <span class="checkin-space is-maintenance moto-subspace" data-slot-id="{{ space.id }}" data-subspace-letter="{{ sub.letter }}" title="{{ sub.label }} is under maintenance" style="display: inline-flex; align-items: center; gap: 3px;">
+                                <i class="fa-solid fa-wrench" style="font-size: 8px;"></i>
+                                {{ sub.label }}
+                            </span>
+                            {% else %}
+                            <button type="button" class="checkin-space is-free moto-subspace" data-slot-id="{{ space.id }}" data-subspace-letter="{{ sub.letter }}" data-slot-type="{{ space.slot_type }}" title="Select {{ sub.label }}" style="display: inline-flex; align-items: center; gap: 3px;">
+                                <i class="fa-solid fa-motorcycle" style="opacity: .6; font-size: 8px;"></i>
+                                {{ sub.label }}
+                            </button>
+                            {% endif %}
+                        {% endfor %}
+
+                        {# Mixed slot: show car option if slot is completely free #}
+                        {% if space.slot_type == 'mixed' and not space.under_maintenance and space.moto_occupied == 0 and not space.car_occupied %}
+                        <button type="button" class="checkin-space is-free car-bay" data-slot-id="{{ space.id }}" data-is-car-bay="true" data-slot-type="{{ space.slot_type }}" title="Select {{ space.number }} (Car)" style="display: inline-flex; align-items: center; gap: 3px;">
+                            <i class="fa-solid fa-car" style="opacity: .6; font-size: 8px;"></i>
+                            {{ space.number }}
+                        </button>
                         {% endif %}
-                        {{ space.number }}
-                    </span>
-                    {% elif space.under_maintenance %}
-                    <span class="checkin-space is-maintenance" title="{{ space.number }} is under maintenance" style="display: inline-flex; align-items: center; gap: 4px;">
-                        <i class="fa-solid fa-wrench" style="font-size: 8px;"></i>
-                        {{ space.number }}
-                    </span>
+
                     {% else %}
-                    <button type="button" class="checkin-space is-free" data-slot-id="{{ space.id }}" title="Select {{ space.number }}">{{ space.number }}</button>
+                        {# ── Standard car-only slot ── #}
+                        {% if space.occupied %}
+                        <span class="checkin-space is-occupied car-bay" data-slot-id="{{ space.id }}" title="{{ space.number }} is occupied" style="display: inline-flex; align-items: center; gap: 4px;">
+                            {% if space.vehicle_type == 'Car' or space.vehicle_type == 'Jeep' or space.vehicle_type == 'Van' %}
+                                <i class="fa-solid fa-car"></i>
+                            {% elif space.vehicle_type == 'Bike' or space.vehicle_type == 'Motorcycle' %}
+                                <i class="fa-solid fa-motorcycle"></i>
+                            {% elif space.vehicle_type == 'Bus' %}
+                                <i class="fa-solid fa-bus"></i>
+                            {% elif space.vehicle_type == 'Truck' or space.vehicle_type == 'Lorry' or space.vehicle_type == 'Tractor' or space.vehicle_type == 'Tempo' %}
+                                <i class="fa-solid fa-truck"></i>
+                            {% else %}
+                                <i class="fa-solid fa-car-side"></i>
+                            {% endif %}
+                            {{ space.number }}
+                        </span>
+                        {% elif space.under_maintenance %}
+                        <span class="checkin-space is-maintenance car-bay" data-slot-id="{{ space.id }}" title="{{ space.number }} is under maintenance" style="display: inline-flex; align-items: center; gap: 4px;">
+                            <i class="fa-solid fa-wrench" style="font-size: 8px;"></i>
+                            {{ space.number }}
+                        </span>
+                        {% else %}
+                        <button type="button" class="checkin-space is-free car-bay" data-slot-id="{{ space.id }}" data-slot-type="car_only" title="Select {{ space.number }}">{{ space.number }}</button>
+                        {% endif %}
                     {% endif %}
                     {% endfor %}
                 </div>
@@ -105,7 +141,7 @@
             {% empty %}
             <p class="slot-map-empty">No slots are configured. An administrator must add an area, floor, and slot in Parking Management.</p>
             {% endfor %}
-            <div class="checkin-slot-key"><span><i class="fa-solid fa-car-side" style="margin-right: 4px;"></i> Occupied</span><span><i class="fa-solid fa-wrench" style="margin-right: 4px; color: #d97706;"></i> Under Maintenance</span><span>Outlined bay Available</span></div>
+            <div class="checkin-slot-key"><span><i class="fa-solid fa-car-side" style="margin-right: 4px;"></i> Occupied (Car)</span><span><i class="fa-solid fa-motorcycle" style="margin-right: 4px;"></i> Occupied (Moto)</span><span><i class="fa-solid fa-wrench" style="margin-right: 4px; color: #d97706;"></i> Under Maintenance</span><span>Outlined bay Available</span></div>
         </section>
         <details class="plate-ref-table mt-4" open><summary>Parking Price Guide</summary><table class="modern-table"><thead><tr><th>Vehicle</th><th>1st Hour</th><th>Each Additional Hour</th></tr></thead><tbody><tr><td>BIKE / MOTORCYCLE</td><td>₹20</td><td>₹10</td></tr><tr><td>CAR / JEEP / VAN</td><td>₹50</td><td>₹20</td></tr><tr><td>AUTO-RICKSHAW</td><td>₹30</td><td>₹15</td></tr><tr><td>TRUCK / LORRY / TEMPO</td><td>₹100</td><td>₹50</td></tr><tr><td>BUS</td><td>₹120</td><td>₹60</td></tr></tbody></table></details>
         <button type="submit" class="btn btn-primary mt-4" style="width:100%;padding:13px;">↓ CHECK IN VEHICLE</button>
@@ -324,7 +360,13 @@ function filterParkingChoices() {
                 el.dataset.status = 'maintenance';
                 el.title = `${slot.number} is under maintenance`;
             } else {
-                el.textContent = slot.number;
+                let label = slot.number;
+                if (slot.slot_type === 'motorcycle_only') {
+                    label = `🏍 ${slot.number} (Moto Only · ${slot.moto_free}/${slot.moto_cap} free)`;
+                } else if (slot.slot_type === 'mixed') {
+                    label = `🚗+🏍 ${slot.number} (Mixed · ${slot.moto_free}/${slot.moto_cap} moto free)`;
+                }
+                el.textContent = label;
                 el.disabled = false;
                 el.dataset.status = 'free';
                 availableCount++;
@@ -361,14 +403,74 @@ function filterParkingChoices() {
     }
 
     // 3. Sync map selection highlight
-    const activeSlotId = slotSelect.value;
+    syncMapSelection();
+}
+
+const vtypeSelect = document.getElementById('id_vehicle_type');
+const subspaceChoiceInput = document.getElementById('id_motorcycle_subspace_choice');
+
+function isMotorcycleSelected() {
+    if (!vtypeSelect) return false;
+    const val = vtypeSelect.value;
+    return val === 'Bike' || val === 'Motorcycle';
+}
+
+function syncMapSelection(clickedSubspaceLetter) {
+    // Clear all previous selections
     document.querySelectorAll('.checkin-space.is-selected').forEach(item => {
         item.classList.remove('is-selected');
     });
-    if (activeSlotId) {
-        const matchingBtn = document.querySelector(`.checkin-space[data-slot-id="${activeSlotId}"]`);
-        if (matchingBtn) matchingBtn.classList.add('is-selected');
+
+    const activeSlotId = slotSelect ? slotSelect.value : '';
+    if (!activeSlotId) {
+        if (subspaceChoiceInput) subspaceChoiceInput.value = '';
+        return;
     }
+
+    const isMoto = isMotorcycleSelected();
+
+    if (isMoto) {
+        // Motorcycle or Bike:
+        // Select ONLY ONE single subspace button!
+        let targetBtn = null;
+
+        const letter = clickedSubspaceLetter || (subspaceChoiceInput ? subspaceChoiceInput.value : '');
+        if (letter) {
+            targetBtn = document.querySelector(`.checkin-space.is-free.moto-subspace[data-slot-id="${activeSlotId}"][data-subspace-letter="${letter}"]`);
+        }
+
+        // If not found, pick the first available free subspace button for this slot
+        if (!targetBtn) {
+            targetBtn = document.querySelector(`.checkin-space.is-free.moto-subspace[data-slot-id="${activeSlotId}"]`);
+        }
+
+        // Fallback for standard car slot if selected
+        if (!targetBtn) {
+            targetBtn = document.querySelector(`.checkin-space.is-free[data-slot-id="${activeSlotId}"]`);
+        }
+
+        if (targetBtn) {
+            targetBtn.classList.add('is-selected');
+            if (subspaceChoiceInput && targetBtn.dataset.subspaceLetter) {
+                subspaceChoiceInput.value = targetBtn.dataset.subspaceLetter;
+            }
+        }
+    } else {
+        // Car or other vehicle:
+        // A car occupies the ENTIRE slot bay. Select all free bay buttons for this slot!
+        document.querySelectorAll(`.checkin-space.is-free[data-slot-id="${activeSlotId}"]`).forEach(btn => {
+            btn.classList.add('is-selected');
+        });
+        if (subspaceChoiceInput) {
+            subspaceChoiceInput.value = '';
+        }
+    }
+}
+
+if (vtypeSelect) {
+    vtypeSelect.addEventListener('change', () => {
+        syncMapSelection();
+    });
 }
 
 if (areaSelect) {
@@ -388,12 +490,8 @@ if (floorSelect) {
 
 if (slotSelect) {
     slotSelect.addEventListener('change', () => {
-        const val = slotSelect.value;
-        document.querySelectorAll('.checkin-space.is-selected').forEach(item => item.classList.remove('is-selected'));
-        if (val) {
-            const matchingBtn = document.querySelector(`.checkin-space.is-free[data-slot-id="${val}"]`);
-            if (matchingBtn) matchingBtn.classList.add('is-selected');
-        }
+        if (subspaceChoiceInput) subspaceChoiceInput.value = '';
+        syncMapSelection();
     });
 }
 
@@ -412,8 +510,12 @@ document.querySelectorAll('.checkin-space.is-free').forEach(button => {
         filterParkingChoices();
         slotSelect.value = slotId;
 
-        document.querySelectorAll('.checkin-space.is-selected').forEach(item => item.classList.remove('is-selected'));
-        button.classList.add('is-selected');
+        const letter = button.dataset.subspaceLetter || '';
+        if (subspaceChoiceInput) {
+            subspaceChoiceInput.value = letter;
+        }
+
+        syncMapSelection(letter);
         slotSelect.focus();
     });
 });

@@ -52,39 +52,93 @@
             <div class="floor-label"><strong>{{ floor.label }}</strong><small>{{ floor.occupied_slots }} / {{ floor.total_slots }} occupied</small></div>
             <div class="parking-spaces">
                 {% for space in floor.spaces %}
-                <span class="parking-space {% if space.occupied %}is-occupied{% elif space.under_maintenance %}is-maintenance{% else %}is-free{% endif %}"
-                    title="{% if space.occupied %}Occupied{% elif space.under_maintenance %}Under Maintenance{% else %}Available{% endif %} space {{ space.number }}">
-                    {% if space.occupied %}
-                    <span aria-hidden="true" style="display: inline-flex; align-items: center; gap: 4px;">
-                        {% if space.vehicle_type == 'Car' or space.vehicle_type == 'Jeep' or space.vehicle_type == 'Van' %}
-                        <i class="fa-solid fa-car"></i>
-                        {% elif space.vehicle_type == 'Bike' or space.vehicle_type == 'Motorcycle' %}
-                        <i class="fa-solid fa-motorcycle"></i>
-                        {% elif space.vehicle_type == 'Bus' %}
-                        <i class="fa-solid fa-bus"></i>
-                        {% elif space.vehicle_type == 'Truck' or space.vehicle_type == 'Lorry' or space.vehicle_type == 'Tractor' or space.vehicle_type == 'Tempo' %}
-                        <i class="fa-solid fa-truck"></i>
+
+                {% if space.slot_type == 'motorcycle_only' or space.slot_type == 'mixed' %}
+                    {# ── Motorcycle/Mixed slot: render each sub-space individually ── #}
+                    {% for sub in space.subspaces %}
+                    <span class="parking-space {% if sub.occupied %}is-occupied{% elif space.under_maintenance %}is-maintenance{% else %}is-free{% endif %}"
+                        title="{% if sub.occupied %}Occupied{% elif space.under_maintenance %}Under Maintenance{% else %}Available{% endif %} space {{ sub.label }}{% if space.slot_type == 'mixed' %} (Mixed){% endif %}">
+                        {% if sub.occupied %}
+                        <span aria-hidden="true" style="display:inline-flex;align-items:center;gap:3px;">
+                            <i class="fa-solid fa-motorcycle"></i>
+                            {{ sub.label }}
+                        </span>
+                        {% elif space.under_maintenance %}
+                        <span aria-hidden="true" style="display:inline-flex;align-items:center;gap:3px;">
+                            <i class="fa-solid fa-wrench" style="font-size:7px;"></i>
+                            {{ sub.label }}
+                        </span>
                         {% else %}
-                        <i class="fa-solid fa-car-side"></i>
+                        <span style="display:inline-flex;align-items:center;gap:3px;">
+                            <i class="fa-solid fa-motorcycle" style="opacity:.3;font-size:8px;"></i>
+                            {{ sub.label }}
+                        </span>
                         {% endif %}
-                        {{ space.number }}
                     </span>
-                    {% elif space.under_maintenance %}
-                    <span aria-hidden="true" style="display: inline-flex; align-items: center; gap: 4px;">
-                        <i class="fa-solid fa-wrench" style="font-size: 7px;"></i>
-                        {{ space.number }}
+                    {% endfor %}
+                    {# If mixed and also has a potential car space, show a car slot visual #}
+                    {% if space.slot_type == 'mixed' %}
+                    {% with car_rec=space.vehicle_type %}
+                    <span class="parking-space {% if car_rec and car_rec != 'Motorcycle' and car_rec != 'Bike' %}is-occupied{% elif space.under_maintenance %}is-maintenance{% else %}is-free{% endif %} mixed-car-slot"
+                        title="Mixed slot car space {{ space.number }}">
+                        {% if car_rec and car_rec != 'Motorcycle' and car_rec != 'Bike' %}
+                        <span aria-hidden="true" style="display:inline-flex;align-items:center;gap:3px;">
+                            <i class="fa-solid fa-car"></i>
+                            {{ space.number }}
+                        </span>
+                        {% elif space.under_maintenance %}
+                        <span aria-hidden="true" style="display:inline-flex;align-items:center;gap:3px;">
+                            <i class="fa-solid fa-wrench" style="font-size:7px;"></i>
+                            {{ space.number }}
+                        </span>
+                        {% else %}
+                        <span style="display:inline-flex;align-items:center;gap:3px;">
+                            <i class="fa-solid fa-car" style="opacity:.3;font-size:8px;"></i>
+                            {{ space.number }}
+                        </span>
+                        {% endif %}
                     </span>
-                    {% else %}
-                    <span>{{ space.number }}</span>
+                    {% endwith %}
                     {% endif %}
-                </span>
+
+                {% else %}
+                    {# ── Standard car-only slot ── #}
+                    <span class="parking-space {% if space.occupied %}is-occupied{% elif space.under_maintenance %}is-maintenance{% else %}is-free{% endif %}"
+                        title="{% if space.occupied %}Occupied{% elif space.under_maintenance %}Under Maintenance{% else %}Available{% endif %} space {{ space.number }}">
+                        {% if space.occupied %}
+                        <span aria-hidden="true" style="display: inline-flex; align-items: center; gap: 4px;">
+                            {% if space.vehicle_type == 'Car' or space.vehicle_type == 'Jeep' or space.vehicle_type == 'Van' %}
+                            <i class="fa-solid fa-car"></i>
+                            {% elif space.vehicle_type == 'Bike' or space.vehicle_type == 'Motorcycle' %}
+                            <i class="fa-solid fa-motorcycle"></i>
+                            {% elif space.vehicle_type == 'Bus' %}
+                            <i class="fa-solid fa-bus"></i>
+                            {% elif space.vehicle_type == 'Truck' or space.vehicle_type == 'Lorry' or space.vehicle_type == 'Tractor' or space.vehicle_type == 'Tempo' %}
+                            <i class="fa-solid fa-truck"></i>
+                            {% else %}
+                            <i class="fa-solid fa-car-side"></i>
+                            {% endif %}
+                            {{ space.number }}
+                        </span>
+                        {% elif space.under_maintenance %}
+                        <span aria-hidden="true" style="display: inline-flex; align-items: center; gap: 4px;">
+                            <i class="fa-solid fa-wrench" style="font-size: 7px;"></i>
+                            {{ space.number }}
+                        </span>
+                        {% else %}
+                        <span>{{ space.number }}</span>
+                        {% endif %}
+                    </span>
+                {% endif %}
+
                 {% endfor %}
             </div>
         </div>
         {% endfor %}
     </div>
     <div class="parking-map-key">
-        <span><i class="key-car"></i> Occupied slot</span>
+        <span><i class="key-car"></i> Occupied (car)</span>
+        <span><i class="key-moto" style="background:#f59e0b;"></i> Occupied (motorcycle)</span>
         <span><i class="key-free"></i> Available slot</span>
         <span><i class="key-maintenance"></i> Under maintenance</span>
         <span><strong>{{ percent_occupied }}%</strong> occupied</span>
@@ -117,22 +171,18 @@
             {% for record in active_records %}
             {% with colors=record.vehicle.get_plate_colors %}
             <tr>
-                <td style="color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;">{{
-                    forloop.counter }}</td>
+                <td style="color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;">{{ forloop.counter }}</td>
                 <td>
                     <span class="india-plate-sm" data-bg="{{ colors.0 }}" data-color="{{ colors.1 }}">
                         {{ record.vehicle.vehicle_number }}
                     </span>
                 </td>
                 <td><span class="plate-cat-tag">{{ colors.2|upper }}</span></td>
-                <td style="font-size:12px;font-weight:700;letter-spacing:0.3px;">{{ record.vehicle.vehicle_type|upper }}
-                </td>
+                <td style="font-size:12px;font-weight:700;letter-spacing:0.3px;">{{ record.vehicle.vehicle_type|upper }}</td>
                 <td style="font-weight:600;font-size:13px;">{{ record.vehicle.owner_name|upper }}</td>
-                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-2);">+91 {{
-                    record.vehicle.mobile }}</td>
-                <td><span class="slot-badge">{{ record.parking_number }}</span></td>
-                <td style="font-size:12px;color:var(--text-2);"><strong style="color:var(--text);">{{ record.parking_area_name }}</strong><br>{{
-                    record.floor_name }}</td>
+                <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-2);">+91 {{ record.vehicle.mobile }}</td>
+                <td><span class="slot-badge" style="white-space:nowrap;display:inline-block;">{{ record.parking_number }}</span></td>
+                <td style="font-size:12px;color:var(--text-2);"><strong style="color:var(--text);">{{ record.parking_area_name }}</strong><br>{{ record.floor_name }}</td>
                 <td style="font-size:12px;color:var(--text-2);">
                     {{ record.entry_time|date:"d M Y" }}<br>
                     <strong style="color:var(--text);">{{ record.entry_time|date:"h:i A" }}</strong>

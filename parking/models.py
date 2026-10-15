@@ -121,10 +121,29 @@ class ParkingFloor(models.Model):
 
 
 class ParkingSlot(models.Model):
+    SLOT_TYPE_CAR_ONLY = 'car_only'
+    SLOT_TYPE_MOTORCYCLE_ONLY = 'motorcycle_only'
+    SLOT_TYPE_MIXED = 'mixed'
+    SLOT_TYPE_CHOICES = [
+        (SLOT_TYPE_CAR_ONLY, 'Car Only'),
+        (SLOT_TYPE_MOTORCYCLE_ONLY, 'Motorcycle Only'),
+        (SLOT_TYPE_MIXED, 'Mixed (Car or Motorcycles)'),
+    ]
+
     parking_floor = models.ForeignKey(ParkingFloor, on_delete=models.CASCADE, related_name='slots')
     number = models.CharField(max_length=20, help_text='For example: G-01, A-12, VIP-3')
     sort_order = models.PositiveSmallIntegerField(default=0)
     is_under_maintenance = models.BooleanField(default=False, help_text='If checked, this slot is not available for parking')
+    slot_type = models.CharField(
+        max_length=20,
+        choices=SLOT_TYPE_CHOICES,
+        default=SLOT_TYPE_CAR_ONLY,
+        help_text='Vehicle type permitted in this slot.',
+    )
+    motorcycle_capacity = models.PositiveSmallIntegerField(
+        default=2,
+        help_text='For mixed/motorcycle-only slots: how many motorcycles can park here simultaneously.',
+    )
 
     class Meta:
         ordering = ('parking_floor', 'sort_order', 'number')
@@ -139,6 +158,87 @@ class ParkingSlot(models.Model):
     def __str__(self):
         return self.label
 
+    # ── Slot-type helpers ──────────────────────────────────────────────────
+    @property
+    def accepts_cars(self):
+        return self.slot_type in (self.SLOT_TYPE_CAR_ONLY, self.SLOT_TYPE_MIXED)
+
+    @property
+    def accepts_motorcycles(self):
+        return self.slot_type in (self.SLOT_TYPE_MOTORCYCLE_ONLY, self.SLOT_TYPE_MIXED)
+
+    def accepts_vehicle_type(self, vehicle_type):
+        """Return True if vehicle_type is compatible with this slot's configuration."""
+        motorcycle_types = {'Bike', 'Motorcycle'}
+        if vehicle_type in motorcycle_types:
+            return self.accepts_motorcycles
+        return self.accepts_cars
+
+    def get_active_motorcycle_subspace_labels(self):
+        """Return the set of subspace letters currently occupied by active records."""
+        return set(
+            self.records.filter(status='Active')
+            .exclude(motorcycle_subspace_label='')
+            .values_list('motorcycle_subspace_label', flat=True)
+        )
+
+    def get_next_free_motorcycle_subspace(self):
+        """Return the next available subspace letter (A, B, …) or None if full."""
+        if self.slot_type == self.SLOT_TYPE_MIXED:
+            if self.records.filter(status='Active', motorcycle_subspace_label='').exists():
+                return None
+        occupied = self.get_active_motorcycle_subspace_labels()
+        for i in range(self.motorcycle_capacity):
+            letter = chr(ord('A') + i)
+            if letter not in occupied:
+                return letter
+        return None
+
+    def motorcycle_spaces_free(self):
+        """Return the number of free motorcycle sub-spaces."""
+        if self.slot_type == self.SLOT_TYPE_MIXED:
+            if self.records.filter(status='Active', motorcycle_subspace_label='').exists():
+                return 0
+        occupied = len(self.get_active_motorcycle_subspace_labels())
+        return max(0, self.motorcycle_capacity - occupied)
+
+    def motorcycle_spaces_occupied(self):
+        return len(self.get_active_motorcycle_subspace_labels())
+
+    def subspace_label(self, letter):
+        """Full label for a motorcycle subspace, e.g. F1-01-A."""
+        return f'{self.number}-{letter}'
+
+    def all_subspace_info(self):
+        """Return list of dicts with label, letter, and occupied status for template use."""
+        car_parked = (
+            self.slot_type == self.SLOT_TYPE_MIXED
+            and self.records.filter(status='Active', motorcycle_subspace_label='').exists()
+        )
+        occupied = self.get_active_motorcycle_subspace_labels()
+        return [
+            {
+                'letter': chr(ord('A') + i),
+                'label': self.subspace_label(chr(ord('A') + i)),
+                'occupied': car_parked or (chr(ord('A') + i) in occupied),
+            }
+            for i in range(self.motorcycle_capacity)
+        ]
+
+
+class MotorcycleSubSpace(models.Model):
+    """Snapshot model – not used for live occupancy (ParkingRecord carries that).
+    Reserved for future reporting / analytics of individual subspace usage."""
+    parking_slot = models.ForeignKey(ParkingSlot, on_delete=models.CASCADE, related_name='subspaces')
+    letter = models.CharField(max_length=4, help_text='A, B, C … up to motorcycle_capacity')
+
+    class Meta:
+        unique_together = ('parking_slot', 'letter')
+        ordering = ('parking_slot', 'letter')
+
+    def __str__(self):
+        return f'{self.parking_slot.number}-{self.letter}'
+
 
 class ParkingRecord(models.Model):
     STATUS_CHOICES = [
@@ -151,6 +251,11 @@ class ParkingRecord(models.Model):
         ParkingSlot, on_delete=models.PROTECT, related_name='records'
     )
     slot_number = models.IntegerField()
+    # For motorcycle sub-spaces: the letter (A, B, …) assigned within a mixed/motorcycle slot.
+    motorcycle_subspace_label = models.CharField(
+        max_length=4, blank=True, default='',
+        help_text='Sub-space letter (A, B…) for motorcycles in mixed or motorcycle-only slots.',
+    )
     # A default (rather than auto_now_add) permits authorised back-dated entries.
     entry_time  = models.DateTimeField(default=timezone.now)
     exit_time   = models.DateTimeField(null=True, blank=True)
@@ -159,7 +264,8 @@ class ParkingRecord(models.Model):
     status      = models.CharField(max_length=10, choices=STATUS_CHOICES, default='Active')
 
     def __str__(self):
-        return f"{self.vehicle.vehicle_number} - Slot {self.slot_number} - {self.status}"
+        sub = f'-{self.motorcycle_subspace_label}' if self.motorcycle_subspace_label else ''
+        return f"{self.vehicle.vehicle_number} - Slot {self.slot_number}{sub} - {self.status}"
 
     @property
     def floor_name(self):
@@ -173,7 +279,11 @@ class ParkingRecord(models.Model):
 
     @property
     def parking_number(self):
-        return self.parking_slot.number
+        """Slot number, appending the subspace letter for motorcycle records."""
+        base = self.parking_slot.number
+        if self.motorcycle_subspace_label:
+            return f'{base}-{self.motorcycle_subspace_label}'
+        return base
 
     @property
     def parking_area_name(self):

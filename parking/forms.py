@@ -6,6 +6,9 @@ from .models import (
     BookingFormConfig, BookingCustomQuestion, AdvanceBooking
 )
 
+# Vehicle types that are treated as motorcycles for slot-type compatibility.
+MOTORCYCLE_VEHICLE_TYPES = {'Bike', 'Motorcycle'}
+
 DURATION_CHOICES = [
     (1.0, '1 Hour'),
     (2.0, '2 Hours'),
@@ -42,9 +45,13 @@ class ParkingFloorChoiceField(forms.ModelChoiceField):
 
 
 class ParkingSlotChoiceField(forms.ModelChoiceField):
-    """Display only the slot identifier after its floor has been selected."""
+    """Display the slot identifier and type after its floor has been selected."""
 
     def label_from_instance(self, slot):
+        if slot.slot_type == ParkingSlot.SLOT_TYPE_MOTORCYCLE_ONLY:
+            return f"{slot.number} (🏍 Moto Only · {slot.motorcycle_spaces_free()}/{slot.motorcycle_capacity} free)"
+        elif slot.slot_type == ParkingSlot.SLOT_TYPE_MIXED:
+            return f"{slot.number} (🚗+🏍 Mixed · {slot.motorcycle_spaces_free()}/{slot.motorcycle_capacity} moto free)"
         return slot.number
 
 
@@ -320,17 +327,34 @@ class ParkingFloorForm(forms.ModelForm):
 class ParkingSlotForm(forms.ModelForm):
     class Meta:
         model = ParkingSlot
-        fields = ('parking_floor', 'number', 'sort_order', 'is_under_maintenance')
+        fields = ('parking_floor', 'number', 'sort_order', 'slot_type', 'motorcycle_capacity', 'is_under_maintenance')
         widgets = {
             'parking_floor': forms.Select(attrs={'class': 'form-control'}),
             'number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. F1-01'}),
             'sort_order': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'slot_type': forms.Select(attrs={'class': 'form-control', 'id': 'id_slot_type'}),
+            'motorcycle_capacity': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '1',
+                'max': '26',
+                'placeholder': 'e.g. 4',
+                'id': 'id_motorcycle_capacity',
+            }),
             'is_under_maintenance': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        help_texts = {
+            'motorcycle_capacity': 'Number of motorcycles that can park simultaneously (max 26, one per letter A-Z). Only applies to Motorcycle Only and Mixed slots.',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['parking_floor'].empty_label = 'Select Parking Floor'
+
+    def clean_motorcycle_capacity(self):
+        cap = self.cleaned_data.get('motorcycle_capacity', 2)
+        if cap < 1 or cap > 26:
+            raise forms.ValidationError('Motorcycle capacity must be between 1 and 26.')
+        return cap
 
 
 class BookingFormSettingsForm(forms.ModelForm):
