@@ -150,3 +150,98 @@ def clear_demo_analytics_data():
     # We can delete all records or those without active sessions
     deleted, _ = ParkingRecord.objects.filter(status='Exited').delete()
     return deleted
+
+
+def seed_active_parking_data(active_count=28):
+    """
+    Seed currently active parked vehicles in free slots with realistic
+    durations, vehicle types, license plates, and entry times.
+    """
+    now = timezone.now()
+    slots = list(
+        ParkingSlot.objects.filter(is_under_maintenance=False)
+        .exclude(records__status='Active')
+        .order_by('?')
+    )
+    if not slots:
+        return 0
+
+    to_occupy = slots[:min(active_count, len(slots))]
+    created = 0
+
+    def pick_weighted(choices_weights):
+        items, weights = zip(*choices_weights)
+        return random.choices(items, weights=weights, k=1)[0]
+
+    for slot in to_occupy:
+        minutes_parked = random.randint(15, 300)
+        entry_time = now - timedelta(minutes=minutes_parked)
+
+        v_type = pick_weighted(VEHICLE_WEIGHTS)
+        p_type = pick_weighted(PLATE_WEIGHTS)
+        st_code = random.choice(SAMPLE_STATES)
+        v_num = f"{st_code} {random.randint(10, 99):02d} {chr(random.randint(65, 90))}{chr(random.randint(65, 90))} {random.randint(1000, 9999)}"
+        owner = random.choice(SAMPLE_OWNERS)
+        mob = f"98{random.randint(10000000, 99999999)}"
+
+        vehicle, _ = Vehicle.objects.get_or_create(
+            vehicle_number=v_num,
+            defaults={
+                'owner_name': owner,
+                'mobile': mob,
+                'vehicle_type': v_type,
+                'plate_type': p_type,
+                'state_code': st_code,
+            }
+        )
+
+        sub_label = ''
+        if slot.slot_type in (ParkingSlot.SLOT_TYPE_MOTORCYCLE_ONLY, ParkingSlot.SLOT_TYPE_MIXED) and v_type in ('Bike', 'Motorcycle'):
+            sub_label = slot.get_next_free_motorcycle_subspace() or ''
+
+        ParkingRecord.objects.create(
+            vehicle=vehicle,
+            parking_slot=slot,
+            slot_number=slot.sort_order or 1,
+            motorcycle_subspace_label=sub_label,
+            entry_time=entry_time,
+            exit_time=None,
+            total_hours=None,
+            parking_fee=None,
+            status='Active',
+        )
+        created += 1
+
+    return created
+
+
+def seed_advance_bookings():
+    """Seed realistic pending advance booking requests for operator review."""
+    from .models import AdvanceBooking
+    if AdvanceBooking.objects.filter(status='Pending').count() >= 3:
+        return 0
+    now = timezone.now()
+    bookings_data = [
+        ('Aarav Mehta', '9819234567', 'aarav.m@example.com', 'MH 01 DE 4492', 'Car', 'white_black', 1.5, 2.0),
+        ('Sneha Kulkarni', '9820345678', 'sneha.k@example.com', 'MH 12 GK 3021', 'Car', 'green_white', 2.0, 3.0),
+        ('Rohan Deshmukh', '9833456789', 'rohan.d@example.com', 'GJ 01 LM 8812', 'Car', 'white_black', 3.5, 4.0),
+        ('Neha Sharma', '9844567890', 'neha.s@example.com', 'DL 03 XY 7654', 'Car', 'bh_series', 0.75, 2.0),
+    ]
+    created = 0
+    for name, mob, email, vnum, vtype, ptype, arr_h, dur_h in bookings_data:
+        ref = AdvanceBooking.generate_reference()
+        AdvanceBooking.objects.create(
+            booking_reference=ref,
+            status='Pending',
+            owner_name=name,
+            mobile=mob,
+            email=email,
+            vehicle_number=vnum,
+            vehicle_type=vtype,
+            plate_type=ptype,
+            expected_arrival_time=now + timedelta(hours=arr_h),
+            expected_duration_hours=dur_h,
+        )
+        created += 1
+    return created
+
